@@ -281,15 +281,15 @@ function writeEnergies( file_path::T1, temp::Vector{T2}, epot::Vector{T3}, etot:
     nb_step=size(temp)[1]
     file_output = open( file_path, "w" )
     for step=1:nb_step
-        write(file_output,string(i," "))
-        write(file_output,string(0," "))
-        write(file_output,string(temp[i]," "))
-        write(file_output,string(epot[i]," "))
-        write(file_output,string(etot[i]," "))
-        write(file_output,string(0," "))
-        write(file_output,string(msd[i]," "))
-        write(file_output,string(comp[i]," "))
-        write(file_output,string("\n"))
+        write( file_output, string( step, " " ) )
+        write( file_output, string( 0, " " ) )
+        write( file_output, string( temp[step], " " ) )
+        write( file_output, string( epot[step], " " ) )
+        write( file_output, string( etot[step], " " ) )
+        write( file_output, string( 0, " " ) )
+        write( file_output, string( msd[step], " " ) )
+        write( file_output, string( comp[step], " " ) )
+        write( file_output, string( "\n" ) )
     end
     close(file_output)
     return true
