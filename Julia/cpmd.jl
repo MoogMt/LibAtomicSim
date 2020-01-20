@@ -300,6 +300,7 @@ function readStress( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, 
     #------------------------------------------
 
     #--------------------------------------------------------
+    count_=1
     file_in=open(file_path)
     for step=1:nb_step_origin
         if step % stride_ == 0
@@ -318,10 +319,11 @@ function readStress( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, 
                     return false
                 else
                     for j=1:stress_dim
-                        stress[step,i,j] = parse(Float64,keywords[j])
+                        stress[count_,i,j] = parse(Float64,keywords[j])
                     end
                 end
             end
+            count_ += 1
         else
             for skip_line=1:stress_block_size
                 temp = readline( file_in )
@@ -354,6 +356,7 @@ function readStress( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: A
             temp = readline(file_in )
         end
     end
+    count_=1
     for step=1:(nb_step_origin-nb_ignore*stress_block_size)
         if step % stride_ == 0
             temp=split( readline( file_in ) ) # Comment line
@@ -371,10 +374,11 @@ function readStress( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: A
                     return false
                 else
                     for j=1:stress_dim
-                        stress[step,i,j] = parse(Float64,keywords[j])
+                        stress[count_,i,j] = parse(Float64,keywords[j])
                     end
                 end
             end
+            count_+=1
         else
             for skip_line=1:stress_block_size
                 temp = readline( file_in )
