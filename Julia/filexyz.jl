@@ -104,7 +104,7 @@ function readFileAtomList( file_path::T1 ) where { T1 <: AbstractString }
       traj[step] = atom_mod.AtomList( nb_atoms )
       for atom=1:nb_atoms
           keywords=split( readline(file_in) )
-          traj[step].names[atom] = line_keywords[1]
+          traj[step].names[atom] = keywords[1]
           traj[step].index[atom] = atom
           for i=1:3
               traj[step].positions[ atom, pos ] = parse( Float64, keywords[ i+1 ] )
@@ -118,30 +118,158 @@ end
 function readFileAtomList( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T2 <: Int }
 
   #-----------------------------------------------
-  nb_step = getNbSteps( file_path )
-  if nb_step == false
+  nb_step_origin = getNbSteps( file_path )
+  if nb_step_origin == false
     return false
   end
   #-----------------------------------------------
 
   # Init output structure
   #------------------------------------------------
+  nb_steps=0
+  if nb_step_origin % stride_ == 0
+      nb_steps = trunc(Int, nb_step_origin/stride_)
+  else
+      nb_steps = trunc(Int, nb_step_origin/stride_) + 1
+  end
   traj=Vector{ atom_mod.AtomList }( undef, nb_steps )
   #-------------------------------------------------
 
   # Reading
   #------------------------------------------------------
   file_in = open( file_path )
-  for step=1:nb_steps
+  count_step=1
+  for step=1:nb_step_origin
+      # We care about the number of atoms to skip...
       nb_atoms=parse( Int64, split( readline( file_in ) )[1] )
+      # This line is always skipped
       temp=readline( file_in )
-      traj[step] = atom_mod.AtomList( nb_atoms )
-      for atom=1:nb_atoms
-          keywords=split( readline(file_in) )
-          traj[step].names[atom] = line_keywords[1]
-          traj[step].index[atom] = atom
-          for i=1:3
-              traj[step].positions[ atom, pos ] = parse( Float64, keywords[ i+1 ] )
+      if (step-1) % stride_ == 0
+          traj[count_step] = atom_mod.AtomList( nb_atoms )
+          for atom=1:nb_atoms
+              keywords=split( readline(file_in) )
+              traj[count_step].names[atom] = keywords[1]
+              traj[count_step].index[atom] = atom
+              for i=1:3
+                  traj[count_step].positions[ atom, pos ] = parse( Float64, keywords[ i+1 ] )
+              end
+          end
+          count_step += 1
+      else
+          # Not counting those steps
+          for i=1:nb_atoms
+              temp=readline( file_in )
+          end
+      end
+  end
+  #------------------------------------------------
+
+  return traj
+end
+function readFileAtomList( file_path::T1, stride_::T2, nb_ignored::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int }
+
+  #-----------------------------------------------
+  nb_step_origin = getNbSteps( file_path )
+  if nb_step_origin == false
+    return false
+  end
+  #-----------------------------------------------
+
+  # Init output structure
+  #------------------------------------------------
+  nb_steps=0
+  if nb_step_origin % stride_ == 0
+      nb_steps = trunc( Int, ( nb_step_origin - nb_ignored )/stride_ )
+  else
+      nb_steps = trunc( Int, ( nb_step_origin - nb_ignored )/stride_ ) + 1
+  end
+  traj=Vector{ atom_mod.AtomList }( undef, nb_steps )
+  #-------------------------------------------------
+
+  # Reading
+  #------------------------------------------------------
+  file_in = open( file_path )
+  count_step=1
+  for step=1:nb_step_origin-nb_ignored
+      # We care about the number of atoms to skip...
+      nb_atoms=parse( Int64, split( readline( file_in ) )[1] )
+      # This line is always skipped
+      temp=readline( file_in )
+      if (step-1) % stride_ == 0
+          traj[count_step] = atom_mod.AtomList( nb_atoms )
+          for atom=1:nb_atoms
+              keywords=split( readline(file_in) )
+              traj[count_step].names[atom] = keywords[1]
+              traj[count_step].index[atom] = atom
+              for i=1:3
+                  traj[count_step].positions[ atom, pos ] = parse( Float64, keywords[ i+1 ] )
+              end
+          end
+          count_step += 1
+      else
+          # Not counting those steps
+          for i=1:nb_atoms
+              temp=readline( file_in )
+          end
+      end
+  end
+  #------------------------------------------------
+
+  return traj
+end
+function readFileAtomList( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T4 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int, T4 <: Int }
+
+  #-----------------------------------------------
+  nb_step_origin = getNbSteps( file_path )
+  if nb_step_origin == false
+    return false
+  end
+  #-----------------------------------------------
+
+  # Init output structure
+  #------------------------------------------------
+  nb_step = 0
+  if (nb_step_origin-nb_ignore) % stride_ == 0
+      nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
+  else
+      nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
+  end
+  if nb_max > nb_step
+      print("nb_max is too large, maximum value is ",nb_step,"\n")
+  end
+  if nb_max <= 0
+      print("nb_max must be positive!\n")
+  end
+  traj=Vector{ atom_mod.AtomList }( undef, nb_max )
+  #-------------------------------------------------
+
+  # Reading
+  #------------------------------------------------------
+  file_in = open( file_path )
+  count_step=1
+  for step=1:nb_step_origin-nb_ignored
+      # We care about the number of atoms to skip...
+      nb_atoms=parse( Int64, split( readline( file_in ) )[1] )
+      # This line is always skipped
+      temp=readline( file_in )
+      if (step-1) % stride_ == 0
+          traj[count_step] = atom_mod.AtomList( nb_atoms )
+          for atom=1:nb_atoms
+              keywords=split( readline(file_in) )
+              traj[count_step].names[atom] = keywords[1]
+              traj[count_step].index[atom] = atom
+              for i=1:3
+                  traj[count_step].positions[ atom, pos ] = parse( Float64, keywords[ i+1 ] )
+              end
+          end
+          if count_step >= nb_max
+              break
+          end
+          count_step += 1
+      else
+          # Not counting those steps
+          for i=1:nb_atoms
+              temp=readline( file_in )
           end
       end
   end
