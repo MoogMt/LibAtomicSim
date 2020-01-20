@@ -260,7 +260,7 @@ function readEnergies( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) w
     end
     for step=1:nb_steps_origin-nb_ignore
         line=split( readline(file_in) )
-        if (step-1) % stride_ == 0 && step
+        if (step-1) % stride_ == 0
             temp[count_] = parse( Float64, line[col_temp] )
             epot[count_] = parse( Float64, line[col_poten] )
             etot[count_]  = parse( Float64, line[col_entot] )
