@@ -218,6 +218,60 @@ function readEnergiesFile( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T
 
     return  temp, epot, etot, msd, comp
 end
+function readEnergiesFile( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int, T4 <: Int  }
+    # Check file
+    if ! isfile(file_path)
+        return false, false, false, false, false
+    end
+
+    # Array Init
+    #----------------------------------------
+    nb_steps_origin = getEnergiesNbStep( file_path )
+    nb_step = 0
+    if (nb_step_origin-nb_ignore) % stride_ == 0
+        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
+    else
+        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
+    end
+    if nb_max > nb_step
+        print("nb_max is too large, maximum value is ",nb_step,"\n")
+    end
+    if nb_max <= 0
+        print("nb_max must be positive!\n")
+    end
+    temp=Vector{Real}(undef,nb_max)
+    epot=Vector{Real}(undef,nb_max)
+    etot=Vector{Real}(undef,nb_max)
+    msd=Vector{Real}(undef,nb_max)
+    comp=Vector{Real}(undef,nb_max)
+    #----------------------------------------
+
+    # Getting data from lines
+    #----------------------------------------------
+    file_in = open(file_path)
+    count_=1
+    for step=1:nb_ignore
+        temp=readline(file_in)
+    end
+    for step=1:nb_steps_origin-nb_ignore
+        line=split( readline(file_in) )
+        if (step-1) % stride_ == 0 && step
+            temp[count_] = parse( Float64, line[col_temp] )
+            epot[count_] = parse( Float64, line[col_poten] )
+            etot[count_]  = parse( Float64, line[col_entot] )
+            msd[count_]   = parse( Float64, line[col_msd] )
+            comp[count_]  = parse( Float64, line[col_comp] )
+            if count_ == nb_max
+                break
+            end
+            count_ += 1
+        end
+    end
+    close(file_in)
+    #----------------------------------------------
+
+    return  temp, epot, etot, msd, comp
+end
 #------------------------------------------------------------------------------#
 # Reading STRESS file
 #----------------------------------------------
@@ -306,10 +360,10 @@ function readStress( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, 
     #------------------------------------------
     nb_step_origin=getNbStepStress( file_path )
     nb_step = 0
-    if (nb_step_origin-nb_ignore) % stride_ == 0
-        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
+    if nb_step_origin % stride_ == 0
+        nb_step = trunc(Int, nb_step_origin/stride_)
     else
-        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
+        nb_step = trunc(Int, nb_step_origin/stride_) + 1
     end
     stress=zeros(Real,nb_step,stress_dim,stress_dim)
     #------------------------------------------
@@ -397,6 +451,75 @@ function readStress( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: A
                         stress[count_,i,j] = parse(Float64,keywords[j])
                     end
                 end
+            end
+            count_+=1
+        else
+            for skip_line=1:stress_block_size
+                temp = readline( file_in )
+            end
+        end
+    end
+    close(file_in)
+    #--------------------------------------------------------
+
+    return stress
+end
+function readStress( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int, T4 <: Int }
+
+    # Checking file exists
+    if ! isfile( file_path )
+        false
+    end
+
+    # Init data files
+    #------------------------------------------
+    nb_step_origin=getNbStepStress( file_path )
+    nb_step = 0
+    if (nb_step_origin-nb_ignore) % stride_ == 0
+        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
+    else
+        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
+    end
+    if nb_max > nb_step
+        print("nb_max is too large, maximum value is ",nb_step,"\n")
+    end
+    if nb_max <= 0
+        print("nb_max must be positive!\n")
+    end
+    stress=zeros(Real,nb_max,stress_dim,stress_dim)
+    #------------------------------------------
+
+    #--------------------------------------------------------
+    file_in=open(file_path)
+    for step=1:nb_ignore
+        for i=1:stress_block_size
+            temp = readline(file_in )
+        end
+    end
+    count_=1
+    for step=1:(nb_step_origin-nb_ignore)
+        if (step-1) % stride_ == 0
+            temp=split( readline( file_in ) ) # Comment line
+            if temp[1] != "TOTAL"
+                # Corruption in file
+                print("STRESS file is likely corrupted!\n")
+                print("line: ",step*stress_block_size,"\n")
+                return false
+            end
+            for i=1:stress_dim
+                keywords=split( readline( file_in ) )
+                if keywords[1] == "TOTAL"
+                    print("STRESS file is likely corrupted!\n")
+                    print("line: ",step*stress_block_size+i,"\n")
+                    return false
+                else
+                    for j=1:stress_dim
+                        stress[count_,i,j] = parse(Float64,keywords[j])
+                    end
+                end
+            end
+            if count_ >= nb_max
+                break
             end
             count_+=1
         else
