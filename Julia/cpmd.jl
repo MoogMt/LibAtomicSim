@@ -118,18 +118,18 @@ function readEnergiesFile( file_path::T1 ) where { T1 <: AbstractString }
     # Getting data from lines
     #----------------------------------------------
     file_in = open(file_path)
-    for i=1:nb_steps
+    for step=1:nb_steps
         line=split( readline(file_in) )
-        temp[i]=parse(Float64,line[3])
-        epot[i]=parse(Float64,line[4])
-        etot[i]=parse(Float64,line[5])
-        msd[i]=parse(Float64,line[7])
-        comp[i]=parse(Float64,line[8])
+        temp[step]=parse(Float64,line[col_temp])
+        epot[step]=parse(Float64,line[col_poten])
+        etot[step]=parse(Float64,line[col_entot])
+        msd[step]=parse(Float64,line[col_msd])
+        comp[step]=parse(Float64,line[col_comp])
     end
     close(file_in)
     #----------------------------------------------
 
-    return  temperature, epot, etot, msd, comp
+    return  temp, epot, etot, msd, comp
 end
 function readEnergiesFile( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T2 <: Int  }
     # Check file
@@ -140,7 +140,12 @@ function readEnergiesFile( file_path::T1, stride_::T2 ) where { T1 <: AbstractSt
     # Array Init
     #----------------------------------------
     nb_steps_origin = getEnergiesNbStep( file_path )
-    nb_steps = trunc( Int, nb_steps_origin/stride_ ) + 1
+    nb_steps=0
+    if nb_steps_origin % stride_ == 0
+        nb_steps = trunc(Int, nb_steps_origin/stride_ )
+    else
+        nb_steps = trunc(Int, nb_steps_origin/stride_ ) + 1
+    end
     temp=Vector{Real}(undef,nb_steps)
     epot=Vector{Real}(undef,nb_steps)
     etot=Vector{Real}(undef,nb_steps)
@@ -154,7 +159,7 @@ function readEnergiesFile( file_path::T1, stride_::T2 ) where { T1 <: AbstractSt
     count_=1
     for step=1:nb_steps_origin
         line=split( readline(file_in) )
-        if step % stride_ == 0
+        if (step-1) % stride_ == 0
             temp[count_] = parse( Float64, line[col_temp] )
             epot[count_] = parse( Float64, line[col_poten] )
             etot[count_]  = parse( Float64, line[col_entot] )
@@ -199,7 +204,7 @@ function readEnergiesFile( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T
     end
     for step=1:nb_steps_origin-nb_ignore
         line=split( readline(file_in) )
-        if step % stride_ == 0 && step
+        if (step-1) % stride_ == 0 && step
             temp[count_] = parse( Float64, line[col_temp] )
             epot[count_] = parse( Float64, line[col_poten] )
             etot[count_]  = parse( Float64, line[col_entot] )
@@ -300,7 +305,12 @@ function readStress( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, 
     # Init data files
     #------------------------------------------
     nb_step_origin=getNbStepStress( file_path )
-    nb_step = trunc(Int,nb_step_origin/stride_) + 1
+    nb_step = 0
+    if (nb_step_origin-nb_ignore) % stride_ == 0
+        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
+    else
+        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
+    end
     stress=zeros(Real,nb_step,stress_dim,stress_dim)
     #------------------------------------------
 
@@ -308,7 +318,7 @@ function readStress( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, 
     count_=1
     file_in=open(file_path)
     for step=1:nb_step_origin
-        if step % stride_ == 0
+        if (step-1) % stride_ == 0
             temp=split( readline( file_in ) ) # Comment line
             if temp[1] != "TOTAL"
                 # Corruption in file
@@ -368,7 +378,7 @@ function readStress( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: A
     end
     count_=1
     for step=1:(nb_step_origin-nb_ignore)
-        if step % stride_ == 0
+        if (step-1) % stride_ == 0
             temp=split( readline( file_in ) ) # Comment line
             if temp[1] != "TOTAL"
                 # Corruption in file
