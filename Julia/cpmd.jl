@@ -188,10 +188,10 @@ function readEnergies( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <:
     #----------------------------------------
     nb_steps_origin =  getNbStepEnergies( file_path )
     nb_steps=0
-    if (nb_step_origin-nb_ignore) % stride_ == 0
-        nb_steps = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
+    if (nb_steps_0origin-nb_ignore) % stride_ == 0
+        nb_steps = trunc(Int, (nb_steps_origin-nb_ignore)/stride_)
     else
-        nb_steps = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
+        nb_steps = trunc(Int, (nb_steps_origin-nb_ignore)/stride_) + 1
     end
     temp=Vector{Real}(undef,nb_steps)
     epot=Vector{Real}(undef,nb_steps)
@@ -233,10 +233,10 @@ function readEnergies( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) w
     #----------------------------------------
     nb_steps_origin =  getNbStepEnergies( file_path )
     nb_step = 0
-    if (nb_step_origin-nb_ignore) % stride_ == 0
-        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
+    if (nb_steps_origin-nb_ignore) % stride_ == 0
+        nb_step = trunc(Int, (nb_steps_origin-nb_ignore)/stride_)
     else
-        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
+        nb_step = trunc(Int, (nb_steps_origin-nb_ignore)/stride_) + 1
     end
     if nb_max > nb_step
         print("nb_max is too large, maximum value is ",nb_step,"\n")
