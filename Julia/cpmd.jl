@@ -111,7 +111,7 @@ function readEnergies( file_path::T1 ) where { T1 <: AbstractString }
 
     # Array Init
     #----------------------------------------
-    nb_steps = getEnergiesNbStep( file_path )
+    nb_steps = getNbStepEnergies( file_path )
     temp=Vector{Real}(undef,nb_steps)
     epot=Vector{Real}(undef,nb_steps)
     etot=Vector{Real}(undef,nb_steps)
@@ -143,7 +143,7 @@ function readEnergies( file_path::T1, stride_::T2 ) where { T1 <: AbstractString
 
     # Array Init
     #----------------------------------------
-    nb_steps_origin = getEnergiesNbStep( file_path )
+    nb_steps_origin = getNbStepEnergies( file_path )
     nb_steps=0
     if nb_steps_origin % stride_ == 0
         nb_steps = trunc(Int, nb_steps_origin/stride_ )
@@ -185,7 +185,7 @@ function readEnergies( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <:
 
     # Array Init
     #----------------------------------------
-    nb_steps_origin = getEnergiesNbStep( file_path )
+    nb_steps_origin =  getNbStepEnergies( file_path )
     nb_steps=0
     if (nb_step_origin-nb_ignore) % stride_ == 0
         nb_steps = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
@@ -230,7 +230,7 @@ function readEnergies( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) w
 
     # Array Init
     #----------------------------------------
-    nb_steps_origin = getEnergiesNbStep( file_path )
+    nb_steps_origin =  getNbStepEnergies( file_path )
     nb_step = 0
     if (nb_step_origin-nb_ignore) % stride_ == 0
         nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
@@ -842,66 +842,45 @@ function buildingDataBase( folder_input::T1, file_stress::T2, file_traj::T3, tim
     #---------------------------------------------------------------------------
     n_stress = round( Int, timestep_target/( timestep_sim*stride_stress ) )
     n_traj   = round( Int, timestep_target/( timestep_sim*stride_traj ) )
-    n_energy = round( Int, timestep_target/( timestep_sim*stride_traj ) )
+    n_energy = round( Int, timestep_target/( timestep_sim ) )
     n_ftraj  = round( Int, timestep_target/( timestep_sim*stride_traj ) )
     #---------------------------------------------------------------------------
 
-    # Read Step for all files
+    # Target files
     #---------------------------------------------------------------------------
-    file_energy = string(folder_target,"ENERGIES")
-    file_trajec = string(folder_target,"TRAJEC.xyz")
-    file_stress = string(folder_target,"STRESS")
-    file_ftrajectory = string(folder_target,"FTRAJECTORY")
-    nb_step_stress = getNbStepStress( file_stress )
-    nb_step_ftraj  = getNbStepAtomsFTRAJ( file_ftrajectory )
-    nb_step_energy = getNbStepEnergies( file_energy )
-    nb_step_traj   = filexyz.getNbStep( file_trajec )
+    file_energy_in = string(folder_target,"ENERGIES")
+    file_trajec_in = string(folder_target,"TRAJEC.xyz")
+    file_stress_in = string(folder_target,"STRESS")
+    file_ftrajectory_in = string(folder_target,"FTRAJECTORY")
     #---------------------------------------------------------------------------
 
-    #
-
-
-    # Treating ENERGIES data
+    # Determining nb of steps
     #---------------------------------------------------------------------------
-    size_data_base=size(temperature)[1]
-    temperature=temperature[1:n_energy:size_data_base]
-    e_pot=e_pot[1:n_energy:size_data_base]
-    e_tot=e_tot[1:n_energy:size_data_base]
-    msd=msd[1:n_energy:size_data_base]
-    comp_time=comp_time[1:n_energy:size_data_base]
-    #---------------------------------------------------------------------------
-
-    # READ STRESS file
-    #---------------------------------------------------------------------------
-    stress,test=cpmd.readStress(file_stress)
-    if ! test
-        return false
-    end
-    #---------------------------------------------------------------------------
-
-    # Treating STRESS data -> Compute P and Stride
-    #---------------------------------------------------------------------------
-    pressure=press_stress.computePressure(stress)
-    size_pressure=size(pressure)[1]
-    pressure=pressure[1:n_stress:size_pressure]
-    #---------------------------------------------------------------------------
-
-    # Reading TRAJEC.xyz file
-    #---------------------------------------------------------------------------
-    file_traj=string(folder_in,"TRAJEC.xyz")
-    traj,test=filexyz.readFastFile(file_traj)
-    if ! test
-        return false
-    end
+    nb_step_stress = utils.nbStepStriding( getNbStepStress( file_stress_in ), n_stress )
+    nb_step_ftraj  = utils.nbStepStriding( getNbStepAtomsFTRAJ( file_ftrajectory_in ), n_ftraj )
+    nb_step_energy = utils.nbStepStriding( getNbStepEnergies( file_energy_in ), n_energy )
+    nb_step_traj   = utils.nbStepStriding( filexyz.getNbStep( file_trajec_in ), n_traj )
     #--------------------------------------------------------------------------
 
-    # Treating TRAJ data
+    # Determining target length
     #--------------------------------------------------------------------------
-    size_traj=size(traj)[0]
-    traj = traj[1:n_traj:size_traj]
+    target_length = min( nb_step_stress, nb_step_ftraj, nb_step_energy, nb_step_traj )
     #--------------------------------------------------------------------------
 
-    return temperature, e_potential, e_total, msd, comp_time, pressure, traj
+    # Writing
+    #--------------------------------------------------------------------------
+    nb_ignored=0
+    stress_tensor = readStress( file_stress_in, n_stress, nb_ignored, target_length )
+    pressure=press_stress.computePressure(stress_tensor)
+    writeStress( file_stress, stress_tensor )
+    
+    #--------------------------------------------------------------------------
+
+    # Computing Pressure and Writting to file
+    #---------------------------------------------------------------------------
+    #---------------------------------------------------------------------------
+
+    return true
 end
 function buildingDataBase( folder_sim::T1, timestep_target::T2 ) where { T1 <: AbstractString, T2 <: Real }
 

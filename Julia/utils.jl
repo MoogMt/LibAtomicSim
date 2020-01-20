@@ -4,19 +4,45 @@ module utils
 #  List of useful random functions that I could not fit elsewhere
 #-------------------------------------------------------------------------------
 
+# Striding stuff
+#-------------------------------------------------------------------------------
+function nbStepStriding( nb_step::T1 , stride_::T2 ) where { T1 <: Int, T2 <: Int }
+  if nb_step % stride_ == 0
+    return Int(nb_step/stride_)
+  else
+    return trunc(Int,nb_step/stride_)+1
+  end
+end
+function nbStepStriding( nb_step::T1, stride_::T2, nb_ignored::T3 ) where { T1 <: Int, T2 <: Int, T3 <: Int }
+  return nbStepStriding( nb_step-nb_ignored, )
+end
 function strideData!( data::Vector{T1}, stride::T2 ) where { T1 <: Real, T2 <: Int }
   if stride < 0 || stride > size(data)[0]
     return false
     return data[1:stride:size(data)[0]]
   end
 end
+#-------------------------------------------------------------------------------
 
+
+#-------------------------------------------------------------------------------
+function writeData( file_path::T1, data::Vector{T2} ) where { T1 <: AbstractString, T2 <: Real }
+  nb_data=size(data)[1]
+  file_out=open(file_path,"w")
+  for step=1:nb_data
+      write(file_out,string(data[i],"\n"))
+  end
+  close(file_out)
+  return true
+end
 function getLines( file_path::T1 ) where { T1 <: AbstractString }
   file_in = open( file_path )
   lines = readlines( file_in )
   close( file_in )
   return lines
 end
+#-------------------------------------------------------------------------------
+
 
 #==============================================================================#
 function determineFolderPath( computers_names::Vector{T1}, paths::Vector{T2} ) where { T1 <: AbstractString, T2 <: AbstractString }
