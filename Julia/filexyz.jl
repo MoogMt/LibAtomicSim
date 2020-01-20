@@ -33,7 +33,7 @@ function getNbSteps( file_path::T1 ) where { T1 <: AbstractString }
   nb_atoms=0
   file_in = open( file_path )
   while ! eof(file_in)
-    if nb_step == 0
+    if nb_lines == 0
       nb_atoms = parse(Float64,split( readline( file_in ) )[1] )
     else
       temp = readline( file_in )
@@ -92,7 +92,7 @@ function readFileAtomList( file_path::T1 ) where { T1 <: AbstractString }
 
   # Init output structure
   #------------------------------------------------
-  traj=Vector{ atom_mod.AtomList }( undef, nb_steps )
+  traj=Vector{ atom_mod.AtomList }( undef, nb_step )
   #-------------------------------------------------
 
   # Reading
@@ -107,7 +107,7 @@ function readFileAtomList( file_path::T1 ) where { T1 <: AbstractString }
           traj[step].names[atom] = keywords[1]
           traj[step].index[atom] = atom
           for i=1:3
-              traj[step].positions[ atom, pos ] = parse( Float64, keywords[ i+1 ] )
+              traj[step].positions[ atom, i ] = parse( Float64, keywords[ i+1 ] )
           end
       end
   end
@@ -151,7 +151,7 @@ function readFileAtomList( file_path::T1, stride_::T2 ) where { T1 <: AbstractSt
               traj[count_step].names[atom] = keywords[1]
               traj[count_step].index[atom] = atom
               for i=1:3
-                  traj[count_step].positions[ atom, pos ] = parse( Float64, keywords[ i+1 ] )
+                  traj[count_step].positions[ atom, i ] = parse( Float64, keywords[ i+1 ] )
               end
           end
           count_step += 1
@@ -202,7 +202,7 @@ function readFileAtomList( file_path::T1, stride_::T2, nb_ignored::T3 ) where { 
               traj[count_step].names[atom] = keywords[1]
               traj[count_step].index[atom] = atom
               for i=1:3
-                  traj[count_step].positions[ atom, pos ] = parse( Float64, keywords[ i+1 ] )
+                  traj[count_step].positions[ atom, i ] = parse( Float64, keywords[ i+1 ] )
               end
           end
           count_step += 1
@@ -229,10 +229,10 @@ function readFileAtomList( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T
   # Init output structure
   #------------------------------------------------
   nb_step = 0
-  if (nb_step_origin-nb_ignore) % stride_ == 0
-      nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
+  if (nb_step_origin-nb_ignored) % stride_ == 0
+      nb_step = trunc(Int, (nb_step_origin-nb_ignored)/stride_)
   else
-      nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
+      nb_step = trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
   end
   if nb_max > nb_step
       print("nb_max is too large, maximum value is ",nb_step,"\n")
@@ -259,7 +259,7 @@ function readFileAtomList( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T
               traj[count_step].names[atom] = keywords[1]
               traj[count_step].index[atom] = atom
               for i=1:3
-                  traj[count_step].positions[ atom, pos ] = parse( Float64, keywords[ i+1 ] )
+                  traj[count_step].positions[ atom, i ] = parse( Float64, keywords[ i+1 ] )
               end
           end
           if count_step >= nb_max
