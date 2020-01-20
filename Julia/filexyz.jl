@@ -22,7 +22,7 @@ using cube_mod
 
 # Counts the nb of steps contained in file
 #------------------------------------------------------------------------------
-function getNbStep( file_path::T1 ) where { T1 <: AbstractString }
+function getNbSteps( file_path::T1 ) where { T1 <: AbstractString }
 
   if ! isfile( file_path )
     print("File TRAJEC.xyz does not exists at ",file_path,"\n")
@@ -98,7 +98,7 @@ function readFileAtomList( file_path::T1 ) where { T1 <: AbstractString }
   # Reading
   #------------------------------------------------------
   file_in = open( file_path )
-  for step=1:nb_steps
+  for step=1:nb_step
       nb_atoms=parse( Int64, split( readline( file_in ) )[1] )
       temp=readline( file_in )
       traj[step] = atom_mod.AtomList( nb_atoms )
