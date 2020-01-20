@@ -1,6 +1,7 @@
 module cpmd
 
 using conversion
+using utils
 
 export readInputTimestep, readIntputStrideStress, readIntputStrideTraj
 export readEnergy, readPressure, readStress, readTRAJ
