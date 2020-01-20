@@ -2,11 +2,13 @@ module cpmd
 
 using conversion
 using utils
+using filexyz
 
 export readInputTimestep, readIntputStrideStress, readIntputStrideTraj
 export readEnergiesFile, readStress, readTraj
 export getNbStepEnergies, getNbStepStress, getNbStepAtomsFtraj
 export writeEnergies, writeStress, writeFtraj
+export buildingDataBase
 
 # Read input
 # Reads the input file of a CPMD simuation
@@ -803,12 +805,22 @@ function readFtraj( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) wher
     return positions, velocities, forces
 end
 function writeFtraj( file_path::T1, positions::Array{T2,3}, velocities::Array{T3,3}, forces::Array{T4,3} ) where { T1 <: AbstractString, T2 <: Real, T3 <: Real, T4 <: Real }
-    nb_step=size(positions)[1]
-    file_out=open(file_path,"w")
+    nb_step = size(positions)[1]
+    file_out = open( file_path, "w" )
     for step=1:nb_step
-        write(file_out,string(step," "))
+        write( file_out, string( step, " " ) )
+        for i=1:3
+            write( file_out, string( positions[step,i], " " ) )
+        end
+        for i=1:3
+            write( file_out, string( velocities[step,i], " " ) )
+        end
+        for i=1:3
+            write( file_out, string( forces[step,i], " " ) )
+        end
+        write(file_out,string("\n"))
     end
-    close(file_out)
+    close( file_out )
     return true
 end
 #-------------------------------------------------------------------------------
@@ -834,14 +846,20 @@ function buildingDataBase( folder_input::T1, file_stress::T2, file_traj::T3, tim
     n_ftraj  = round( Int, timestep_target/( timestep_sim*stride_traj ) )
     #---------------------------------------------------------------------------
 
-    # Read ENERGIES File
+    # Read Step for all files
     #---------------------------------------------------------------------------
-    file_energy=string(folder_target,"ENERGIES")
-    temperature, e_pot, e_tot, msd, comp_time = readEnergyFile( file_energy )
-    if ! test
-        return false
-    end
+    file_energy = string(folder_target,"ENERGIES")
+    file_trajec = string(folder_target,"TRAJEC.xyz")
+    file_stress = string(folder_target,"STRESS")
+    file_ftrajectory = string(folder_target,"FTRAJECTORY")
+    nb_step_stress = getNbStepStress( file_stress )
+    nb_step_ftraj  = getNbStepAtomsFTRAJ( file_ftrajectory )
+    nb_step_energy = getNbStepEnergies( file_energy )
+    nb_step_traj   = filexyz.getNbStep( file_trajec )
     #---------------------------------------------------------------------------
+
+    #
+
 
     # Treating ENERGIES data
     #---------------------------------------------------------------------------

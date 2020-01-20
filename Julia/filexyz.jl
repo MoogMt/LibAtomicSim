@@ -1,33 +1,55 @@
 module filexyz
 
-export getNbSteps, readFastFile, readStep, readEmpty, readXYZ, writeXYZ
+# filexyz
+# Contains functions to deal with xyz file:
+# - Functions to get the number of steps in a file
+# - Functions to read the file into an AtomList structure (see atom_mod.jl)
+# - Functions to write an .xyz file into a given filepath from an AtomList structure
+
+# TODO
+# - Support for non AtomList Object
+# - Support for AtomMolList
+# - Add More write functions? 
+
+export getNbSteps
+export readFastFile, readStep, readXYZ
+export writeXYZ
 
 using atom_mod
 using cell_mod
 using cube_mod
 
 
-#------------------------------------------------------------------------------
 # Counts the nb of steps contained in file
-function getNbSteps( file::T1 ) where { T1 <: AbstractString }
-  nb_step=0
+#------------------------------------------------------------------------------
+function getNbStep( file_path::T1 ) where { T1 <: AbstractString }
+
+  if ! isfile( file_path )
+    print("File TRAJEC.xyz does not exists at ",file_path,"\n")
+    return false
+  end
+
+  nb_lines=0
   nb_atoms=0
-  open( file ) do f
-    while !eof(f)
-      if nb_step == 0
-        nb_atoms=parse(Float64,split(readline(f))[1])
-      else
-        readline(f)
-      end
-      nb_step+=1
+  file_in = open( file_path )
+  while ! eof(file_in)
+    if nb_step == 0
+      nb_atoms = parse(Float64,split( readline( file_in ) )[1] )
+    else
+      temp = readline( file_in )
     end
+    nb_lines += 1
   end
-  if nb_atoms != 0
-    return Int(nb_step/(nb_atoms+2))
-  else
-    return 0
+  close(file_in)
+
+  if nb_lines % (nb_atoms+2) != 0
+    print("File TRAJEC.xyz is corrupted!\n")
+    return false
   end
+
+  return Int(nb_lines/(nb_atoms+2))
 end
+#------------------------------------------------------------------------------
 
 # Reading file by not managing datas
 # - requires ability to load both all lines of the file
@@ -168,53 +190,52 @@ function readXYZ( file::T1, stride::T2 , start_step::T3 ) where { T1 <: Abstract
 end
 #--------------------------------------------------------------------------------
 
-#---------------------------------------------------------------------------------
-# write a step using a file pointers
+# Writing File To Disk
+#==============================================================================#
 function writeXYZ( file_handle::T1, atoms::T2 ) where { T1 <: IOStream, T2 <: atom_mod.AtomList }
-  Base.write(file_handle,string(size(atoms.names)[1],"\n"))
+  nb_atoms=size(atoms.names)[1]
+  Base.write(file_handle,string(nb_atoms,"\n"))
   Base.write(file_handle,string("STEP: X\n"))
-  for i=1:size( atoms.names )[1]
+  for i=1:nb_atoms
     Base.write( file_handle, string( atoms.names[i] , " "  ) )
     for j=1:3
       Base.write( file_handle, string( atoms.positions[i,j] , " " ) )
     end
     Base.write( file_handle, "\n" )
   end
-  return
+  return true
 end
-
-# write a step using a file pointers
 function writeXYZ( file_handle::T1, traj::Vector{T2} ) where { T1 <: IOStream, T2 <: atom_mod.AtomList }
   nb_step=size(traj)[1]
   for step=1:nb_step
-    writeXYZ( file_handle, traj[1] )
+    temp=writeXYZ( file_handle, traj[step] )
   end
+  return true
 end
-
-# write the data into a new file
-function writeXYZ( file::T1, atoms::T2 ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList }
-  out=open(file,"w")
-  Base.write(out,string(size(atoms.names)[1],"\n"))
-  Base.write(out,string("STEP: X\n"))
-  for i=1:size(atoms.names)[1]
-    Base.write(out, string( atoms.names[i]," " ) )
+function writeXYZ( file_path::T1, atoms::T2 ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList }
+  file_out = open( file_path, "w" )
+  nb_atoms=size(atoms.names)[1]
+  Base.write( out, string( nb_atoms, "\n"))
+  Base.write( out, string( "STEP: X\n" ) )
+  for i=1:nb_atoms
+    write( file_out, string( atoms.names[i], " " ) )
     for j=1:3
-      Base.write(out, string( atoms.positions[i,j] , " ") )
+      write( file_out, string( atoms.positions[i,j] , " ") )
     end
-    Base.write(out,"\n")
+    write( file_out, "\n" )
   end
-  close(out)
+  close( file_out )
+  return true
 end
-
-# Write several stepss
 function writeXYZ( file::T1, traj::Vector{T2} ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList }
-  f=open(file,"w")
   nb_step=size(traj)[1]
+  file_out = open(file,"w")
   for step=1:nb_step
-    writeXYZ(f,traj[step])
+    writeXYZ( file_out, traj[step] )
   end
-  close(f)
+  close(file_out)
+  return true
 end
-#---------------------------------------------------------------------------------
+#==============================================================================#
 
 end
