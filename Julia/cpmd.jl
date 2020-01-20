@@ -539,48 +539,44 @@ end
 # Structure:
 # 1 line per atom per step
 # Per line:
-# atom_number x y z vx vy vz fx fy fz
+# atom_number time x y z vx vy vz fx fy fz
 #-------------------------------------
+# Time in timestep (accounts for stride_traj)
 # Positions in Bohr
 # Velocities in Bohr/tHart
 # Forces in Ha/Bohr
 #-------------------------------------
-function getNbStepAtomsFTRAJ( lines::Vector{T1} ) where { T1 <: AbstractString }
-    nb_lines=size(lines)[1]
-    nb_restart_lines=0
+function getNbStepAtomsFTRAJ( file_path::T1 ) where { T1 <: AbstractString }
 
-    nb_atoms=0
-    while split(lines[nb_atoms+1])[1] == "1"
-        nb_atoms += 1
+    if ! isfile( file_path )
+        return false
     end
 
-    check_new=string("<<<<<<")
-    nb_step=nb_lines
-    for line=1:nb_lines
-        if split(lines[line])[1] == check_new
-            nb_step -= 1
+    file_in = open( file_path )
+    nb_atoms=0
+    while split( readline( file_in ) )[1] == "1"
+        nb_atoms += 1
+    end
+    close(file_in)
+
+    file_in = open( file_path )
+    line_nb = 0
+    while ! eof( file_in )
+        line = split( readline(file_in) )
+        if line[1] != "<<<<<<"
+            line_nb += 1
         end
+    end
+    close( file_in )
+
+    if nb_step % nb_atoms != 0
+        print("Potential Corruption in file FTRAJ\n")
+        return false
     end
 
     return Int(nb_step/nb_atoms), nb_atoms
 end
-function getNbStepAtomsFTRAJ( file::T1 ) where { T1 <: AbstractString}
-    # Read file
-    file_in=open(file)
-    lines=readlines(file_in)
-    close(file_in)
-
-    return getNbStepAtomsFTRAJ( lines )
-end
 function readFTRAJ( file_input::T1 ) where { T1 <: AbstractString }
-
-    # cols (both files):
-    #   0:   natoms x nfi (natoms x 1, natoms x 2, ...)
-    #   1-3: x,y,z cartesian coords [Bohr]
-    #   4-6: x,y,z cartesian velocites [Bohr / thart ]
-    #        thart = Hartree time =  0.024189 fs
-    # FTRAJECTORY extra:
-    #   7-9: x,y,z cartesian forces [Ha / Bohr]
 
     file_in=open( file_input )
     lines=readlines( file_in )
