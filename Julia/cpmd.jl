@@ -192,7 +192,7 @@ function readEnergiesFile( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T
     for step=1:nb_ignore
         temp=readline(file_in)
     end
-    for step=nb_ignore+1:nb_steps_origin
+    for step=1:nb_steps_origin-nb_ignore
         line=split( readline(file_in) )
         if step % stride_ == 0 && step
             temp[count_] = parse( Float64, line[col_temp] )
@@ -302,6 +302,59 @@ function readStress( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, 
     #--------------------------------------------------------
     file_in=open(file_path)
     for step=1:nb_step_origin
+        if step % stride_ == 0
+            temp=split( readline( file_in ) ) # Comment line
+            if temp[1] != "TOTAL"
+                # Corruption in file
+                print("STRESS file is likely corrupted!\n")
+                print("line: ",step*stress_block_size,"\n")
+                return false
+            end
+            for i=1:stress_dim
+                keywords=split( readline( file_in ) )
+                if keywords[1] == "TOTAL"
+                    print("STRESS file is likely corrupted!\n")
+                    print("line: ",step*stress_block_size+i,"\n")
+                    return false
+                else
+                    for j=1:stress_dim
+                        stress[step,i,j] = parse(Float64,keywords[j])
+                    end
+                end
+            end
+        else
+            for skip_line=1:stress_block_size
+                temp = readline( file_in )
+            end
+        end
+    end
+    close(file_in)
+    #--------------------------------------------------------
+
+    return stress
+end
+function readStress( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int }
+
+    # Checking file exists
+    if ! isfile( file_path )
+        false
+    end
+
+    # Init data files
+    #------------------------------------------
+    nb_step_origin=getNbStepStress( file_path )
+    nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
+    stress=zeros(Real,nb_step,stress_dim,stress_dim)
+    #------------------------------------------
+
+    #--------------------------------------------------------
+    file_in=open(file_path)
+    for step=1:nb_step_origin
+        for i=1:stress_block_size
+            temp = readline(file_in )
+        end
+    end
+    for step=1:(nb_step_origin-nb_ignore*stress_block_size)
         if step % stride_ == 0
             temp=split( readline( file_in ) ) # Comment line
             if temp[1] != "TOTAL"
