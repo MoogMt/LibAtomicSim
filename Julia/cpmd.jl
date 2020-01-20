@@ -559,7 +559,7 @@ function writeStress( file_path::T1, stress_tensor::Array{T2,3} ) where { T1 <: 
     nb_step=size(stress_tensor)[1]
     file_out = open( file_path, "w" )
     for step=1:nb_step
-        write(string("TOTAL STRESS TENSOR (kB): STEP: ",step,"\n"))
+        write(file_out,string("TOTAL STRESS TENSOR (kB): STEP: ",step,"\n"))
         for i=1:3
             for j=1:3
                 write(file_out,string(stress_tensor[step,i,j]," "))
