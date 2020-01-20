@@ -4,8 +4,9 @@ using conversion
 using utils
 
 export readInputTimestep, readIntputStrideStress, readIntputStrideTraj
-export readEnergiesFile, readStress, readTRAJ
-export getEnergiesNbStep, getNbStepStress, getNbStepAtomsFTRAJ
+export readEnergiesFile, readStress, readTraj
+export getNbStepEnergies, getNbStepStress, getNbStepAtomsFtraj
+export writeEnergies, writeStress, writeFtraj
 
 # Read input
 # Reads the input file of a CPMD simuation
@@ -88,7 +89,7 @@ col_poten = 4
 col_entot = 5
 col_msd   = 7
 col_comp =  8
-function getEnergiesNbStep( file_path::T1 ) where { T1 <: AbstractString }
+function getNbStepEnergies( file_path::T1 ) where { T1 <: AbstractString }
     if ! isfile( file_path )
         return false
     end
@@ -100,7 +101,7 @@ function getEnergiesNbStep( file_path::T1 ) where { T1 <: AbstractString }
     end
     return nb_step
 end
-function readEnergiesFile( file_path::T1 ) where { T1 <: AbstractString }
+function readEnergies( file_path::T1 ) where { T1 <: AbstractString }
     # Check file
     if ! isfile(file_path)
         return false, false, false, false, false
@@ -132,7 +133,7 @@ function readEnergiesFile( file_path::T1 ) where { T1 <: AbstractString }
 
     return  temp, epot, etot, msd, comp
 end
-function readEnergiesFile( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T2 <: Int  }
+function readEnergies( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T2 <: Int  }
     # Check file
     if ! isfile(file_path)
         return false, false, false, false, false
@@ -174,7 +175,7 @@ function readEnergiesFile( file_path::T1, stride_::T2 ) where { T1 <: AbstractSt
 
     return  temp, epot, etot, msd, comp
 end
-function readEnergiesFile( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int  }
+function readEnergies( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int  }
     # Check file
     if ! isfile(file_path)
         return false, false, false, false, false
@@ -219,7 +220,7 @@ function readEnergiesFile( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T
 
     return  temp, epot, etot, msd, comp
 end
-function readEnergiesFile( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int, T4 <: Int  }
+function readEnergies( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int, T4 <: Int  }
     # Check file
     if ! isfile(file_path)
         return false, false, false, false, false
@@ -272,6 +273,23 @@ function readEnergiesFile( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4
     #----------------------------------------------
 
     return  temp, epot, etot, msd, comp
+end
+function writeEnergies( file_path::T1, temperature::Vector{T2}, epot::Vector{T3}, etot::Vector{T4}, msd::Vector{T5}, comp::Vector{T6} ) where { T1 <: AbstractString, T2 <: Real, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
+    nb_step=size(temperature)[1]
+    file_output = open( file_path, "w" )
+    for step=1:nb_step
+        write(file_output,str(i," "))
+        write(file_output,str(0," "))
+        write(file_output,str(temperature[i]," "))
+        write(file_output,str(epot[i]," "))
+        write(file_output,str(etot[i]," "))
+        write(file_output,str(0," "))
+        write(file_output,str(msd[i]," "))
+        write(file_output,str(comp[i]," "))
+        write(file_output,str("\n"))
+    end
+    close(file_output)
+    return true
 end
 #------------------------------------------------------------------------------#
 # Reading STRESS file
@@ -553,7 +571,7 @@ end
 col_start_position=1
 col_start_velocity=4
 col_start_force=7
-function getNbStepAtomsFTRAJ( file_path::T1 ) where { T1 <: AbstractString }
+function getNbStepAtomsFtraj( file_path::T1 ) where { T1 <: AbstractString }
 
     if ! isfile( file_path )
         return false, false
@@ -580,7 +598,7 @@ function getNbStepAtomsFTRAJ( file_path::T1 ) where { T1 <: AbstractString }
 
     return Int(nb_line/nb_atoms), nb_atoms
 end
-function readFTRAJ( file_path::T1 ) where { T1 <: AbstractString }
+function readFtraj( file_path::T1 ) where { T1 <: AbstractString }
 
     # Getting number of line of file
     nb_step, nb_atoms = getNbStepAtomsFTRAJ( file_path )
@@ -610,7 +628,7 @@ function readFTRAJ( file_path::T1 ) where { T1 <: AbstractString }
 
     return positions, velocities, forces
 end
-function readFTRAJ( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T2 <: Int }
+function readFtraj( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T2 <: Int }
 
     # Getting number of line of file
     #---------------------------------------------------------------------------
@@ -656,7 +674,7 @@ function readFTRAJ( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T
 
     return positions, velocities, forces
 end
-function readFTRAJ( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int }
+function readFttraj( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int }
 
     # Getting number of line of file
     #---------------------------------------------------------------------------
@@ -708,7 +726,7 @@ function readFTRAJ( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: Ab
 
     return positions, velocities, forces
 end
-function readFTRAJ( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int, T4 <: Int }
+function readFtraj( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int, T4 <: Int }
 
     # Getting number of line of file
     #---------------------------------------------------------------------------
