@@ -138,7 +138,7 @@ function readEnergiesFile( file_path::T1, stride_::T2 ) where { T1 <: AbstractSt
     # Array Init
     #----------------------------------------
     nb_steps_origin = getEnergiesNbStep( file_path )
-    nb_steps = trunc(Int, nb_steps_origin/stride_ ) + 1
+    nb_steps = trunc( Int, nb_steps_origin/stride_ ) + 1
     temp=Vector{Real}(undef,nb_steps)
     epot=Vector{Real}(undef,nb_steps)
     etot=Vector{Real}(undef,nb_steps)
@@ -152,7 +152,7 @@ function readEnergiesFile( file_path::T1, stride_::T2 ) where { T1 <: AbstractSt
     count_=1
     for step=1:nb_steps_origin
         line=split( readline(file_in) )
-        if step % stride == 0
+        if step % stride_ == 0
             temp[count_] = parse( Float64, line[col_temp] )
             epot[count_] = parse( Float64, line[col_poten] )
             etot[cont_]  = parse( Float64, line[col_entot] )
