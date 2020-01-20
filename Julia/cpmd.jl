@@ -553,23 +553,20 @@ function getNbStepAtomsFTRAJ( file_path::T1 ) where { T1 <: AbstractString }
     end
 
     file_in = open( file_path )
-    nb_atoms=0
-    while split( readline( file_in ) )[1] == "1"
-        nb_atoms += 1
-    end
-    close(file_in)
-
-    file_in = open( file_path )
     line_nb = 0
+    nb_atoms=0
     while ! eof( file_in )
-        line = split( readline(file_in) )
-        if line[1] != "<<<<<<"
-            line_nb += 1
+        keywords=split(readline( file_in ))
+        if keywords[1] != "<<<<<<"
+            if keywords[1] == "1"
+                nb_atoms += 1
+            end
+            nb_line += 1
         end
     end
     close( file_in )
 
-    if nb_step % nb_atoms != 0
+    if nb_line % nb_atoms != 0
         print("Potential Corruption in file FTRAJ\n")
         return false
     end
