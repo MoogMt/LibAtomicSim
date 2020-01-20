@@ -221,9 +221,10 @@ end
 # Szx Szy Szz
 #----------------------------------------------
 stress_block_size=4
-function getNbStepStress( file_name::T1 ) where { T1 <: AbstractString }
+stress_dim=3
+function getNbStepStress( file_path::T1 ) where { T1 <: AbstractString }
     # Check if file exists
-    if ! isfile( file_name )
+    if ! isfile( file_path )
         print("STRESS file does not exists!\n")
         return false
     end
@@ -234,6 +235,7 @@ function getNbStepStress( file_name::T1 ) where { T1 <: AbstractString }
         temp=readline(file_in)
         nb_line += 1
     end
+    close(file_in)
     # If the number of lines is not nb_line*block_size, the file is likely corrupted
     if nb_line % stress_block_size != 0
         print("STRESS file likely corrupted!\n")
@@ -242,31 +244,35 @@ function getNbStepStress( file_name::T1 ) where { T1 <: AbstractString }
     # Returns number of blocks
     return Int(nb_line/stress_block_size)
 end
-stress_dim=3
-function readStress( file_name::T1 ) where { T1 <: AbstractString, T2 <: Int }
+function readStress( file_path::T1 ) where { T1 <: AbstractString, T2 <: Int }
 
     # Checking file exists
-    if ! isfile(file_name)
+    if ! isfile(file_path)
         false
     end
 
     # Init data files
     #------------------------------------------
-    nb_step=getNbStress( file_name )
+    nb_step=getNbStepStress( file_path )
     stress=zeros(Real,nb_stress_points,stress_dim,stress_dim)
     #------------------------------------------
 
-    offset=0
-    for step=1:nb_stress_points
-        for i=1:3
-            keywords=split(lines[1+4*(step-1)+i+offset])
+    #--------------------------------------------------------
+    file_in=open(file_path)
+    for step=1:nb_step
+        temp=split(readline()) # Comment line
+        if temp[1] != "TOTAL"
+            # Corruption in file
+            print("STRESS file is likely corrupted!\n")
+            print("line: ",step*stress_block_size,"\n")
+            return false
+        end
+        for stress_block_line=1:stress_dim
+            keywords=split( readline( file_in ) )
             if keywords[1] == "TOTAL"
-                if offset == 1
-                    print("DOUBLE SIM SPOTTED at step : ",step,"\n")
-                    print("LINE: ",1+4*(step-1)+i+offset,"\n")
-                    return zeros(1,1), false
-                end
-                offset += 1
+                print("STRESS file is likely corrupted!\n")
+                print("line: ",step*stress_block_size+stress_block_line,"\n")
+                return false
             else
                 for j=1:3
                     stress[step,i,j] = parse(Float64,keywords[j])
@@ -274,45 +280,10 @@ function readStress( file_name::T1 ) where { T1 <: AbstractString, T2 <: Int }
             end
         end
     end
+    close(file_in)
+    #--------------------------------------------------------
 
-    return stress, true
-end
-function readStress_( file_name::T1 ) where { T1 <: AbstractString, T2 <: Int }
-
-    # Checking file exists
-    if ! isfile(file_name)
-        return zeros(1,1), false
-    end
-    # Reading file
-    file=open(file_name);
-    lines=readlines(file);
-    close(file);
-
-    # Le fichier est composés de blocs de 4 lignes:
-    # 1 ligne pour le time step
-    # 3 lignes pour le stress tensor
-    nb_stress_points=Int(trunc(size(lines)[1]/4))
-    stress=zeros(Real,nb_stress_points,3,3)
-    offset=0
-    for step=1:nb_stress_points
-        for i=1:3
-            keywords=split(lines[1+4*(step-1)+i+offset])
-            if keywords[1] == "TOTAL"
-                if offset == 1
-                    print("DOUBLE SIM SPOTTED at step : ",step,"\n")
-                    print("LINE: ",1+4*(step-1)+i+offset,"\n")
-                    return zeros(1,1), false
-                end
-                offset += 1
-            else
-                for j=1:3
-                    stress[step,i,j] = parse(Float64,keywords[j])
-                end
-            end
-        end
-    end
-
-    return stress, true
+    return stress
 end
 function readStress( file_name::T1, stride::T2 ) where { T1 <: AbstractString, T2 <: Int }
 
