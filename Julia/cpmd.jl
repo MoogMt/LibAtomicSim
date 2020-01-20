@@ -590,7 +590,7 @@ function readFTRAJ( file_path::T1 ) where { T1 <: AbstractString }
     end
 
     positions=zeros(nb_step,nb_atoms,3)
-    velocity=zeros(nb_step,nb_atoms,3)
+    velocities=zeros(nb_step,nb_atoms,3)
     forces=zeros(nb_step,nb_atoms,3)
 
     file_in = open( file_path )
@@ -629,7 +629,7 @@ function readFTRAJ( file_path::T1, stride::T2 ) where { T1 <: AbstractString, T2
         nb_step = trunc(Int, nb_step_origin/stride_) + 1
     end
     positions=zeros(nb_step,nb_atoms,3)
-    velocity=zeros(nb_step,nb_atoms,3)
+    velocities=zeros(nb_step,nb_atoms,3)
     forces=zeros(nb_step,nb_atoms,3)
     #---------------------------------------------------------------------------
 
@@ -675,7 +675,7 @@ function readFTRAJ( file_path::T1, stride::T2, nb_ignore::T3 ) where { T1 <: Abs
         nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
     end
     positions=zeros(nb_step,nb_atoms,3)
-    velocity=zeros(nb_step,nb_atoms,3)
+    velocities=zeros(nb_step,nb_atoms,3)
     forces=zeros(nb_step,nb_atoms,3)
     #---------------------------------------------------------------------------
 
@@ -733,7 +733,7 @@ function readFTRAJ( file_path::T1, stride::T2, nb_ignore::T3, nb_max::T4 ) where
         print("nb_max must be positive!\n")
     end
     positions=zeros(nb_step,nb_atoms,3)
-    velocity=zeros(nb_step,nb_atoms,3)
+    velocities=zeros(nb_step,nb_atoms,3)
     forces=zeros(nb_step,nb_atoms,3)
     #---------------------------------------------------------------------------
 
