@@ -351,7 +351,7 @@ function readStress( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: A
 
     #--------------------------------------------------------
     file_in=open(file_path)
-    for step=1:nb_step_origin
+    for step=1:nb_ignore
         for i=1:stress_block_size
             temp = readline(file_in )
         end
