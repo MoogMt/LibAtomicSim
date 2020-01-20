@@ -277,13 +277,13 @@ function readEnergies( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) w
 
     return  temp, epot, etot, msd, comp
 end
-function writeEnergies( file_path::T1, temperature::Vector{T2}, epot::Vector{T3}, etot::Vector{T4}, msd::Vector{T5}, comp::Vector{T6} ) where { T1 <: AbstractString, T2 <: Real, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
-    nb_step=size(temperature)[1]
+function writeEnergies( file_path::T1, temp::Vector{T2}, epot::Vector{T3}, etot::Vector{T4}, msd::Vector{T5}, comp::Vector{T6} ) where { T1 <: AbstractString, T2 <: Real, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
+    nb_step=size(temp)[1]
     file_output = open( file_path, "w" )
     for step=1:nb_step
         write(file_output,string(i," "))
         write(file_output,string(0," "))
-        write(file_output,string(temperature[i]," "))
+        write(file_output,string(temp[i]," "))
         write(file_output,string(epot[i]," "))
         write(file_output,string(etot[i]," "))
         write(file_output,string(0," "))
@@ -882,7 +882,8 @@ function buildingDataBase( folder_target::T1, file_stress::T2, file_pressure::T3
     filexyz.writeXYZ( file_traj, filexyz.readFileAtomList( file_trajec_in, n_traj, nb_ignored, target_length ) )
     positions,velocities,forces=readFtraj( file_ftrajectory_in, n_ftraj, nb_ignored, target_length )
     writeFtraj( file_ftraj, positions, velocities, forces )
-    writeEnergies( file_energy, readEnergies( file_energy_in, n_energy, nb_ignored, target_length ) )
+    temp, epot, etot, msd, comp = readEnergies( file_energy_in, n_energy, nb_ignored, target_length )
+    writeEnergies( file_energy, temp, epot, etot, msd, comp )
     #--------------------------------------------------------------------------
 
     return true
