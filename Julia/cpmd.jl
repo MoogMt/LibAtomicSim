@@ -859,9 +859,9 @@ function buildingDataBase( folder_target::T1, file_stress::T2, file_pressure::T3
     # Determining nb of steps
     #---------------------------------------------------------------------------
     nb_step_stress = utils.nbStepStriding( getNbStepStress( file_stress_in ), n_stress )
-    nb_step_ftraj  = utils.nbStepStriding( getNbStepAtomsFtraj( file_ftrajectory_in ), n_ftraj )
+    nb_step_ftraj  = utils.nbStepStriding( getNbStepAtomsFtraj( file_ftrajectory_in )[1], n_ftraj )
     nb_step_energy = utils.nbStepStriding( getNbStepEnergies( file_energy_in ), n_energy )
-    nb_step_traj   = utils.nbStepStriding( filexyz.getNbStep( file_trajec_in ), n_traj )
+    nb_step_traj   = utils.nbStepStriding( filexyz.getNbSteps( file_trajec_in ), n_traj )
     #--------------------------------------------------------------------------
 
     # Determining target length
