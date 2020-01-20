@@ -669,10 +669,10 @@ function readFTRAJ( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: Ab
 
     #---------------------------------------------------------------------------
     nb_step = 0
-    if nb_step_origin % stride_ == 0
-        nb_step = trunc(Int, nb_step_origin/stride_)
+    if (nb_step_origin-nb_ignore) % stride_ == 0
+        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
     else
-        nb_step = trunc(Int, nb_step_origin/stride_) + 1
+        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
     end
     positions=zeros(nb_step,nb_atoms,3)
     velocities=zeros(nb_step,nb_atoms,3)
@@ -688,7 +688,7 @@ function readFTRAJ( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: Ab
         end
     end
     count_step=1
-    for step=1:nb_step_origin
+    for step=1:nb_step_origin-nb_ignore
         if (step-1) % stride_ == 0
             for atom=1:nb_atoms
                 keywords=split( readline( file_in ) )
@@ -746,7 +746,7 @@ function readFTRAJ( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) wher
         end
     end
     count_step=1
-    for step=1:nb_step_origin
+    for step=1:nb_step_origin-nb_ignore
         if (step-1) % stride_ == 0
             for atom=1:nb_atoms
                 keywords=split( readline( file_in ) )
