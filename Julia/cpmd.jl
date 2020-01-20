@@ -615,7 +615,7 @@ function readFTRAJ( file_path::T1, stride::T2 ) where { T1 <: AbstractString, T2
     # Getting number of line of file
     #---------------------------------------------------------------------------
     nb_step_origin, nb_atoms = getNbStepAtomsFTRAJ( file_path )
-    if nb_step == false
+    if nb_step_origin == false
         print("File FTRAJ does not exists!\n")
         return false, false, false
     end
@@ -661,7 +661,7 @@ function readFTRAJ( file_path::T1, stride::T2, nb_ignore::T3 ) where { T1 <: Abs
     # Getting number of line of file
     #---------------------------------------------------------------------------
     nb_step_origin, nb_atoms = getNbStepAtomsFTRAJ( file_path )
-    if nb_step == false
+    if nb_step_origin == false
         print("File FTRAJ does not exists!\n")
         return false, false, false
     end
@@ -713,7 +713,7 @@ function readFTRAJ( file_path::T1, stride::T2, nb_ignore::T3, nb_max::T4 ) where
     # Getting number of line of file
     #---------------------------------------------------------------------------
     nb_step_origin, nb_atoms = getNbStepAtomsFTRAJ( file_path )
-    if nb_step == false
+    if nb_step_origin == false
         print("File FTRAJ does not exists!\n")
         return false, false, false
     end
