@@ -278,15 +278,15 @@ function writeEnergies( file_path::T1, temperature::Vector{T2}, epot::Vector{T3}
     nb_step=size(temperature)[1]
     file_output = open( file_path, "w" )
     for step=1:nb_step
-        write(file_output,str(i," "))
-        write(file_output,str(0," "))
-        write(file_output,str(temperature[i]," "))
-        write(file_output,str(epot[i]," "))
-        write(file_output,str(etot[i]," "))
-        write(file_output,str(0," "))
-        write(file_output,str(msd[i]," "))
-        write(file_output,str(comp[i]," "))
-        write(file_output,str("\n"))
+        write(file_output,string(i," "))
+        write(file_output,string(0," "))
+        write(file_output,string(temperature[i]," "))
+        write(file_output,string(epot[i]," "))
+        write(file_output,string(etot[i]," "))
+        write(file_output,string(0," "))
+        write(file_output,string(msd[i]," "))
+        write(file_output,string(comp[i]," "))
+        write(file_output,string("\n"))
     end
     close(file_output)
     return true
@@ -551,6 +551,21 @@ function readStress( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) whe
     #--------------------------------------------------------
 
     return stress
+end
+function writeStress( file_path::T1, stress_tensor::Array{T2,3} ) where { T1 <: AbstractString, T2 <: Real }
+    nb_step=size(stress_tensor)[1]
+    file_out = open( file_path, "w" )
+    for step=1:nb_step
+        write(string("TOTAL STRESS TENSOR (kB): STEP: ",step,"\n"))
+        for i=1:3
+            for j=1:3
+                write(file_out,string(stress_tensor[step,i,j]," "))
+            end
+            write(file_out,string("\n"))
+        end
+    end
+    close(file_out)
+    return true
 end
 # Read FTRAJECTORY file
 #-------------------------------------------------------------------------------
