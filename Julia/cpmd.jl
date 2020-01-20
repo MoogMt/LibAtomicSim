@@ -79,6 +79,12 @@ end
 # Structure:
 # 1 line per step, per column:
 # time, temperature, potential energy, total energy, MSD, Computing time
+col_time = 1
+col_temp = 3
+col_poten = 4
+col_entot = 5
+col_msd   = 7
+col_comp =  8
 function getEnergiesNbStep( file_path::T1 ) where { T1 <: AbstractString }
     if ! isfile( file_path )
         return false
@@ -118,10 +124,47 @@ function readEnergiesFile( file_path::T1 ) where { T1 <: AbstractString }
         msd[i]=parse(Float64,line[7])
         time[i]=parse(Float64,line[8])
     end
-    close(file_path)
+    close(file_in)
     #----------------------------------------------
 
     return  temperature, e_ks, e_class, msd, time
+end
+function readEnergiesFile( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T2 <: Int  }
+    # Check file
+    if ! isfile(file_path)
+        return false, false, false, false, false
+    end
+
+    # Array Init
+    #----------------------------------------
+    nb_steps_origin = getEnergiesNbStep( file_path )
+    nb_steps = trunc(Int, nb_steps_origin/stride_ ) + 1
+    temp=Vector{Real}(undef,nb_steps)
+    epot=Vector{Real}(undef,nb_steps)
+    etot=Vector{Real}(undef,nb_steps)
+    msd=Vector{Real}(undef,nb_steps)
+    comp=Vector{Real}(undef,nb_steps)
+    #----------------------------------------
+
+    # Getting data from lines
+    #----------------------------------------------
+    file_in = open(file_path)
+    count_=1
+    for step=1:nb_steps_origin
+        line=split( readline(file_in) )
+        if step % stride == 0
+            temp[count_] = parse( Float64, line[col_temp] )
+            epot[count_] = parse( Float64, line[col_poten] )
+            etot[cont_]  = parse( Float64, line[col_entot] )
+            msd[count_]   = parse( Float64, line[col_msd] )
+            comp[count_]  = parse( Float64, line[col_comp] )
+            count_ += 1
+        end
+    end
+    close(file_in)
+    #----------------------------------------------
+
+    return  temp, epot, etot, msd, comp
 end
 #------------------------------------------------------------------------------#
 # Reading STRESS file
