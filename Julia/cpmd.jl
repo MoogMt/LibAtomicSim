@@ -78,22 +78,27 @@ end
 # Structure:
 # 1 line per step, per column:
 # time, temperature, potential energy, total energy, MSD, Computing time
-function readEnergyFile( file_name::T1 ) where { T1 <: AbstractString }
-    #--------------
-    # Reading file
-    #----------------------
-    if ! isfile(file_name)
-        return zeros(1,1),zeros(1,1),zeros(1,1),zeros(1,1),zeros(1,1), false
+function getEnergiesNbStep( file_path::T1 ) where { T1 <: AbstractString }
+    if ! isfile( file_path )
+        return false
     end
-
-    file=open(file_name);
-    lines=readlines(file);
-    close(file);
-    #-----------------------
+    nb_step=0
+    file_in = open( file_path )
+    while ( ! eof(file_in) )
+        temp=readline(file_in)
+        nb_step += 1
+    end
+    return nb_step
+end
+function readEnergiesFile( file_path::T1 ) where { T1 <: AbstractString }
+    # Check file
+    if ! isfile(file_path)
+        return false, false, false, false, false
+    end
 
     # Array Init
     #----------------------------------------
-    nb_steps=size(lines)[1]
+    nb_steps = getEnergiesNbStep( file_path )
     temperature=Vector{Real}(undef,nb_steps)
     e_class=Vector{Real}(undef,nb_steps)
     e_ks=Vector{Real}(undef,nb_steps)
@@ -103,18 +108,21 @@ function readEnergyFile( file_name::T1 ) where { T1 <: AbstractString }
 
     # Getting data from lines
     #----------------------------------------------
+    file_in = open(file_path)
     for i=1:nb_steps
-        line=split(lines[i])
+        line=split( readline(file_in) )
         temperature[i]=parse(Float64,line[3])
         e_ks[i]=parse(Float64,line[4])
         e_class[i]=parse(Float64,line[5])
         msd[i]=parse(Float64,line[7])
         time[i]=parse(Float64,line[8])
     end
+    close(file_path)
     #----------------------------------------------
 
-    return  temperature, e_ks, e_class, msd, time, true
+    return  temperature, e_ks, e_class, msd, time
 end
+#------------------------------------------------------------------------------#
 # Reading STRESS file
 # Contains: Stress tensor for each step (with a possible stride)
 # Structure:
@@ -281,5 +289,89 @@ function readFTRAJ( file_input::T1 ) where { T1 <: AbstractString }
 end
 #-------------------------------------------------------------------------------
 
+#-------------------------------------------------------------------------------
+function buildingDataBase( folder_input::T1, file_stress::T2, file_traj::T3, timestep_target::T4 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString, T4 <: Real }
+
+    # Reading input file
+    #---------------------------------------------------------------------------
+    # Getting the stride for the STRESS file
+    stride_stress = cpmd.readIntputStrideStress( file_input )
+    # Getting the stride for the TRAJEC and FTRAJECTORY files
+    stride_traj   = cpmd.readIntputStrideTraj(file_input )
+    # Getting the timestep of the simulation
+    timestep_sim  =  cpmd.readInputTimestep( file_input )
+    #---------------------------------------------------------------------------
+
+    # Computing
+    #---------------------------------------------------------------------------
+    n_stress = round( Int, timestep_target/( timestep_sim*stride_stress ) )
+    n_traj   = round( Int, timestep_target/( timestep_sim*stride_traj ) )
+    n_energy = round( Int, timestep_target/( timestep_sim*stride_traj ) )
+    n_ftraj  = round( Int, timestep_target/( timestep_sim*stride_traj ) )
+    #---------------------------------------------------------------------------
+
+    # Read ENERGIES File
+    #---------------------------------------------------------------------------
+    file_energy=string(folder_target,"ENERGIES")
+    temperature, e_pot, e_tot, msd, comp_time = readEnergyFile( file_energy )
+    if ! test
+        return false
+    end
+    #---------------------------------------------------------------------------
+
+    # Treating ENERGIES data
+    #---------------------------------------------------------------------------
+    size_data_base=size(temperature)[1]
+    temperature=temperature[1:n_energy:size_data_base]
+    e_pot=e_pot[1:n_energy:size_data_base]
+    e_tot=e_tot[1:n_energy:size_data_base]
+    msd=msd[1:n_energy:size_data_base]
+    comp_time=comp_time[1:n_energy:size_data_base]
+    #---------------------------------------------------------------------------
+
+    # READ STRESS file
+    #---------------------------------------------------------------------------
+    stress,test=cpmd.readStress(file_stress)
+    if ! test
+        return false
+    end
+    #---------------------------------------------------------------------------
+
+    # Treating STRESS data -> Compute P and Stride
+    #---------------------------------------------------------------------------
+    pressure=press_stress.computePressure(stress)
+    size_pressure=size(pressure)[1]
+    pressure=pressure[1:n_stress:size_pressure]
+    #---------------------------------------------------------------------------
+
+    # Reading TRAJEC.xyz file
+    #---------------------------------------------------------------------------
+    file_traj=string(folder_in,"TRAJEC.xyz")
+    traj,test=filexyz.readFastFile(file_traj)
+    if ! test
+        return false
+    end
+    #--------------------------------------------------------------------------
+
+    # Treating TRAJ data
+    #--------------------------------------------------------------------------
+    size_traj=size(traj)[0]
+    traj = traj[1:n_traj:size_traj]
+    #--------------------------------------------------------------------------
+
+    return temperature, e_potential, e_total, msd, comp_time, pressure, traj
+end
+function buildingDataBase( folder_sim::T1, timestep_target::T2 ) where { T1 <: AbstractString, T2 <: Real }
+
+    # Determining target files paths
+    #---------------------------------------------------------------------------
+    file_input=string(folder_sim,"input") # Input - to get timestep + strides
+    file_stress=string(folder_sim,"STRESS")  # STRESS: contains the stress tensor
+    file_traj=string(folder_sim,"TRAJEC.xyz") # TRAJEC.xyz: MD Trajectory
+    #---------------------------------------------------------------------------
+
+    return buildingDataBase( file_input, file_stress, file_traj, timestep_target )
+end
+#-------------------------------------------------------------------------------
 
 end

@@ -3,7 +3,7 @@ PROGRAM TEST
  use MPI
 
  integer :: nb_procs, rang, code
-
+ 
  call MPI_INIT(code)
 
  call MPI_COMM_SIZE(MPI_COMM_WORLD,nb_procs,code)

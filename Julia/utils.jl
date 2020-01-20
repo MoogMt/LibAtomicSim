@@ -4,6 +4,18 @@ module utils
 #  List of useful random functions that I could not fit elsewhere
 #-------------------------------------------------------------------------------
 
+function strideData!( data::Vector{T1}, stride::T2 ) where { T1 <: Real, T2 <: Int }
+    if stride < 0 || stride > size(data)[0]
+        return false
+    return data[1:stride:size(data)[0]]
+
+function getLines( file_path::T1 ) where { T1 <: AbstractString }
+  file_in = open( file_path )
+  lines = readlines( file_in )
+  close( file_in )
+  return lines
+end
+
 #==============================================================================#
 function determineFolderPath( computers_names::Vector{T1}, paths::Vector{T2} ) where { T1 <: AbstractString, T2 <: AbstractString }
     size_vector = size( computers_names )[1]
