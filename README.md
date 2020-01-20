@@ -1,4 +1,4 @@
-## Library for Atomic Simuation (LibAtomicSim) **
+## Library for Atomic Simuation (LibAtomicSim)
 
 Multi-language utils modules that deal with interface with atomic simulations software, analysis of data, etc...
 
