@@ -597,11 +597,11 @@ function readFTRAJ( file_path::T1 ) where { T1 <: AbstractString }
     for step=1:nb_step
         for atom=1:nb_atoms
             keywords=split( readline( file_in ) )
-            if line_element[1] != "<<<<<<"
+            if keywords[1] != "<<<<<<"
                 for i=1:3
-                    positions[step,atom,i]  = parse(Float64, line_element[ i + col_start_position ] )
-                    velocities[step,atom,i] = parse(Float64, line_element[ i + col_start_velocity ] )
-                    forces[step,atom,i]     = parse(Float64, line_element[ i + col_start_force ] )
+                    positions[step,atom,i]  = parse(Float64, keywords[ i + col_start_position ] )
+                    velocities[step,atom,i] = parse(Float64, keywords[ i + col_start_velocity ] )
+                    forces[step,atom,i]     = parse(Float64, keywords[ i + col_start_force ] )
                 end
             end
         end
@@ -640,11 +640,11 @@ function readFTRAJ( file_path::T1, stride::T2 ) where { T1 <: AbstractString, T2
         if (step-1) % stride_ == 0
             for atom=1:nb_atoms
                 keywords=split( readline( file_in ) )
-                if line_element[1] != "<<<<<<"
+                if keywords[1] != "<<<<<<"
                     for i=1:3
-                        positions[count_step,atom,i]  = parse(Float64, line_element[ i + col_start_position ] )
-                        velocities[count_step,atom,i] = parse(Float64, line_element[ i + col_start_velocity ] )
-                        forces[count_step,atom,i]     = parse(Float64, line_element[ i + col_start_force ] )
+                        positions[count_step,atom,i]  = parse(Float64, keywords[ i + col_start_position ] )
+                        velocities[count_step,atom,i] = parse(Float64, keywords[ i + col_start_velocity ] )
+                        forces[count_step,atom,i]     = parse(Float64, keywords[ i + col_start_force ] )
                     end
                 end
             end
@@ -692,11 +692,11 @@ function readFTRAJ( file_path::T1, stride::T2, nb_ignore::T3 ) where { T1 <: Abs
         if (step-1) % stride_ == 0
             for atom=1:nb_atoms
                 keywords=split( readline( file_in ) )
-                if line_element[1] != "<<<<<<"
+                if keywords[1] != "<<<<<<"
                     for i=1:3
-                        positions[count_step,atom,i]  = parse(Float64, line_element[ i + col_start_position ] )
-                        velocities[count_step,atom,i] = parse(Float64, line_element[ i + col_start_velocity ] )
-                        forces[count_step,atom,i]     = parse(Float64, line_element[ i + col_start_force ] )
+                        positions[count_step,atom,i]  = parse(Float64, keywords[ i + col_start_position ] )
+                        velocities[count_step,atom,i] = parse(Float64, keywords[ i + col_start_velocity ] )
+                        forces[count_step,atom,i]     = parse(Float64, keywords[ i + col_start_force ] )
                     end
                 end
             end
@@ -750,11 +750,11 @@ function readFTRAJ( file_path::T1, stride::T2, nb_ignore::T3, nb_max::T4 ) where
         if (step-1) % stride_ == 0
             for atom=1:nb_atoms
                 keywords=split( readline( file_in ) )
-                if line_element[1] != "<<<<<<"
+                if keywords[1] != "<<<<<<"
                     for i=1:3
-                        positions[count_step,atom,i]  = parse(Float64, line_element[ i + col_start_position ] )
-                        velocities[count_step,atom,i] = parse(Float64, line_element[ i + col_start_velocity ] )
-                        forces[count_step,atom,i]     = parse(Float64, line_element[ i + col_start_force ] )
+                        positions[count_step,atom,i]  = parse(Float64, keywords[ i + col_start_position ] )
+                        velocities[count_step,atom,i] = parse(Float64, keywords[ i + col_start_velocity ] )
+                        forces[count_step,atom,i]     = parse(Float64, keywords[ i + col_start_force ] )
                     end
                 end
             end
