@@ -177,7 +177,7 @@ function readEnergiesFile( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T
     # Array Init
     #----------------------------------------
     nb_steps_origin = getEnergiesNbStep( file_path )
-    nb_steps = trunc( Int, nb_steps_origin/stride_ ) + 1
+    nb_steps = trunc( Int, (nb_steps_origin-nb_ignore)/stride_ ) + 1
     temp=Vector{Real}(undef,nb_steps)
     epot=Vector{Real}(undef,nb_steps)
     etot=Vector{Real}(undef,nb_steps)
@@ -254,27 +254,27 @@ function readStress( file_path::T1 ) where { T1 <: AbstractString, T2 <: Int }
     # Init data files
     #------------------------------------------
     nb_step=getNbStepStress( file_path )
-    stress=zeros(Real,nb_stress_points,stress_dim,stress_dim)
+    stress=zeros(Real,nb_step,stress_dim,stress_dim)
     #------------------------------------------
 
     #--------------------------------------------------------
     file_in=open(file_path)
     for step=1:nb_step
-        temp=split(readline()) # Comment line
+        temp=split( readline( file_in ) ) # Comment line
         if temp[1] != "TOTAL"
             # Corruption in file
             print("STRESS file is likely corrupted!\n")
             print("line: ",step*stress_block_size,"\n")
             return false
         end
-        for stress_block_line=1:stress_dim
+        for i=1:stress_dim
             keywords=split( readline( file_in ) )
             if keywords[1] == "TOTAL"
                 print("STRESS file is likely corrupted!\n")
-                print("line: ",step*stress_block_size+stress_block_line,"\n")
+                print("line: ",step*stress_block_size+i,"\n")
                 return false
             else
-                for j=1:3
+                for j=1:stress_dim
                     stress[step,i,j] = parse(Float64,keywords[j])
                 end
             end
@@ -285,41 +285,53 @@ function readStress( file_path::T1 ) where { T1 <: AbstractString, T2 <: Int }
 
     return stress
 end
-function readStress( file_name::T1, stride::T2 ) where { T1 <: AbstractString, T2 <: Int }
+function readStress( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T2 <: Int }
 
     # Checking file exists
-    if ! isfile(file_name)
-        return zeros(1,1), false
+    if ! isfile( file_path )
+        false
     end
 
-    # Reading file
-    file=open(file_name);
-    lines=readlines(file);
-    close(file);
+    # Init data files
+    #------------------------------------------
+    nb_step_origin=getNbStepStress( file_path )
+    nb_step = trunc(Int,nb_step_origin/stride_) + 1
+    stress=zeros(Real,nb_step,stress_dim,stress_dim)
+    #------------------------------------------
 
-    # Creation de variables
-    nb_stress_points=Int(trunc(size(lines)[1]/(4*stride)))
-    stress=Array{Real}(nb_stress_points,3,3)
-    offset=0
-    # loop
-    for step=1:nb_stress_points
-        for i=1:3
-            for j=1:3
-                keywords=split(lines[1+4*(step-1)*stride+i+offset])
+    #--------------------------------------------------------
+    file_in=open(file_path)
+    for step=1:nb_step_origin
+        if step % stride_ == 0
+            temp=split( readline( file_in ) ) # Comment line
+            if temp[1] != "TOTAL"
+                # Corruption in file
+                print("STRESS file is likely corrupted!\n")
+                print("line: ",step*stress_block_size,"\n")
+                return false
+            end
+            for i=1:stress_dim
+                keywords=split( readline( file_in ) )
                 if keywords[1] == "TOTAL"
-                    if offset == 1
-                        print("DOUBLE SIM SPOTTED at : ",step,"\n")
-                        return zeros(1,1), false
+                    print("STRESS file is likely corrupted!\n")
+                    print("line: ",step*stress_block_size+i,"\n")
+                    return false
+                else
+                    for j=1:stress_dim
+                        stress[step,i,j] = parse(Float64,keywords[j])
                     end
-                    offset+=1
                 end
-                stress[step,i,j] = parse(Float64,keywords[j])
+            end
+        else
+            for skip_line=1:stress_block_size
+                temp = readline( file_in )
             end
         end
     end
-    #----------------------------------------------------------
+    close(file_in)
+    #--------------------------------------------------------
 
-    return stress,true
+    return stress
 end
 # Read FTRAJECTORY file
 #-------------------------------------------------------------------------------
