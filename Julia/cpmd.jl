@@ -75,10 +75,12 @@ end
 # Read Output files
 #==============================================================================#
 # Reading ENERGIES file
+#-----------------------------------------
 # Contains: Temperature, Potential Energy, Total Energy, MSD and Computing time for each step
 # Structure:
 # 1 line per step, per column:
 # time, temperature, potential energy, total energy, MSD, Computing time
+#-----------------------------------------
 col_time = 1
 col_temp = 3
 col_poten = 4
@@ -208,6 +210,7 @@ function readEnergiesFile( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T
 end
 #------------------------------------------------------------------------------#
 # Reading STRESS file
+#----------------------------------------------
 # Contains: Stress tensor for each step (with a possible stride)
 # Structure:
 # 4 lines per step
@@ -216,7 +219,65 @@ end
 # Sxx Sxy Sxz
 # Syx Syy Syz
 # Szx Szy Szz
+#----------------------------------------------
+stress_block_size=4
+function getNbStepStress( file_name::T1 ) where { T1 <: AbstractString }
+    # Check if file exists
+    if ! isfile( file_name )
+        print("STRESS file does not exists!\n")
+        return false
+    end
+    # Counting the Number of lines
+    nb_line=0
+    file_in = open( file_path )
+    while ( ! eof(file_in) )
+        temp=readline(file_in)
+        nb_line += 1
+    end
+    # If the number of lines is not nb_line*block_size, the file is likely corrupted
+    if nb_line % stress_block_size != 0
+        print("STRESS file likely corrupted!\n")
+        return false
+    end
+    # Returns number of blocks
+    return Int(nb_line/stress_block_size)
+end
+stress_dim=3
 function readStress( file_name::T1 ) where { T1 <: AbstractString, T2 <: Int }
+
+    # Checking file exists
+    if ! isfile(file_name)
+        false
+    end
+
+    # Init data files
+    #------------------------------------------
+    nb_step=getNbStress( file_name )
+    stress=zeros(Real,nb_stress_points,stress_dim,stress_dim)
+    #------------------------------------------
+
+    offset=0
+    for step=1:nb_stress_points
+        for i=1:3
+            keywords=split(lines[1+4*(step-1)+i+offset])
+            if keywords[1] == "TOTAL"
+                if offset == 1
+                    print("DOUBLE SIM SPOTTED at step : ",step,"\n")
+                    print("LINE: ",1+4*(step-1)+i+offset,"\n")
+                    return zeros(1,1), false
+                end
+                offset += 1
+            else
+                for j=1:3
+                    stress[step,i,j] = parse(Float64,keywords[j])
+                end
+            end
+        end
+    end
+
+    return stress, true
+end
+function readStress_( file_name::T1 ) where { T1 <: AbstractString, T2 <: Int }
 
     # Checking file exists
     if ! isfile(file_name)
