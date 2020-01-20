@@ -21,13 +21,13 @@ function diagStressTensor( stress_tensor::Array{T1,2} ) where { T1 <: Real }
     return eigvals( stress_tensor )
 end
 
-function diagStressTensor( stress_tensor_matrix::Array{T1,3} ) where { T1 <: Real }
-    nb_step=size(stress_tensor_matrix)[1]
-    vals=zeros(nb_step,3)
-    for step=1:nb_step
-        vals[i,:] = diagStressTensor(stress_tensor_matrix[i,:,:])
-    end
-    return vals
-end
+# function diagStressTensor( stress_tensor_matrix::Array{T1,3} ) where { T1 <: Real }
+#     nb_step=size(stress_tensor_matrix)[1]
+#     vals=zeros(nb_step,3)
+#     for step=1:nb_step
+#         vals[i,:] = diagStressTensor(stress_tensor_matrix[i,:,:])
+#     end
+#     return vals
+# end
 
 end

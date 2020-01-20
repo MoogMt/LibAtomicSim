@@ -4,7 +4,8 @@ using conversion
 using utils
 
 export readInputTimestep, readIntputStrideStress, readIntputStrideTraj
-export readEnergy, readPressure, readStress, readTRAJ
+export readEnergiesFile, readStress, readTRAJ
+export getEnergiesNbStep, getNbStepStress, getNbStepAtomsFTRAJ
 
 # Read input
 # Reads the input file of a CPMD simuation
@@ -545,11 +546,17 @@ end
 # Positions in Bohr
 # Velocities in Bohr/tHart
 # Forces in Ha/Bohr
+#--------------------------------------
+# When restarting run, a misc line that needs to be ignored
+# <<<<<<  NEW DATA  >>>>>>
 #-------------------------------------
+col_start_position=1
+col_start_velocity=4
+col_start_force=7
 function getNbStepAtomsFTRAJ( file_path::T1 ) where { T1 <: AbstractString }
 
     if ! isfile( file_path )
-        return false
+        return false, false
     end
 
     file_in = open( file_path )
@@ -573,40 +580,194 @@ function getNbStepAtomsFTRAJ( file_path::T1 ) where { T1 <: AbstractString }
 
     return Int(nb_line/nb_atoms), nb_atoms
 end
-function readFTRAJ( file_input::T1 ) where { T1 <: AbstractString }
+function readFTRAJ( file_path::T1 ) where { T1 <: AbstractString }
 
-    file_in=open( file_input )
-    lines=readlines( file_in )
-    close(file_in)
-
-    nb_step, nb_atoms = getNbStepAtomsFTRAJ( lines )
-
-    nb_lines=size(lines)[1]
-    # When restarting run, a misc line:
-    # <<<<<<  NEW DATA  >>>>>>
-    check_new=string("<<<<<<")
+    # Getting number of line of file
+    nb_step, nb_atoms = getNbStepAtomsFTRAJ( file_path )
+    if nb_step == false
+        print("File FTRAJ does not exists!\n")
+        return false, false, false
+    end
 
     positions=zeros(nb_step,nb_atoms,3)
     velocity=zeros(nb_step,nb_atoms,3)
     forces=zeros(nb_step,nb_atoms,3)
 
-    offset=0
+    file_in = open( file_path )
     for step=1:nb_step
         for atom=1:nb_atoms
-            line_element=split(lines[(step-1)*nb_atoms+atom+offset])
-            if line_element[1] == check_new
-                offset += 1
-            else
+            keywords=split( readline( file_in ) )
+            if line_element[1] != "<<<<<<"
                 for i=1:3
-                    positions[step,atom,i] = parse(Float64, line_element[i+1] )
-                    velocity[step,atom,i]  = parse(Float64, line_element[i+4] )
-                    forces[step,atom,i]    = parse(Float64, line_element[i+7] )
+                    positions[step,atom,i]  = parse(Float64, line_element[ i + col_start_position ] )
+                    velocities[step,atom,i] = parse(Float64, line_element[ i + col_start_velocity ] )
+                    forces[step,atom,i]     = parse(Float64, line_element[ i + col_start_force ] )
                 end
             end
         end
     end
+    close( file_in )
 
-    return positions,velocity,forces
+    return positions, velocities, forces
+end
+function readFTRAJ( file_path::T1, stride::T2 ) where { T1 <: AbstractString, T2 <: Int }
+
+    # Getting number of line of file
+    #---------------------------------------------------------------------------
+    nb_step_origin, nb_atoms = getNbStepAtomsFTRAJ( file_path )
+    if nb_step == false
+        print("File FTRAJ does not exists!\n")
+        return false, false, false
+    end
+    #---------------------------------------------------------------------------
+
+    #---------------------------------------------------------------------------
+    nb_step = 0
+    if nb_step_origin % stride_ == 0
+        nb_step = trunc(Int, nb_step_origin/stride_)
+    else
+        nb_step = trunc(Int, nb_step_origin/stride_) + 1
+    end
+    positions=zeros(nb_step,nb_atoms,3)
+    velocity=zeros(nb_step,nb_atoms,3)
+    forces=zeros(nb_step,nb_atoms,3)
+    #---------------------------------------------------------------------------
+
+    #---------------------------------------------------------------------------
+    file_in = open( file_path )
+    count_step=1
+    for step=1:nb_step
+        if (step-1) % stride_ == 0
+            for atom=1:nb_atoms
+                keywords=split( readline( file_in ) )
+                if line_element[1] != "<<<<<<"
+                    for i=1:3
+                        positions[count_step,atom,i]  = parse(Float64, line_element[ i + col_start_position ] )
+                        velocities[count_step,atom,i] = parse(Float64, line_element[ i + col_start_velocity ] )
+                        forces[count_step,atom,i]     = parse(Float64, line_element[ i + col_start_force ] )
+                    end
+                end
+            end
+            count_step += 1
+        end
+    end
+    close( file_in )
+    #---------------------------------------------------------------------------
+
+    return positions, velocities, forces
+end
+function readFTRAJ( file_path::T1, stride::T2, nb_ignore::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int }
+
+    # Getting number of line of file
+    #---------------------------------------------------------------------------
+    nb_step_origin, nb_atoms = getNbStepAtomsFTRAJ( file_path )
+    if nb_step == false
+        print("File FTRAJ does not exists!\n")
+        return false, false, false
+    end
+    #---------------------------------------------------------------------------
+
+    #---------------------------------------------------------------------------
+    nb_step = 0
+    if (nb_step_origin-nb_ignore) % stride_ == 0
+        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
+    else
+        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
+    end
+    positions=zeros(nb_step,nb_atoms,3)
+    velocity=zeros(nb_step,nb_atoms,3)
+    forces=zeros(nb_step,nb_atoms,3)
+    #---------------------------------------------------------------------------
+
+    #---------------------------------------------------------------------------
+    file_in = open( file_path )
+    # Ignoring the first nb_ignore steps
+    for step=1:nb_ignore
+        for atom=1:nb_atoms
+            temp=readline(file_in)
+        end
+    end
+    count_step=1
+    for step=1:nb_step
+        if (step-1) % stride_ == 0
+            for atom=1:nb_atoms
+                keywords=split( readline( file_in ) )
+                if line_element[1] != "<<<<<<"
+                    for i=1:3
+                        positions[count_step,atom,i]  = parse(Float64, line_element[ i + col_start_position ] )
+                        velocities[count_step,atom,i] = parse(Float64, line_element[ i + col_start_velocity ] )
+                        forces[count_step,atom,i]     = parse(Float64, line_element[ i + col_start_force ] )
+                    end
+                end
+            end
+            count_step += 1
+        end
+    end
+    close( file_in )
+    #---------------------------------------------------------------------------
+
+    return positions, velocities, forces
+end
+function readFTRAJ( file_path::T1, stride::T2, nb_ignore::T3, nb_max::T4 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int, T4 <: Int }
+
+    # Getting number of line of file
+    #---------------------------------------------------------------------------
+    nb_step_origin, nb_atoms = getNbStepAtomsFTRAJ( file_path )
+    if nb_step == false
+        print("File FTRAJ does not exists!\n")
+        return false, false, false
+    end
+    #---------------------------------------------------------------------------
+
+    #---------------------------------------------------------------------------
+    nb_step = 0
+    if (nb_step_origin-nb_ignore) % stride_ == 0
+        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
+    else
+        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
+    end
+    if nb_max > nb_step
+        print("nb_max is too large, maximum value is ",nb_step,"\n")
+    end
+    if nb_max <= 0
+        print("nb_max must be positive!\n")
+    end
+    positions=zeros(nb_step,nb_atoms,3)
+    velocity=zeros(nb_step,nb_atoms,3)
+    forces=zeros(nb_step,nb_atoms,3)
+    #---------------------------------------------------------------------------
+
+    #---------------------------------------------------------------------------
+    file_in = open( file_path )
+    # Ignoring the first nb_ignore steps
+    for step=1:nb_ignore
+        for atom=1:nb_atoms
+            temp=readline(file_in)
+        end
+    end
+    count_step=1
+    for step=1:nb_step
+        if (step-1) % stride_ == 0
+            for atom=1:nb_atoms
+                keywords=split( readline( file_in ) )
+                if line_element[1] != "<<<<<<"
+                    for i=1:3
+                        positions[count_step,atom,i]  = parse(Float64, line_element[ i + col_start_position ] )
+                        velocities[count_step,atom,i] = parse(Float64, line_element[ i + col_start_velocity ] )
+                        forces[count_step,atom,i]     = parse(Float64, line_element[ i + col_start_force ] )
+                    end
+                end
+            end
+            if count_step >= nb_max
+                break
+            end
+            count_step += 1
+        end
+    end
+    close( file_in )
+    #---------------------------------------------------------------------------
+
+    return positions, velocities, forces
 end
 #-------------------------------------------------------------------------------
 
