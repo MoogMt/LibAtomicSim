@@ -802,6 +802,15 @@ function readFtraj( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) wher
 
     return positions, velocities, forces
 end
+function writeFtraj( file_path::T1, positions::Array{T2,3}, velocities::Array{T3,3}, forces::Array{T4,3} ) where { T1 <: AbstractString, T2 <: Real, T3 <: Real, T4 <: Real }
+    nb_step=size(positions)[1]
+    file_out=open(file_path,"w")
+    for step=1:nb_step
+        write(file_out,string(step," "))
+    end
+    close(file_out)
+    return true
+end
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
