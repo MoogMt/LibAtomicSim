@@ -177,7 +177,12 @@ function readEnergiesFile( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T
     # Array Init
     #----------------------------------------
     nb_steps_origin = getEnergiesNbStep( file_path )
-    nb_steps = trunc( Int, (nb_steps_origin-nb_ignore)/stride_ ) + 1
+    nb_steps=0
+    if (nb_step_origin-nb_ignore) % stride_ == 0
+        nb_steps = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
+    else
+        nb_steps = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
+    end
     temp=Vector{Real}(undef,nb_steps)
     epot=Vector{Real}(undef,nb_steps)
     etot=Vector{Real}(undef,nb_steps)
@@ -345,7 +350,12 @@ function readStress( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: A
     # Init data files
     #------------------------------------------
     nb_step_origin=getNbStepStress( file_path )
-    nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
+    nb_step = 0
+    if (nb_step_origin-nb_ignore) % stride_ == 0
+        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
+    else
+        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
+    end
     stress=zeros(Real,nb_step,stress_dim,stress_dim)
     #------------------------------------------
 
@@ -357,7 +367,7 @@ function readStress( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: A
         end
     end
     count_=1
-    for step=1:(nb_step_origin-nb_ignore*stress_block_size)
+    for step=1:(nb_step_origin-nb_ignore)
         if step % stride_ == 0
             temp=split( readline( file_in ) ) # Comment line
             if temp[1] != "TOTAL"
