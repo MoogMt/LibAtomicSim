@@ -30,7 +30,7 @@ function writeData( file_path::T1, data::Vector{T2} ) where { T1 <: AbstractStri
   nb_data=size(data)[1]
   file_out=open(file_path,"w")
   for step=1:nb_data
-      write(file_out,string(data[i],"\n"))
+      write(file_out,string(data[step],"\n"))
   end
   close(file_out)
   return true
