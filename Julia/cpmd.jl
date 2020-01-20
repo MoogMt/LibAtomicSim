@@ -831,10 +831,11 @@ function buildingDataBase( folder_target::T1, file_stress::T2, file_pressure::T3
 
     # Reading input file
     #---------------------------------------------------------------------------
+    file_input=string(folder_target,"input")
     # Getting the stride for the STRESS file
     stride_stress = cpmd.readIntputStrideStress( file_input )
     # Getting the stride for the TRAJEC and FTRAJECTORY files
-    stride_traj   = cpmd.readIntputStrideTraj(file_input )
+    stride_traj   = cpmd.readIntputStrideTraj( file_input )
     # Getting the timestep of the simulation
     timestep_sim  =  cpmd.readInputTimestep( file_input )
     #---------------------------------------------------------------------------
