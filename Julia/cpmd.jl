@@ -106,11 +106,11 @@ function readEnergiesFile( file_path::T1 ) where { T1 <: AbstractString }
     # Array Init
     #----------------------------------------
     nb_steps = getEnergiesNbStep( file_path )
-    temperature=Vector{Real}(undef,nb_steps)
-    e_class=Vector{Real}(undef,nb_steps)
-    e_ks=Vector{Real}(undef,nb_steps)
+    temp=Vector{Real}(undef,nb_steps)
+    epot=Vector{Real}(undef,nb_steps)
+    etot=Vector{Real}(undef,nb_steps)
     msd=Vector{Real}(undef,nb_steps)
-    time=Vector{Real}(undef,nb_steps)
+    comp=Vector{Real}(undef,nb_steps)
     #----------------------------------------
 
     # Getting data from lines
@@ -118,16 +118,16 @@ function readEnergiesFile( file_path::T1 ) where { T1 <: AbstractString }
     file_in = open(file_path)
     for i=1:nb_steps
         line=split( readline(file_in) )
-        temperature[i]=parse(Float64,line[3])
-        e_ks[i]=parse(Float64,line[4])
-        e_class[i]=parse(Float64,line[5])
+        temp[i]=parse(Float64,line[3])
+        epot[i]=parse(Float64,line[4])
+        etot[i]=parse(Float64,line[5])
         msd[i]=parse(Float64,line[7])
-        time[i]=parse(Float64,line[8])
+        comp[i]=parse(Float64,line[8])
     end
     close(file_in)
     #----------------------------------------------
 
-    return  temperature, e_ks, e_class, msd, time
+    return  temperature, epot, etot, msd, comp
 end
 function readEnergiesFile( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T2 <: Int  }
     # Check file
@@ -155,7 +155,47 @@ function readEnergiesFile( file_path::T1, stride_::T2 ) where { T1 <: AbstractSt
         if step % stride_ == 0
             temp[count_] = parse( Float64, line[col_temp] )
             epot[count_] = parse( Float64, line[col_poten] )
-            etot[cont_]  = parse( Float64, line[col_entot] )
+            etot[count_]  = parse( Float64, line[col_entot] )
+            msd[count_]   = parse( Float64, line[col_msd] )
+            comp[count_]  = parse( Float64, line[col_comp] )
+            count_ += 1
+        end
+    end
+    close(file_in)
+    #----------------------------------------------
+
+    return  temp, epot, etot, msd, comp
+end
+function readEnergiesFile( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int  }
+    # Check file
+    if ! isfile(file_path)
+        return false, false, false, false, false
+    end
+
+    # Array Init
+    #----------------------------------------
+    nb_steps_origin = getEnergiesNbStep( file_path )
+    nb_steps = trunc( Int, nb_steps_origin/stride_ ) + 1
+    temp=Vector{Real}(undef,nb_steps)
+    epot=Vector{Real}(undef,nb_steps)
+    etot=Vector{Real}(undef,nb_steps)
+    msd=Vector{Real}(undef,nb_steps)
+    comp=Vector{Real}(undef,nb_steps)
+    #----------------------------------------
+
+    # Getting data from lines
+    #----------------------------------------------
+    file_in = open(file_path)
+    count_=1
+    for step=1:nb_ignore
+        temp=readline(file_in)
+    end
+    for step=nb_ignore+1:nb_steps_origin
+        line=split( readline(file_in) )
+        if step % stride_ == 0 && step
+            temp[count_] = parse( Float64, line[col_temp] )
+            epot[count_] = parse( Float64, line[col_poten] )
+            etot[count_]  = parse( Float64, line[col_entot] )
             msd[count_]   = parse( Float64, line[col_msd] )
             comp[count_]  = parse( Float64, line[col_comp] )
             count_ += 1
