@@ -18,6 +18,6 @@ Languages:
 This software is currently developped by 
 Mathieu Moog PhD, Post-Doc at Institut de Minéralogie de Physique des Matériaux et (IMPMC) de Cosmochimie de Sorbonne Université (SU).
 
-Contact: mathieu.moog@upmc.fr
+Contact: mathieu.moog@sorbonne-universite.fr
 
 *Atomic Simulation Environment
