@@ -3,6 +3,7 @@ module cpmd
 using conversion
 using utils
 using filexyz
+using press_stress
 
 export readInputTimestep, readIntputStrideStress, readIntputStrideTraj
 export readEnergiesFile, readStress, readTraj
@@ -826,7 +827,7 @@ end
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-function buildingDataBase( folder_input::T1, file_stress::T2, file_traj::T3, timestep_target::T4 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString, T4 <: Real }
+function buildingDataBase( folder_target::T1, file_stress::T2, file_pressure::T3, file_traj::T4, file_ftraj::T5, file_energy::T6, timestep_target::T7 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString, T4 <: AbstractString, T5 <: AbstractString, T6 <: AbstractString, T7 <: Real }
 
     # Reading input file
     #---------------------------------------------------------------------------
@@ -871,27 +872,15 @@ function buildingDataBase( folder_input::T1, file_stress::T2, file_traj::T3, tim
     #--------------------------------------------------------------------------
     nb_ignored=0
     stress_tensor = readStress( file_stress_in, n_stress, nb_ignored, target_length )
-    pressure=press_stress.computePressure(stress_tensor)
     writeStress( file_stress, stress_tensor )
-    
+    utils.writeData( file_pressure, stress_press.computePressure(stress_tensor) )
+    stress_tensor=[] # Clearing memory
+    filexyz.writeXYZ( file_traj, filexyz.readFileAtomList( file_traj_in, n_traj, nb_ignored, target_length ) )
+    writeFtraj( file_ftraj, readFtraj( file_ftraj_in, n_ftraj, nb_ignored, target_length ) )
+    writeEnergies( file_energy, readEnergies( file_traj_in, n_traj, nb_ignored, target_length ) )
     #--------------------------------------------------------------------------
 
-    # Computing Pressure and Writting to file
-    #---------------------------------------------------------------------------
-    #---------------------------------------------------------------------------
-
     return true
-end
-function buildingDataBase( folder_sim::T1, timestep_target::T2 ) where { T1 <: AbstractString, T2 <: Real }
-
-    # Determining target files paths
-    #---------------------------------------------------------------------------
-    file_input=string(folder_sim,"input") # Input - to get timestep + strides
-    file_stress=string(folder_sim,"STRESS")  # STRESS: contains the stress tensor
-    file_traj=string(folder_sim,"TRAJEC.xyz") # TRAJEC.xyz: MD Trajectory
-    #---------------------------------------------------------------------------
-
-    return buildingDataBase( file_input, file_stress, file_traj, timestep_target )
 end
 #-------------------------------------------------------------------------------
 
