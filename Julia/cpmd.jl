@@ -877,7 +877,7 @@ function buildingDataBase( folder_target::T1, file_stress::T2, file_pressure::T3
     utils.writeData( file_pressure, press_stress.computePressure(stress_tensor) )
     stress_tensor=[] # Clearing memory
     filexyz.writeXYZ( file_traj, filexyz.readFileAtomList( file_trajec_in, n_traj, nb_ignored, target_length ) )
-    writeFtraj( file_ftraj, readFtraj( file_ftraj_in, n_ftraj, nb_ignored, target_length ) )
+    writeFtraj( file_ftraj, readFtraj( file_ftrajectory_in, n_ftraj, nb_ignored, target_length ) )
     writeEnergies( file_energy, readEnergies( file_traj_in, n_traj, nb_ignored, target_length ) )
     #--------------------------------------------------------------------------
 
