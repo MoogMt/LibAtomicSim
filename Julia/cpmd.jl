@@ -553,7 +553,7 @@ function getNbStepAtomsFTRAJ( file_path::T1 ) where { T1 <: AbstractString }
     end
 
     file_in = open( file_path )
-    line_nb = 0
+    nb_line = 0
     nb_atoms=0
     while ! eof( file_in )
         keywords=split(readline( file_in ))
@@ -571,7 +571,7 @@ function getNbStepAtomsFTRAJ( file_path::T1 ) where { T1 <: AbstractString }
         return false
     end
 
-    return Int(nb_step/nb_atoms), nb_atoms
+    return Int(nb_line/nb_atoms), nb_atoms
 end
 function readFTRAJ( file_input::T1 ) where { T1 <: AbstractString }
 
