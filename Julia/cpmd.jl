@@ -707,8 +707,8 @@ function readFTRAJ( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: Ab
     #---------------------------------------------------------------------------
 
     return positions, velocities, forces
+    function readFTRAJ( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int, T4 <: Int }
 end
-function readFTRAJ( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int, T4 <: Int }
 
     # Getting number of line of file
     #---------------------------------------------------------------------------
@@ -732,9 +732,9 @@ function readFTRAJ( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) wher
     if nb_max <= 0
         print("nb_max must be positive!\n")
     end
-    positions=zeros(nb_step,nb_atoms,3)
-    velocities=zeros(nb_step,nb_atoms,3)
-    forces=zeros(nb_step,nb_atoms,3)
+    positions  = zeros( nb_max, nb_atoms, 3 )
+    velocities = zeros( nb_max, nb_atoms, 3 )
+    forces     = zeros( nb_max, nb_atoms, 3 )
     #---------------------------------------------------------------------------
 
     #---------------------------------------------------------------------------
