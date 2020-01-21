@@ -833,25 +833,25 @@ function buildingDataBase( folder_target::T1, file_stress::T2, file_pressure::T3
     if nb_step_stress == false
         return false
     end
-    nb_step_stress = utils.nbStepStriding( nb_step_stress, n_stress )
+    nb_step_stress = trunc( Int, nb_step_stress/n_stress ) + 1
     #-------------------------------------------
     nb_step_ftraj, nb_atoms_ftraj = getNbStepAtomsFtraj( file_ftrajectory_in )
     if nb_step_ftraj == false
         return false
     end
-    nb_step_ftraj  = utils.nbStepStriding( nb_step_ftraj , n_ftraj )
+    nb_step_ftraj  =trunc( Int, nb_step_ftraj/n_ftraj ) + 1
     #-------------------------------------------
     nb_step_energy = getNbStepEnergies( file_energy_in )
     if nb_step_energy == false
         return false
     end
-    nb_step_energy = utils.nbStepStriding( nb_step_energy, n_energy )
+    nb_step_energy = trunc( Int, nb_step_energy/n_energy ) + 1
     #-------------------------------------------
     nb_step_traj = filexyz.getNbSteps( file_trajec_in )
     if nb_step_traj == false
         return false
     end
-    nb_step_traj = utils.nbStepStriding( nb_step_traj, n_traj )
+    nb_step_traj = trunc( Int, nb_step_traj/n_traj ) + 1
     #--------------------------------------------------------------------------
 
     # Checking coherence
