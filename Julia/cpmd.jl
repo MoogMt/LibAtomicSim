@@ -895,9 +895,9 @@ function buildingDataBase( folder_target::T1, file_stress::T2, file_pressure::T3
     if nb_step_traj != nb_step_stress ||  nb_step_traj != nb_step_energy || nb_step_traj != nb_step_ftraj
         print("Some inconsistencies in ",folder_target,"\n")
         print("traj_step: ",nb_step_traj,"\n")
-        print("traj_step: ",nb_step_ftraj,"\n")
-        print("traj_step: ",nb_step_energy,"\n")
-        print("traj_step: ",nb_step_stress,"\n")
+        print("ftraj_step: ",nb_step_ftraj,"\n")
+        print("traj_energy: ",nb_step_energy,"\n")
+        print("traj_stress: ",nb_step_stress,"\n")
         print("Interrupting database construction.\n")
         return false
     end
