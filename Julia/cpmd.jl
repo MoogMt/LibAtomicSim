@@ -15,12 +15,21 @@ export buildingDataBase
 # Reads the input file of a CPMD simuation
 #==============================================================================#
 function readInputTimestep( file_input_path::T1 ) where { T1 <: AbstractString }
+    # Check existence
+    #-----------------------------------
+    if ! isfile( file_input_path )
+        print("No input file at ",file_input_path,"\n")
+        return false
+    end
+    #-----------------------------------
+
     # Read input
-    file_in=open(file_input_path)
-    lines=readlines(file_in)
-    close(file_in)
+    #-----------------------------------
+    lines=getLines( file_input_path )
+    #-----------------------------------
 
     # Extract timestep
+    #-----------------------------------
     timestep=0
     nb_lines=size(lines)[1]
     for line_nb=1:nb_lines
@@ -31,17 +40,28 @@ function readInputTimestep( file_input_path::T1 ) where { T1 <: AbstractString }
             end
         end
     end
+    #-----------------------------------
 
     # Conversion to fs
     return conversion.hatime2fs*timestep
 end
 function readIntputStrideStress( file_input_path::T1 ) where { T1 <: AbstractString }
-    # Readinput
-    file_in=open(file_input_path)
-    lines=readlines(file_in)
-    close(file_in)
+
+    # Check file existence
+    #-----------------------------------
+    if ! isfile( file_input_path )
+        print("No input file at ",file_input_path,"\n")
+        return false
+    end
+    #-----------------------------------
+
+    # Read input
+    #-----------------------------------
+    lines=getLines( file_input_path )
+    #-----------------------------------
 
     # Extract stride of STRESS tensor
+    #-----------------------------------
     stride_stress = 0
     nb_lines=size(lines)[1]
     for line_nb=1:nb_lines
@@ -52,17 +72,28 @@ function readIntputStrideStress( file_input_path::T1 ) where { T1 <: AbstractStr
             end
         end
     end
+    #-----------------------------------
 
     return stride_stress
 end
 function readIntputStrideTraj( file_input_path::T1 ) where { T1 <: AbstractString }
-    # Readinput
-    file_in=open(file_input_path)
-    lines=readlines(file_in)
-    close(file_in)
+
+    # Check file existence
+    #-----------------------------------
+    if ! isfile( file_input_path )
+        print("No input file at ",file_input_path,"\n")
+        return false
+    end
+    #-----------------------------------
+
+    # Read input
+    #-----------------------------------
+    lines=getLines( file_input_path )
+    #-----------------------------------
 
     # Extract stride of STRESS tensor
     stride_traj = 0
+    #-----------------------------------
     nb_lines=size(lines)[1]
     for line_nb=1:nb_lines
         keywords=split(lines[line_nb])
@@ -72,6 +103,7 @@ function readIntputStrideTraj( file_input_path::T1 ) where { T1 <: AbstractStrin
             end
         end
     end
+    #-----------------------------------
 
     return stride_traj
 end
@@ -94,6 +126,7 @@ col_msd   = 7
 col_comp =  8
 function getNbStepEnergies( file_path::T1 ) where { T1 <: AbstractString }
     if ! isfile( file_path )
+        print("No ENERGIES file at ",file_path,"\n")
         return false
     end
     nb_step=0
@@ -116,16 +149,16 @@ function readEnergies( file_path::T1 ) where { T1 <: AbstractString }
 
     # Array Init
     #----------------------------------------
-    temp=Vector{Real}(undef,nb_step)
-    epot=Vector{Real}(undef,nb_step)
-    etot=Vector{Real}(undef,nb_step)
-    msd=Vector{Real}(undef,nb_step)
-    comp=Vector{Real}(undef,nb_step)
+    temp = zeros( nb_step )
+    epot = zeros( nb_step )
+    etot = zeros( nb_step )
+    msd  = zeros( nb_step )
+    comp = zeros( nb_step )
     #----------------------------------------
 
     # Getting data from lines
     #----------------------------------------------
-    file_in = open(file_path)
+    file_in = open(file_path )
     for step=1:nb_step
         line=split( readline(file_in) )
         temp[step]=parse(Float64,line[col_temp])
@@ -151,12 +184,12 @@ function readEnergies( file_path::T1, stride_::T2 ) where { T1 <: AbstractString
 
     # Array Init
     #----------------------------------------
-    nb_step=trunc(Int, nb_step_origin/stride_) + 1
-    temp=Vector{Real}(undef,nb_step)
-    epot=Vector{Real}(undef,nb_step)
-    etot=Vector{Real}(undef,nb_step)
-    msd=Vector{Real}(undef,nb_step)
-    comp=Vector{Real}(undef,nb_step)
+    nb_step = utils.nbStepStriding( nb_step_origin, stride_ )
+    temp = zeros( nb_step )
+    epot = zeros( nb_step )
+    etot = zeros( nb_step )
+    msd  = zeros( nb_step )
+    comp = zeros( nb_step )
     #----------------------------------------
 
     # Getting data from lines
@@ -191,12 +224,12 @@ function readEnergies( file_path::T1, stride_::T2, nb_ignored::T3 ) where { T1 <
 
     # Array Init
     #----------------------------------------
-    nb_steps=trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
-    temp=Vector{Real}(undef,nb_steps)
-    epot=Vector{Real}(undef,nb_steps)
-    etot=Vector{Real}(undef,nb_steps)
-    msd=Vector{Real}(undef,nb_steps)
-    comp=Vector{Real}(undef,nb_steps)
+    nb_step = utils.nbStepStriding( nb_step_origin-nb_ignored, stride_ )
+    temp = zeros(nb_step)
+    epot = zeros(nb_step)
+    etot = zeros(nb_step)
+    msd  = zeros(nb_step)
+    comp = zeros(nb_step)
     #----------------------------------------
 
     # Getting data from lines
@@ -232,28 +265,28 @@ function readEnergies( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T4 ) 
 
     # Array Init
     #---------------------------------------
-    nb_step = trunc( Int, (nb_step_origin-nb_ignored)/stride_) + 1
+    nb_step = utils.nbStepStriding( nb_step_origin-nb_ignored, stride_ )
     if nb_max > nb_step
         print("nb_max is too large, maximum value is ",nb_step,"\n")
     end
     if nb_max <= 0
         print("nb_max must be positive!\n")
     end
-    temp=Vector{Real}(undef,nb_max)
-    epot=Vector{Real}(undef,nb_max)
-    etot=Vector{Real}(undef,nb_max)
-    msd=Vector{Real}(undef,nb_max)
-    comp=Vector{Real}(undef,nb_max)
+    temp=zeros(nb_max)
+    epot=zeros(nb_max)
+    etot=zeros(nb_max)
+    msd=zeros(nb_max)
+    comp=zeros(nb_max)
     #----------------------------------------
 
     # Getting data from lines
     #----------------------------------------------
     file_in = open(file_path)
-    count_=1
     for step=1:nb_ignored
         temp=readline(file_in)
     end
-    for step=1:nb_step_origin-nb_ignored
+    count_=1
+    for step=1:nb_step_origin - nb_ignored
         line=split( readline(file_in) )
         if (step-1) % stride_ == 0
             temp[count_] = parse( Float64, line[col_temp] )
@@ -261,7 +294,9 @@ function readEnergies( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T4 ) 
             etot[count_]  = parse( Float64, line[col_entot] )
             msd[count_]   = parse( Float64, line[col_msd] )
             comp[count_]  = parse( Float64, line[col_comp] )
-            if count_ == nb_max
+            print("test: ",count_,"\n")
+            print("test2:",step," ",end_step,"\n")
+            if count_ >= nb_max
                 break
             end
             count_ += 1
@@ -306,7 +341,7 @@ stress_dim=3
 function getNbStepStress( file_path::T1 ) where { T1 <: AbstractString }
     # Check if file exists
     if ! isfile( file_path )
-        print("STRESS file does not exists!\n")
+        print("STRESS file does not exists at ",file_path," !\n")
         return false
     end
     # Counting the Number of lines
@@ -319,7 +354,7 @@ function getNbStepStress( file_path::T1 ) where { T1 <: AbstractString }
     close(file_in)
     # If the number of lines is not nb_line*block_size, the file is likely corrupted
     if nb_line % stress_block_size != 0
-        print("STRESS file likely corrupted!\n")
+        print("STRESS file likely corrupted at ",file_path," !\n")
         return false
     end
     # Returns number of blocks
@@ -376,8 +411,8 @@ function readStress( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, 
 
     # Init data files
     #------------------------------------------
-    nb_step = trunc(Int, nb_step_origin/stride_) + 1
-    stress=zeros(Real,nb_step,stress_dim,stress_dim)
+    nb_step = utils.nbStepStriding( nb_step_origin, stride_ )
+    stress  = zeros( Real, nb_step, stress_dim, stress_dim )
     #------------------------------------------
 
     #--------------------------------------------------------
@@ -426,8 +461,8 @@ function readStress( file_path::T1, stride_::T2, nb_ignored::T3 ) where { T1 <: 
 
     # Init data files
     #------------------------------------------
-    nb_step = trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
-    stress = zeros(Real,nb_step,stress_dim,stress_dim)
+    nb_step = utils.nbStepStriding( nb_step_origin-nb_ignored, stride_ )
+    stress = zeros( Real, nb_step, stress_dim, stress_dim )
     #------------------------------------------
 
     #--------------------------------------------------------
@@ -480,14 +515,14 @@ function readStress( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T4 ) wh
 
     # Init data files
     #------------------------------------------
-    nb_step = trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
+    nb_step = utils.nbStepStriding( nb_step_origin-nb_ignored, stride_ )
     if nb_max > nb_step
         print("nb_max is too large, maximum value is ",nb_step,"\n")
     end
     if nb_max <= 0
         print("nb_max must be positive!\n")
     end
-    stress=zeros(Real,nb_max,stress_dim,stress_dim)
+    stress=zeros( Real, nb_max, stress_dim, stress_dim )
     #------------------------------------------
 
     #--------------------------------------------------------
@@ -601,17 +636,23 @@ function getNbStepAtomsFtraj( file_path::T1 ) where { T1 <: AbstractString }
 end
 function readFtraj( file_path::T1 ) where { T1 <: AbstractString }
 
-    # Getting number of line of file
+    # Getting number of line of file and checking existence of file
+    #-----------------------------------------------------
     nb_step, nb_atoms = getNbStepAtomsFtraj( file_path )
     if nb_step == false
-        print("File FTRAJ does not exists!\n")
         return false, false, false
     end
+    #-----------------------------------------------------
 
-    positions=zeros(nb_step,nb_atoms,3)
-    velocities=zeros(nb_step,nb_atoms,3)
-    forces=zeros(nb_step,nb_atoms,3)
+    # Init arrays
+    #-----------------------------------------------------
+    positions  = zeros( nb_step, nb_atoms, 3 )
+    velocities = zeros( nb_step, nb_atoms, 3 )
+    forces     = zeros( nb_step, nb_atoms, 3 )
+    #-----------------------------------------------------
 
+    # Reading
+    #-----------------------------------------------------
     file_in = open( file_path )
     for step=1:nb_step
         for atom=1:nb_atoms
@@ -626,6 +667,7 @@ function readFtraj( file_path::T1 ) where { T1 <: AbstractString }
         end
     end
     close( file_in )
+    #-----------------------------------------------------
 
     return positions, velocities, forces
 end
@@ -641,10 +683,10 @@ function readFtraj( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T
     #---------------------------------------------------------------------------
 
     #---------------------------------------------------------------------------
-    nb_step = trunc(Int, nb_step_origin/stride_) + 1
-    positions=zeros(nb_step,nb_atoms,3)
-    velocities=zeros(nb_step,nb_atoms,3)
-    forces=zeros(nb_step,nb_atoms,3)
+    nb_step = utils.nbStepStriding( nb_step_origin, stride_ )
+    positions  = zeros( nb_step, nb_atoms, 3 )
+    velocities = zeros( nb_step, nb_atoms, 3 )
+    forces     = zeros( nb_step, nb_atoms, 3 )
     #---------------------------------------------------------------------------
 
     #---------------------------------------------------------------------------
@@ -670,7 +712,7 @@ function readFtraj( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T
 
     return positions, velocities, forces
 end
-function readFttraj( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int }
+function readFttraj( file_path::T1, stride_::T2, nb_ignored::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int }
 
     # Getting number of line of file
     #---------------------------------------------------------------------------
@@ -682,22 +724,22 @@ function readFttraj( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: A
     #---------------------------------------------------------------------------
 
     #---------------------------------------------------------------------------
-    nb_step = trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
-    positions=zeros(nb_step,nb_atoms,3)
-    velocities=zeros(nb_step,nb_atoms,3)
-    forces=zeros(nb_step,nb_atoms,3)
+    nb_step = utils.nbStepStriding( nb_step_origin-nb_ignored, stride_ )
+    positions  = zeros( nb_step, nb_atoms, 3 )
+    velocities = zeros( nb_step, nb_atoms, 3 )
+    forces     = zeros( nb_step, nb_atoms, 3 )
     #---------------------------------------------------------------------------
 
     #---------------------------------------------------------------------------
     file_in = open( file_path )
     # Ignoring the first nb_ignore steps
-    for step=1:nb_ignore
+    for step=1:nb_ignored
         for atom=1:nb_atoms
             temp=readline(file_in)
         end
     end
     count_step=1
-    for step=1:nb_step_origin-nb_ignore
+    for step=1:nb_step_origin-nb_ignored
         if (step-1) % stride_ == 0
             for atom=1:nb_atoms
                 keywords=split( readline( file_in ) )
@@ -729,7 +771,7 @@ function readFtraj( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T4 ) whe
     #---------------------------------------------------------------------------
 
     #---------------------------------------------------------------------------
-    nb_step = trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
+    nb_step = utils.nbStepStriding( nb_step_origin-nb_ignored, stride_ )
     if nb_max > nb_step
         print("nb_max is too large, maximum value is ",nb_step,"\n")
     end
@@ -833,25 +875,25 @@ function buildingDataBase( folder_target::T1, file_stress::T2, file_pressure::T3
     if nb_step_stress == false
         return false
     end
-    nb_step_stress = trunc( Int, nb_step_stress/n_stress ) + 1
+    nb_step_stress = utils.nbStepStriding( nb_step_stress, n_stress )
     #-------------------------------------------
     nb_step_ftraj, nb_atoms_ftraj = getNbStepAtomsFtraj( file_ftrajectory_in )
     if nb_step_ftraj == false
         return false
     end
-    nb_step_ftraj  =trunc( Int, nb_step_ftraj/n_ftraj ) + 1
+    nb_step_ftraj = utils.nbStepStriding( nb_step_ftraj, n_ftraj )
     #-------------------------------------------
     nb_step_energy = getNbStepEnergies( file_energy_in )
     if nb_step_energy == false
         return false
     end
-    nb_step_energy = trunc( Int, nb_step_energy/n_energy ) + 1
+    nb_step_energy = utils.nbStepStriding( nb_step_energy, n_energy )
     #-------------------------------------------
     nb_step_traj = filexyz.getNbSteps( file_trajec_in )
     if nb_step_traj == false
         return false
     end
-    nb_step_traj = trunc( Int, nb_step_traj/n_traj ) + 1
+    nb_step_traj = utils.nbStepStriding( nb_step_traj, n_traj )
     #--------------------------------------------------------------------------
 
     # Checking coherence

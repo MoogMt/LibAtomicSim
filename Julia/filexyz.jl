@@ -43,7 +43,7 @@ function getNbSteps( file_path::T1 ) where { T1 <: AbstractString }
   close(file_in)
 
   if nb_lines % (nb_atoms+2) != 0
-    print("File TRAJEC.xyz is corrupted!\n")
+    print("File TRAJEC.xyz at ",file_path," is corrupted!\n")
     return false
   end
 
@@ -70,7 +70,7 @@ function getNbStepAtoms( file_path::T1 ) where { T1 <: AbstractString }
   close(file_in)
 
   if nb_lines % (nb_atoms+2) != 0
-    print("File TRAJEC.xyz is corrupted!\n")
+    print("File TRAJEC.xyz at ",file_path," is probably corrupted!\n")
     return false
   end
 
@@ -126,8 +126,8 @@ function readFileAtomList( file_path::T1, stride_::T2 ) where { T1 <: AbstractSt
 
   # Init output structure
   #------------------------------------------------
-  nb_steps=trunc(Int, nb_step_origin/stride_) + 1
-  traj=Vector{ atom_mod.AtomList }( undef, nb_steps )
+  nb_step = utils.nbStepStriding(nb_step_origin, stride_ )
+  traj    = Vector{ atom_mod.AtomList }( undef, nb_step )
   #-------------------------------------------------
 
   # Reading
@@ -172,8 +172,8 @@ function readFileAtomList( file_path::T1, stride_::T2, nb_ignored::T3 ) where { 
 
   # Init output structure
   #------------------------------------------------
-  nb_steps=trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
-  traj=Vector{ atom_mod.AtomList }( undef, nb_steps )
+  nb_step = utils.nbStepStriding( nb_step_origin-nb_ignored, stride_ )
+  traj    = Vector{ atom_mod.AtomList }( undef, nb_step )
   #-------------------------------------------------
 
   # Reading
@@ -218,7 +218,7 @@ function readFileAtomList( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T
 
   # Init output structure
   #------------------------------------------------
-  nb_step = trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
+  nb_step = utils.nbStepStriding( nb_step_origin-nb_ignored, stride_ )
   if nb_max > nb_step
       print("nb_max is too large, maximum value is ",nb_step,"\n")
   end
