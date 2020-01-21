@@ -18,6 +18,7 @@ export writeXYZ
 using atom_mod
 using cell_mod
 using cube_mod
+using utils
 
 
 # Counts the nb of steps contained in file
