@@ -294,8 +294,6 @@ function readEnergies( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T4 ) 
             etot[count_]  = parse( Float64, line[col_entot] )
             msd[count_]   = parse( Float64, line[col_msd] )
             comp[count_]  = parse( Float64, line[col_comp] )
-            print("test: ",count_,"\n")
-            print("test2:",step," ",end_step,"\n")
             if count_ >= nb_max
                 break
             end
@@ -600,8 +598,8 @@ end
 # When restarting run, a misc line that needs to be ignored
 # <<<<<<  NEW DATA  >>>>>>
 #-------------------------------------
-col_start_position=1
 col_start_velocity=4
+col_start_position=1
 col_start_force=7
 function getNbStepAtomsFtraj( file_path::T1 ) where { T1 <: AbstractString }
 
