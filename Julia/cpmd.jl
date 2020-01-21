@@ -611,8 +611,11 @@ function getNbStepAtomsFtraj( file_path::T1 ) where { T1 <: AbstractString }
     close( file_in )
 
     if nb_line % nb_atoms != 0
-        print("Potential Corruption in file FTRAJ\n")
-        return false
+        print("Potential Corruption in file FTRAJECTORY at ",file_path,"\n")
+        print("Number of line: ", nb_line, "\n" )
+        print("Number of atoms: ", nb_atoms, "\n" )
+        print("Modulo: ", nb_line%nb_atoms, "\n" )
+        return false, false
     end
 
     return Int(nb_line/nb_atoms), nb_atoms
