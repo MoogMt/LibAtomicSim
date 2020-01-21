@@ -105,25 +105,28 @@ function getNbStepEnergies( file_path::T1 ) where { T1 <: AbstractString }
     return nb_step
 end
 function readEnergies( file_path::T1 ) where { T1 <: AbstractString }
+
     # Check file
-    if ! isfile(file_path)
+    #----------------------------------------
+    nb_step = getNbStepEnergies( file_path )
+    if nb_step == false
         return false, false, false, false, false
     end
+    #----------------------------------------
 
     # Array Init
     #----------------------------------------
-    nb_steps = getNbStepEnergies( file_path )
-    temp=Vector{Real}(undef,nb_steps)
-    epot=Vector{Real}(undef,nb_steps)
-    etot=Vector{Real}(undef,nb_steps)
-    msd=Vector{Real}(undef,nb_steps)
-    comp=Vector{Real}(undef,nb_steps)
+    temp=Vector{Real}(undef,nb_step)
+    epot=Vector{Real}(undef,nb_step)
+    etot=Vector{Real}(undef,nb_step)
+    msd=Vector{Real}(undef,nb_step)
+    comp=Vector{Real}(undef,nb_step)
     #----------------------------------------
 
     # Getting data from lines
     #----------------------------------------------
     file_in = open(file_path)
-    for step=1:nb_steps
+    for step=1:nb_step
         line=split( readline(file_in) )
         temp[step]=parse(Float64,line[col_temp])
         epot[step]=parse(Float64,line[col_poten])
@@ -137,32 +140,30 @@ function readEnergies( file_path::T1 ) where { T1 <: AbstractString }
     return  temp, epot, etot, msd, comp
 end
 function readEnergies( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T2 <: Int  }
+
     # Check file
-    if ! isfile(file_path)
+    #----------------------------------------
+    nb_step_origin =  getNbStepEnergies( file_path )
+    if nb_step_origin == false
         return false, false, false, false, false
     end
+    #----------------------------------------
 
     # Array Init
     #----------------------------------------
-    nb_steps_origin = getNbStepEnergies( file_path )
-    nb_steps=0
-    if nb_steps_origin % stride_ == 0
-        nb_steps = trunc(Int, nb_steps_origin/stride_ )
-    else
-        nb_steps = trunc(Int, nb_steps_origin/stride_ ) + 1
-    end
-    temp=Vector{Real}(undef,nb_steps)
-    epot=Vector{Real}(undef,nb_steps)
-    etot=Vector{Real}(undef,nb_steps)
-    msd=Vector{Real}(undef,nb_steps)
-    comp=Vector{Real}(undef,nb_steps)
+    nb_step=trunc(Int, nb_step_origin/stride_) + 1
+    temp=Vector{Real}(undef,nb_step)
+    epot=Vector{Real}(undef,nb_step)
+    etot=Vector{Real}(undef,nb_step)
+    msd=Vector{Real}(undef,nb_step)
+    comp=Vector{Real}(undef,nb_step)
     #----------------------------------------
 
     # Getting data from lines
     #----------------------------------------------
     file_in = open(file_path)
     count_=1
-    for step=1:nb_steps_origin
+    for step=1:nb_step_origin
         line=split( readline(file_in) )
         if (step-1) % stride_ == 0
             temp[count_] = parse( Float64, line[col_temp] )
@@ -178,21 +179,19 @@ function readEnergies( file_path::T1, stride_::T2 ) where { T1 <: AbstractString
 
     return  temp, epot, etot, msd, comp
 end
-function readEnergies( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int  }
+function readEnergies( file_path::T1, stride_::T2, nb_ignored::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int  }
+
     # Check file
-    if ! isfile(file_path)
+    #----------------------------------------
+    nb_step_origin =  getNbStepEnergies( file_path )
+    if nb_step_origin == false
         return false, false, false, false, false
     end
+    #----------------------------------------
 
     # Array Init
     #----------------------------------------
-    nb_steps_origin =  getNbStepEnergies( file_path )
-    nb_steps=0
-    if (nb_steps_0origin-nb_ignore) % stride_ == 0
-        nb_steps = trunc(Int, (nb_steps_origin-nb_ignore)/stride_)
-    else
-        nb_steps = trunc(Int, (nb_steps_origin-nb_ignore)/stride_) + 1
-    end
+    nb_steps=trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
     temp=Vector{Real}(undef,nb_steps)
     epot=Vector{Real}(undef,nb_steps)
     etot=Vector{Real}(undef,nb_steps)
@@ -204,10 +203,10 @@ function readEnergies( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <:
     #----------------------------------------------
     file_in = open(file_path)
     count_=1
-    for step=1:nb_ignore
+    for step=1:nb_ignored
         temp=readline(file_in)
     end
-    for step=1:nb_steps_origin-nb_ignore
+    for step=1:nb_step_origin-nb_ignored
         line=split( readline(file_in) )
         if (step-1) % stride_ == 0 && step
             temp[count_] = parse( Float64, line[col_temp] )
@@ -223,21 +222,17 @@ function readEnergies( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <:
 
     return  temp, epot, etot, msd, comp
 end
-function readEnergies( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int, T4 <: Int  }
+function readEnergies( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T4 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int, T4 <: Int  }
+
     # Check file
-    if ! isfile(file_path)
+    nb_step_origin =  getNbStepEnergies( file_path )
+    if nb_step_origin == false
         return false, false, false, false, false
     end
 
     # Array Init
-    #----------------------------------------
-    nb_steps_origin =  getNbStepEnergies( file_path )
-    nb_step = 0
-    if (nb_steps_origin-nb_ignore) % stride_ == 0
-        nb_step = trunc(Int, (nb_steps_origin-nb_ignore)/stride_) + 1
-    else
-        nb_step = trunc(Int, (nb_steps_origin-nb_ignore)/stride_) + 1
-    end
+    #---------------------------------------
+    nb_step = trunc( Int, (nb_step_origin-nb_ignored)/stride_) + 1
     if nb_max > nb_step
         print("nb_max is too large, maximum value is ",nb_step,"\n")
     end
@@ -255,10 +250,10 @@ function readEnergies( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) w
     #----------------------------------------------
     file_in = open(file_path)
     count_=1
-    for step=1:nb_ignore
+    for step=1:nb_ignored
         temp=readline(file_in)
     end
-    for step=1:nb_steps_origin-nb_ignore
+    for step=1:nb_step_origin-nb_ignored
         line=split( readline(file_in) )
         if (step-1) % stride_ == 0
             temp[count_] = parse( Float64, line[col_temp] )
@@ -333,18 +328,18 @@ end
 function readStress( file_path::T1 ) where { T1 <: AbstractString, T2 <: Int }
 
     # Checking file exists
-    if ! isfile(file_path)
-        false
+    nb_step = getNbStepStress( file_path )
+    if nb_step == false
+        return false
     end
 
     # Init data files
     #------------------------------------------
-    nb_step=getNbStepStress( file_path )
-    stress=zeros(Real,nb_step,stress_dim,stress_dim)
+    stress = zeros( Real, nb_step, stress_dim, stress_dim )
     #------------------------------------------
 
     #--------------------------------------------------------
-    file_in=open(file_path)
+    file_in = open( file_path )
     for step=1:nb_step
         temp=split( readline( file_in ) ) # Comment line
         if temp[1] != "TOTAL"
@@ -374,19 +369,14 @@ end
 function readStress( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T2 <: Int }
 
     # Checking file exists
-    if ! isfile( file_path )
-        false
+    nb_step_origin = getNbStepStress( file_path )
+    if nb_step_origin == false
+        return false
     end
 
     # Init data files
     #------------------------------------------
-    nb_step_origin=getNbStepStress( file_path )
-    nb_step = 0
-    if nb_step_origin % stride_ == 0
-        nb_step = trunc(Int, nb_step_origin/stride_)
-    else
-        nb_step = trunc(Int, nb_step_origin/stride_) + 1
-    end
+    nb_step = trunc(Int, nb_step_origin/stride_) + 1
     stress=zeros(Real,nb_step,stress_dim,stress_dim)
     #------------------------------------------
 
@@ -426,34 +416,29 @@ function readStress( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, 
 
     return stress
 end
-function readStress( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int }
+function readStress( file_path::T1, stride_::T2, nb_ignored::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int }
 
     # Checking file exists
-    if ! isfile( file_path )
-        false
+    nb_step_origin = getNbStepStress( file_path )
+    if nb_step_origin == false
+        return false
     end
 
     # Init data files
     #------------------------------------------
-    nb_step_origin=getNbStepStress( file_path )
-    nb_step = 0
-    if (nb_step_origin-nb_ignore) % stride_ == 0
-        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
-    else
-        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
-    end
-    stress=zeros(Real,nb_step,stress_dim,stress_dim)
+    nb_step = trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
+    stress = zeros(Real,nb_step,stress_dim,stress_dim)
     #------------------------------------------
 
     #--------------------------------------------------------
     file_in=open(file_path)
-    for step=1:nb_ignore
+    for step=1:nb_ignored
         for i=1:stress_block_size
             temp = readline(file_in )
         end
     end
     count_=1
-    for step=1:(nb_step_origin-nb_ignore)
+    for step=1:(nb_step_origin-nb_ignored)
         if (step-1) % stride_ == 0
             temp=split( readline( file_in ) ) # Comment line
             if temp[1] != "TOTAL"
@@ -486,22 +471,16 @@ function readStress( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: A
 
     return stress
 end
-function readStress( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int, T4 <: Int }
+function readStress( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T4 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int, T4 <: Int }
 
-    # Checking file exists
-    if ! isfile( file_path )
-        false
+    nb_step_origin=getNbStepStress( file_path )
+    if nb_step_origin == false
+        return false
     end
 
     # Init data files
     #------------------------------------------
-    nb_step_origin=getNbStepStress( file_path )
-    nb_step = 0
-    if (nb_step_origin-nb_ignore) % stride_ == 0
-        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
-    else
-        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
-    end
+    nb_step = trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
     if nb_max > nb_step
         print("nb_max is too large, maximum value is ",nb_step,"\n")
     end
@@ -513,13 +492,13 @@ function readStress( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) whe
 
     #--------------------------------------------------------
     file_in=open(file_path)
-    for step=1:nb_ignore
+    for step=1:nb_ignored
         for i=1:stress_block_size
             temp = readline(file_in )
         end
     end
     count_=1
-    for step=1:(nb_step_origin-nb_ignore)
+    for step=1:(nb_step_origin-nb_ignored)
         if (step-1) % stride_ == 0
             temp=split( readline( file_in ) ) # Comment line
             if temp[1] != "TOTAL"
@@ -662,12 +641,7 @@ function readFtraj( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T
     #---------------------------------------------------------------------------
 
     #---------------------------------------------------------------------------
-    nb_step = 0
-    if nb_step_origin % stride_ == 0
-        nb_step = trunc(Int, nb_step_origin/stride_)
-    else
-        nb_step = trunc(Int, nb_step_origin/stride_) + 1
-    end
+    nb_step = trunc(Int, nb_step_origin/stride_) + 1
     positions=zeros(nb_step,nb_atoms,3)
     velocities=zeros(nb_step,nb_atoms,3)
     forces=zeros(nb_step,nb_atoms,3)
@@ -708,12 +682,7 @@ function readFttraj( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: A
     #---------------------------------------------------------------------------
 
     #---------------------------------------------------------------------------
-    nb_step = 0
-    if (nb_step_origin-nb_ignore) % stride_ == 0
-        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
-    else
-        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
-    end
+    nb_step = trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
     positions=zeros(nb_step,nb_atoms,3)
     velocities=zeros(nb_step,nb_atoms,3)
     forces=zeros(nb_step,nb_atoms,3)
@@ -760,12 +729,7 @@ function readFtraj( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) wher
     #---------------------------------------------------------------------------
 
     #---------------------------------------------------------------------------
-    nb_step = 0
-    if (nb_step_origin-nb_ignore) % stride_ == 0
-        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
-    else
-        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
-    end
+    nb_step = trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
     if nb_max > nb_step
         print("nb_max is too large, maximum value is ",nb_step,"\n")
     end

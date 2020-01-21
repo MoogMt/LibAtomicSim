@@ -8,7 +8,7 @@ module utils
 #-------------------------------------------------------------------------------
 function nbStepStriding( nb_step::T1 , stride_::T2 ) where { T1 <: Int, T2 <: Int }
   if nb_step % stride_ == 0
-    return Int(nb_step/stride_)
+    return Int(nb_step/stride_) + 1
   else
     return trunc(Int,nb_step/stride_)+1
   end

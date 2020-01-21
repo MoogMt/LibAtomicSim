@@ -126,12 +126,7 @@ function readFileAtomList( file_path::T1, stride_::T2 ) where { T1 <: AbstractSt
 
   # Init output structure
   #------------------------------------------------
-  nb_steps=0
-  if nb_step_origin % stride_ == 0
-      nb_steps = trunc(Int, nb_step_origin/stride_)
-  else
-      nb_steps = trunc(Int, nb_step_origin/stride_) + 1
-  end
+  nb_steps=trunc(Int, nb_step_origin/stride_) + 1
   traj=Vector{ atom_mod.AtomList }( undef, nb_steps )
   #-------------------------------------------------
 
@@ -177,12 +172,7 @@ function readFileAtomList( file_path::T1, stride_::T2, nb_ignored::T3 ) where { 
 
   # Init output structure
   #------------------------------------------------
-  nb_steps=0
-  if nb_step_origin % stride_ == 0
-      nb_steps = trunc( Int, ( nb_step_origin - nb_ignored )/stride_ )
-  else
-      nb_steps = trunc( Int, ( nb_step_origin - nb_ignored )/stride_ ) + 1
-  end
+  nb_steps=trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
   traj=Vector{ atom_mod.AtomList }( undef, nb_steps )
   #-------------------------------------------------
 
@@ -228,12 +218,7 @@ function readFileAtomList( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T
 
   # Init output structure
   #------------------------------------------------
-  nb_step = 0
-  if (nb_step_origin-nb_ignored) % stride_ == 0
-      nb_step = trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
-  else
-      nb_step = trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
-  end
+  nb_step = trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
   if nb_max > nb_step
       print("nb_max is too large, maximum value is ",nb_step,"\n")
   end
