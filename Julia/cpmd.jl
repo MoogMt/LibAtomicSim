@@ -25,7 +25,7 @@ function readInputTimestep( file_input_path::T1 ) where { T1 <: AbstractString }
 
     # Read input
     #-----------------------------------
-    lines=getLines( file_input_path )
+    lines = utils.getLines( file_input_path )
     #-----------------------------------
 
     # Extract timestep
@@ -57,7 +57,7 @@ function readIntputStrideStress( file_input_path::T1 ) where { T1 <: AbstractStr
 
     # Read input
     #-----------------------------------
-    lines=getLines( file_input_path )
+    lines = utils.getLines( file_input_path )
     #-----------------------------------
 
     # Extract stride of STRESS tensor
@@ -88,7 +88,7 @@ function readIntputStrideTraj( file_input_path::T1 ) where { T1 <: AbstractStrin
 
     # Read input
     #-----------------------------------
-    lines=getLines( file_input_path )
+    lines = utils.getLines( file_input_path )
     #-----------------------------------
 
     # Extract stride of STRESS tensor
