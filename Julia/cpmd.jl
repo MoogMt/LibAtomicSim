@@ -878,6 +878,7 @@ function buildingDataBase( folder_target::T1, file_stress::T2, file_pressure::T3
         print("Interrupting database construction.\n")
         return false
     end
+    target_length = min( nb_step_traj, nb_step_ftraj, nb_step_energy, nb_step_stress )
     #--------------------------------------------------------------------------
 
     # Writing
