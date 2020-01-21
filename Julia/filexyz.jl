@@ -230,7 +230,7 @@ function readFileAtomList( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T
   #------------------------------------------------
   nb_step = 0
   if (nb_step_origin-nb_ignored) % stride_ == 0
-      nb_step = trunc(Int, (nb_step_origin-nb_ignored)/stride_)
+      nb_step = trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
   else
       nb_step = trunc(Int, (nb_step_origin-nb_ignored)/stride_) + 1
   end

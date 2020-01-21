@@ -234,7 +234,7 @@ function readEnergies( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) w
     nb_steps_origin =  getNbStepEnergies( file_path )
     nb_step = 0
     if (nb_steps_origin-nb_ignore) % stride_ == 0
-        nb_step = trunc(Int, (nb_steps_origin-nb_ignore)/stride_)
+        nb_step = trunc(Int, (nb_steps_origin-nb_ignore)/stride_) + 1
     else
         nb_step = trunc(Int, (nb_steps_origin-nb_ignore)/stride_) + 1
     end
@@ -498,7 +498,7 @@ function readStress( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) whe
     nb_step_origin=getNbStepStress( file_path )
     nb_step = 0
     if (nb_step_origin-nb_ignore) % stride_ == 0
-        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
+        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
     else
         nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
     end
@@ -762,7 +762,7 @@ function readFtraj( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) wher
     #---------------------------------------------------------------------------
     nb_step = 0
     if (nb_step_origin-nb_ignore) % stride_ == 0
-        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_)
+        nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
     else
         nb_step = trunc(Int, (nb_step_origin-nb_ignore)/stride_) + 1
     end
@@ -896,8 +896,8 @@ function buildingDataBase( folder_target::T1, file_stress::T2, file_pressure::T3
         print("Some inconsistencies in ",folder_target,"\n")
         print("traj_step: ",nb_step_traj,"\n")
         print("ftraj_step: ",nb_step_ftraj,"\n")
-        print("traj_energy: ",nb_step_energy,"\n")
-        print("traj_stress: ",nb_step_stress,"\n")
+        print("energy_step: ",nb_step_energy,"\n")
+        print("stress_step: ",nb_step_stress,"\n")
         print("Interrupting database construction.\n")
         return false
     end
