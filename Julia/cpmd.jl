@@ -717,7 +717,7 @@ function readFttraj( file_path::T1, stride_::T2, nb_ignore::T3 ) where { T1 <: A
 
     return positions, velocities, forces
 end
-function readFtraj( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int, T4 <: Int }
+function readFtraj( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T4 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int, T4 <: Int }
 
     # Getting number of line of file
     #---------------------------------------------------------------------------
@@ -744,13 +744,13 @@ function readFtraj( file_path::T1, stride_::T2, nb_ignore::T3, nb_max::T4 ) wher
     #---------------------------------------------------------------------------
     file_in = open( file_path )
     # Ignoring the first nb_ignore steps
-    for step=1:nb_ignore
+    for step=1:nb_ignored
         for atom=1:nb_atoms
             temp=readline(file_in)
         end
     end
     count_step=1
-    for step=1:nb_step_origin-nb_ignore
+    for step=1:nb_step_origin-nb_ignored
         if (step-1) % stride_ == 0
             for atom=1:nb_atoms
                 keywords=split( readline( file_in ) )
