@@ -611,26 +611,13 @@ function getNbStepAtomsFtraj( file_path::T1 ) where { T1 <: AbstractString }
     file_in = open( file_path )
     nb_line = 0
     nb_atoms=0
-    step_counter=0
-    count_atoms=0
     while ! eof( file_in )
         keywords=split(readline( file_in ))
         if keywords[1] != "<<<<<<"
-            test = parse( Int, keywords[1] )
-            if test <= step_counter1
-                continue
-            else
-                if keywords[1] == "1"
-                    nb_atoms += 1
-                else
-                    count_atoms += 1
-                    if count_atoms == nb_atoms
-                        step_counter += 1
-                        count_atoms=0
-                    end
-                end
-                nb_line += 1
+            if keywords[1] == "1"
+                nb_atoms += 1
             end
+            nb_line += 1
         end
     end
     close( file_in )
