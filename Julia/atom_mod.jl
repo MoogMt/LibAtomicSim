@@ -152,6 +152,45 @@ function getTypeIndex( types_names::Vector{T1}, name::T2 ) where { T1 <: Abstrac
     end
     return index_types
 end
+function getSpecies( atoms::T1 ) where { T1 <: AtomList }
+    species = Vector{AbstractString}(undef,0)
+    nb_atoms = getNbAtoms( atoms )
+    if nb_atoms == 0
+        return []
+    else
+        push!( species, atoms.names[1] )
+        for atom = 1:nb_atoms
+            add = true
+            for specie in species
+                if atoms.names[atom] == specie
+                    add = false
+                    break
+                end
+            end
+            if add
+                push!( species, atom.names[atom] )
+            end
+        end
+        return species
+    end
+end
+function getSpecies( traj::Vector{T1} ) where { T1 <: AtomList }
+    nb_step = getNbStep( traj )
+    species=[]
+    for step = 1:nb_step
+        push!(species, getSpecies( traj[step] ) )
+    end
+    return species
+end
+function getNbSpecies( atoms::T1 ) where { T1 <: AtomList }
+    nb_atoms = getNbAtoms( atoms )
+    if nb_atoms == 0
+        return 0
+    else
+        return size(getSpecies( atoms ))[1]
+    end
+end
+function getStartSpecie( atoms::T1, species::Vector{T2} ) where { T1 <: AtomList, T2 <: AbstractString }
 #-------------------------------------------------------------------------------
 
 end
