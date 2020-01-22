@@ -11,6 +11,7 @@ export readEnergiesFile, readStress, readTraj
 export getNbStepEnergies, getNbStepStress, getNbStepAtomsFtraj
 export writeEnergies, writeStress, writeFtraj
 export buildingDataBase
+export
 
 # Read input
 # Reads the input file of a CPMD simuation
@@ -978,14 +979,28 @@ end
 function writeRelaunchVelocitiesTraj( folder_target::T1, traj::Vector{T2} ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList }
 
     #----------------------------------------
-    nb_atoms=size(velocities)[1]
+    nb_step  = filexyz.getNbStep( traj )
+    nb_atoms = filexyz.getNbAtoms( traj[nb_step] )
     #----------------------------------------
+
+    #---------------------------------------
+    timestep = readInputTimestep( string( folder_target, "input" ) )
+    if timestep == false
+        return false
+    end
+    stride_traj = readIntputStrideTraj( string( folder_target, "input" ) )
+    if stride_traj == false
+        return false
+    end
+    dt = stride_traj*timestep
+    #---------------------------------------
 
     #----------------------------------------
     file_out = open( string( folder_target, "velocities_restart.dat" ), "w" )
     for atom = 1:nb_atoms
         for i=1:3
-            write( file_out, string( velocities[atom,i], " " ) )
+            dx=(traj[nb_step].positions[atom,i]-traj[nb_step-1].positions[atom,i])*conversion.ang2Bohr
+            write( file_out, string( dx/dt , " " ) )
         end
         write("\n")
     end
@@ -994,7 +1009,7 @@ function writeRelaunchVelocitiesTraj( folder_target::T1, traj::Vector{T2} ) wher
 
     return true
 end
-function relaunchRunFtraj( folder_in_target::T1 ) where { T1 <: AbstractString }
+function relaunchRunTrajec( folder_in_target::T1 ) where { T1 <: AbstractString }
 
     #------------------------------------------------
     traj = filexyz.readFileAtomList( string( folder_in_target, "TRAJEC.xyz" ) )
@@ -1005,17 +1020,11 @@ function relaunchRunFtraj( folder_in_target::T1 ) where { T1 <: AbstractString }
     #------------------------------------------------
 
     #------------------------------------------------
-    if nb_step_traj != nb_step_ftraj
-        return relaunchRunTrajec( folder_in_target )
-    end
-    #------------------------------------------------
-
-    #------------------------------------------------
-    writeRelaunchPositions( folder_in_target, traj[1] )
-    writeRelaunchVelocitiesTraj( folder_in_target, velocities )
-    #------------------------------------------------
-
-    return true
+    if writeRelaunchPositions( folder_in_target, traj[1] ) && writeRelaunchVelocitiesTraj( folder_in_target, traj )
+        return true
+    else
+        return false
+    #-------------------------------------------------
 end
 function relaunchRunFtraj( folder_in_target::T1 ) where { T1 <: AbstractString }
 
@@ -1045,25 +1054,9 @@ function relaunchRunFtraj( folder_in_target::T1 ) where { T1 <: AbstractString }
     #------------------------------------------------
 
     #------------------------------------------------
-    traj = traj[1]
-    species = atom_mod.getSpecies( traj )
-    nb_element_species = atom_mod.getNbElementSpecies( traj )
-    start_species = atom_mod.getStartSpecies( traj )
-    for specie in species
-        file_out=open( string( folder_in_target, specie, "_positions.dat"), "w" )
-        for atom = start_species[specie]:start_species[specie]+nb_element_species[specie]
-            for i=1:3
-                write( file_out, string( traj.positions[atom,i]), " " )
-            end
-            write(file_out,"\n")
-        end
-        close( file_out )
+    if writeRelaunchPositions( folder_in_target, traj[1] ) && writeRelaunchVelocities( folder_in_target, velocities )
+        return true
     end
-    #------------------------------------------------
-
-
-
-    return true
 end
 #-------------------------------------------------------------------------------
 
