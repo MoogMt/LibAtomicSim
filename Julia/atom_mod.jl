@@ -190,7 +190,96 @@ function getNbSpecies( atoms::T1 ) where { T1 <: AtomList }
         return size(getSpecies( atoms ))[1]
     end
 end
-function getStartSpecie( atoms::T1, species::Vector{T2} ) where { T1 <: AtomList, T2 <: AbstractString }
+function getNbSpecies( traj::Vector{T1} ) where { T1 <: AtomList }
+    nb_step = getNbStep( traj )
+    species_nb = zeros( nb_step )
+    for step = 1:nb_step
+        species_nb[ step ] = getNbSpecies( traj[step] )
+    end
+    return species_nb
+end
+function getStartSpecie( atoms::T1, specie::T2 ) where { T1 <: AtomList, T2 <: AbstractString }
+    start_specie = 0
+    nb_atoms = getNbAtoms( atoms )
+    for atom=1:nb_atoms
+        if specie == atoms.names[atom]
+            start_specie = atom
+            break
+        end
+    end
+    return start_specie
+end
+function getStartSpecies( atoms::T1, species::Vector{T2} ) where { T1 <: AtomList, T2 <: AbstractString }
+    nb_species = size( species )[1]
+    start_species = zeros( nb_species )
+    nb_atoms = getNbAtoms( atoms )
+    for i_specie=1:nb_species
+        for atom=1:nb_atoms
+            if species[i_specie] == atoms.names[atom]
+                start_species[specie] = atom
+                break
+            end
+        end
+    end
+    return start_species
+end
+function getStartSpecie( traj::Vector{T1}, specie::T2 ) where { T1 <: AtomList, T2 <: AbstractString }
+    nb_step = getNbStep( traj )
+    start_specie = zeros( nb_step )
+    for step = 1:nb_step
+        start_specie[ step ] = getStartSpecie( traj[step], specie )
+    end
+    return start_specie
+end
+function getStartSpecies( traj::Vector{T1}, species::Vector{T2} ) where { T1 <: AtomList, T2 <: AbstractString }
+    nb_step = getNbStep( traj )
+    nb_species = size(species)[1]
+    start_species = zeros( nb_step, nb_species  )
+    for step=1:nb_step
+        start_species[ step, : ] = getStartSpecies( traj[step], species )
+    end
+    return start_species
+end
+function getNbElementSpecies( atoms::T1, species::Vector{T2} ) where { T1 <: AtomList, T2 <: AbstractString }
+    nb_species = size(species)[1]
+    nb_element_species = zeros( nb_species )
+    nb_atoms = getNbAtoms( atoms )
+    for i_specie = 1:nb_species
+        for atom = 1:nb_atoms
+            if specie[ i_specie ] == atoms.names[i_specie]
+                nb_element_species[ specie ] += 1
+            end
+        end
+    end
+    return nb_element_species
+end
+function getNbElementSpecies( traj::Vector{T1}, species::Vector{T2} ) where { T1 <: AtomList, T2 <: AbstractString }
+    nb_step = getNbStep( traj )
+    nb_species = size(species)[1]
+    nb_element_species = zeros( nb_step, nb_species )
+    for step = 1:nb_step
+        nb_element_species[ step , : ] = getNbElementSpecies( traj[step], species )
+    end
+    return nb_element_species
+end
+function getNbElementSpecie( atoms::T1, specie::T2 ) where { T1 <: AtomList, T2 <: AbstractString }
+    nb_element_specie = 0
+    nb_atoms = getNbAtoms( atoms )
+    for atom = 1:nb_atoms
+        if  specie == atoms.names[i_specie]
+            nb_element_species += 1
+        end
+    end
+    return nb_element_specie
+end
+function getNbElementSpecie( traj::Vector{T1}, specie::T2 ) where { T1 <: AtomList, T2 <: AbstractString }
+    nb_step = getNbStep( traj )
+    nb_element_specie = zeros(nb_step)
+    for step = 1:nb_step
+        nb_element_specie[step]  = getNbElementSpecie( traj[step], specie )
+    end
+    return nb_element_specie
+end
 #-------------------------------------------------------------------------------
 
 end

@@ -15,12 +15,12 @@ ry2eV=13.605693009
 eV2Ry=1/ry2eV
 
 # Frequency
-hatime2fs=2.4188843265857*10^(-2)
+hatime2fs=2.4188843265857*0.01
 fs2hatime=1/hatime2fs
 
 # Time
-fs2ps=10^(-3)
-ps2fs=10^(3)
+fs2ps=0.001
+ps2fs=0.001
 
 # Distance
 bohr2Ang=0.5291772109
