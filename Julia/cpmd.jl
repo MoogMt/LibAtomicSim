@@ -755,9 +755,9 @@ function readFtraj( file_path::T1 ) where { T1 <: AbstractString }
 
     # Init arrays
     #-----------------------------------------------------
-    positions  = zeros( nb_step, nb_atoms, 3 )
-    velocities = zeros( nb_step, nb_atoms, 3 )
-    forces     = zeros( nb_step, nb_atoms, 3 )
+    positions  = zeros( Real, nb_step, nb_atoms, 3 )
+    velocities = zeros( Real, nb_step, nb_atoms, 3 )
+    forces     = zeros( Real, nb_step, nb_atoms, 3 )
     #-----------------------------------------------------
 
     # Reading
@@ -793,9 +793,9 @@ function readFtraj( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T
 
     #---------------------------------------------------------------------------
     nb_step = utils.nbStepStriding( nb_step_origin, stride_ )
-    positions  = zeros( nb_step, nb_atoms, 3 )
-    velocities = zeros( nb_step, nb_atoms, 3 )
-    forces     = zeros( nb_step, nb_atoms, 3 )
+    positions  = zeros( Real, nb_step, nb_atoms, 3 )
+    velocities = zeros( Real, nb_step, nb_atoms, 3 )
+    forces     = zeros( Real, nb_step, nb_atoms, 3 )
     #---------------------------------------------------------------------------
 
     #---------------------------------------------------------------------------
@@ -834,9 +834,9 @@ function readFttraj( file_path::T1, stride_::T2, nb_ignored::T3 ) where { T1 <: 
 
     #---------------------------------------------------------------------------
     nb_step = utils.nbStepStriding( nb_step_origin-nb_ignored, stride_ )
-    positions  = zeros( nb_step, nb_atoms, 3 )
-    velocities = zeros( nb_step, nb_atoms, 3 )
-    forces     = zeros( nb_step, nb_atoms, 3 )
+    positions  = zeros( Real, nb_step, nb_atoms, 3 )
+    velocities = zeros( Real, nb_step, nb_atoms, 3 )
+    forces     = zeros( Real, nb_step, nb_atoms, 3 )
     #---------------------------------------------------------------------------
 
     #---------------------------------------------------------------------------
@@ -1242,14 +1242,14 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_path::T2 ) where { T1 
 
     # Getting positions and velocities
     #------------------------------------------------------------
-    positions, velocities, forces = readTraj( string( folder_in_target, "FTRAJECTORY" ) )
+    positions, velocities, forces = readFtraj( string( folder_in_target, "FTRAJECTORY" ) )
     if positions == false
         return false
     end
     forces = []
     nb_step = size( positions )[1]
-    positions=positions[nb_step,:,:]
-    velocities=[nb_step,:,:]
+    positions  = positions[nb_step,:,:]
+    velocities = velocities[nb_step,:,:]
     #------------------------------------------------------------
 
     # Copy parameters of input
@@ -1268,12 +1268,12 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_path::T2 ) where { T1 
         # Copy PP line
         utils.copyLine2file( keywords, file_out )
         # Copy basis PP line
-        utils.copyLine2file( utils.getElements( file_in ), file_out )
+        utils.copyLine2file( utils.getLineElements( file_in ), file_out )
         # Getting Nb of atoms of species
-        keywords =  utils.getElements( file_in )
+        keywords =  utils.getLineElements( file_in )
         nb_atoms = parse( Int, keywords[1] )
         # Writing nb atoms line to file
-        utils.copyLine2File( keywords, file_out )
+        utils.copyLine2file( keywords, file_out )
         # Writting actual positions for specie
         writePositions( file_out, positions )
         # Ignore the atoms positions
