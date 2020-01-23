@@ -178,12 +178,6 @@ function writeVelocities( file_out::T1, velocities::Array{T2,2} ) where { T1 <: 
     write("END VELOCITIES\n")
     return true
 end
-function writeVelocities( file_path::T1, velocities::Array{T2,2} ) where { T1 <: AbstractString, T2 <: Real }
-    file_out = open( file_path, "w" )
-    test = writeVelocities( file_out, velocities )
-    close( file_path )
-    return test
-end
 function writeVelocities( file_out::T1, velocities::Array{T2,2}, nb_atoms_nb::Vector{T3} ) where { T1 <: IO, T2 <: Real, T3 <: Int }
     write( file_out, string("VELOCITIES") )
     for atom in nb_atoms_nb
@@ -199,11 +193,15 @@ function writeVelocities( file_out::T1, velocities::Array{T2,2}, nb_atoms_nb::Ve
     write("END VELOCITIES\n")
     return true
 end
-function writeVelocities( file_path::T1, velocities::Array{T2,2}, nb_atoms_nb::Vector{T3} ) where { T1 <: AbstractString, T2 <: Real, T3 <: Int }
-    file_out = open( file_path, "w" )
-    test = writeVelocities( file_out, velocities, nb_atoms_nb )
-    close( file_path )
-    return test
+function writePositions( file_out::T1, positions::Array{T2,2} ) where { T1 <: IO, T2 <: Real }
+    nb_atoms=size(positions)[1]
+    for atom=1:nb_atoms
+        for i=1:3
+            write(file_out,string( positions[atom,i]," " ))
+        end
+        write(file_out,string("\n"))
+    end
+    return true
 end
 #==============================================================================#
 
@@ -1123,7 +1121,7 @@ end
 function relaunchRunFtraj( folder_in_target::T1, file_out_positions_suffix::T2, file_out_velocities::T3 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString }
 
     #------------------------------------------------
-    positions, velocities, forces = readTraj( string( folder_in_target, "FTRAJECTORY" ) )
+    positions, velocities, forces = readFTraj( string( folder_in_target, "FTRAJECTORY" ) )
     if positions == false
         return false
     end
@@ -1155,7 +1153,64 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_positions_suffix::T2, 
         return true
     end
 end
-function relaunchFTRAJ( folder_in_target::T1 ) where { T1 <: AbstractString }
+function relaunchTrajec( folder_in_target::T1 ) where { T1 <: AbstractString }
+
+    #------------------------------------------------------------
+    path_input_file = string(folder_in_target,"input")
+    if isfile(path_input_file)
+        print("No input file found at ",path_input_file,"!\n")
+        return false
+    end
+    file_in=open( path_input_file )
+    #------------------------------------------------------------
+
+    # Getting positions and velocities
+    #------------------------------------------------------------
+    traj = readTraj( string( folder_in_target, "TRAJEC.xyz" ) )
+    if traj == false
+        return false
+    end
+    nb_step=size(traj)[1]
+    velocities=computeVelocities( traj, nb_step )
+    traj=traj[nb_step]
+    #------------------------------------------------------------
+
+    # Copy parameters of input
+    #---------------------------------------
+    file_out = open( folder_in_target, "w")
+    copyInputParams( file_in, file_out )
+    #----------------------------------------
+    # Copying &ATOMS line
+    write(file_out,"&ATOMS\n")
+    # Looping over atoms species
+    while true
+        keywords  = utils.getLineElements( file_in )
+        if keywords[1] == "&END"
+            break
+        end
+        # Copy PP line
+        utils.copyLine2file( keywords, file_out )
+        # Copy basis PP line
+        utils.copyLine2file( utils.getElements( file_in ), file_out )
+        # Getting Nb of atoms of species
+        keywords =  utils.getElements( file_in )
+        nb_atoms = parse( Int, keywords[1] )
+        # Writing nb atoms line to file
+        utils.copyLine2File( keywords, file_out )
+        # Writting actual positions for specie
+        writePositions( file_out, traj.positions )
+        # Ignore the atoms positions
+        for atom=1:nb_atoms
+            readline( file_in )
+        end
+    end
+    write( file_out, string("\n") )
+    writeVelocities( file_out, velocities )
+    write( file_out, string("&END") )
+    close( file_in  )
+    close( file_out )
+end
+function relaunchFtraj( folder_in_target::T1 ) where { T1 <: AbstractString }
 
     #------------------------------------------------------------
     path_input_file = string(folder_in_target,"input")
@@ -1201,12 +1256,7 @@ function relaunchFTRAJ( folder_in_target::T1 ) where { T1 <: AbstractString }
         # Writing nb atoms line to file
         utils.copyLine2File( keywords, file_out )
         # Writting actual positions for specie
-        for atom=1:nb_atoms
-            for i=1:3
-                write( file_out, string( positions[atom,i], " " ) )
-            end
-            write( file_out, "\n" )
-        end
+        writePositions( file_out, positions )
         # Ignore the atoms positions
         for atom=1:nb_atoms
             readline( file_in )
