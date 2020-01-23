@@ -109,6 +109,60 @@ function readIntputStrideTraj( file_input_path::T1 ) where { T1 <: AbstractStrin
 
     return stride_traj
 end
+function copyInput( file_input::T1, handle_out::T2 ) where { T1 <: AbstractString, T2 <: IO }
+    #--------------------------------------
+    if ! isfile( file_input_path )
+        print("No input file found at ",file_input," !\n")
+        return false
+    end
+    #--------------------------------------
+
+    #--------------------------------------
+    file_in  = open( file_input_path )
+    while ! eof( file_in )
+        keywords = utils.getLineElements( file_in )
+        if keywords[1] == "&ATOMS"
+            # Copying &ATOMS line
+            utils.copyLine2file( keywords, file_out )
+            # Looping over atoms species
+            while true
+                keywords  = utils.getLineElements( file_in )
+                if keywords[1] == "&END"
+                    break
+                end
+                # Copy PP line
+                utils.copyLine2file( keywords, file_out )
+                # Copy basis PP line
+                utils.copyLine2file( utils.getElements( file_in ), file_out )
+                # Getting Nb of atoms of species
+                keywords =  utils.getElements( file_in )
+                nb_atoms = parse( Int, keywords[1] )
+                # Writing atom line to file
+                utils.copyLine2File( keywords, file_out )
+                # Copying atom positions
+                for i=1:nb_atoms
+                    utils.copyLine2file( utils.getElements( file_in ), file_out )
+                end
+            end
+            break
+        else
+            # copying line
+            #-----------------------------------------------
+            utils.copyLine2file( keywords file_out )
+            #------------------------------------------------
+        end
+    end
+    close( file_in  )
+    #--------------------------------------
+
+    return true
+end
+function copyInput( file_input_path::T1, file_output_path::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
+    file_out = open( file_out_path, "w" )
+    test = copyInput( file_input_path, file_out )
+    close(file_out)
+    return test
+end
 #==============================================================================#
 
 # Read Output files

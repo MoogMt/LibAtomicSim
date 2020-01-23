@@ -4,6 +4,25 @@ module utils
 #  List of useful random functions that I could not fit elsewhere
 #-------------------------------------------------------------------------------
 
+#-------------------------------------------------------------------------------
+function getLineElements( file_io::T1 ) where {T1 <: AbstractString }
+  return split( readline(file_io) )
+end
+function copyLine2file( line::T1, file_io::T2 ) where { T1 <: AbstractString, T2 <: IO }
+  write(file_io, line )
+  write(file_io, string("\n"))
+  return true
+end
+function copyLine2file( line_element::Vector{T1}, file_io::T2 ) where { T1 <: AbstractString, T2 <: IO }
+  nb_elements = size(line_element)[1]
+  for i=1:nb_elements
+    write( file_io, string( line_element[i], " " ) )
+  end
+  write(file_io, string("\n"))
+  return true
+end
+#-------------------------------------------------------------------------------
+
 # Striding stuff
 #-------------------------------------------------------------------------------
 function nbStepStriding( nb_step::T1 , stride_::T2 ) where { T1 <: Int, T2 <: Int }
