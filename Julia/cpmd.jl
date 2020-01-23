@@ -1206,6 +1206,10 @@ function relaunchRunTrajec( folder_in_target::T1, file_out_path::T2 ) where { T1
     # Looping over atoms species
     while true
         keywords  = utils.getLineElements( file_in )
+        # Skip blank lines
+        while size(keywords)[1] == 0
+            keywords  = utils.getLineElements( file_in )
+        end
         if keywords[1] == "&END" || keywords[1] == "VELOCITIES"
             break
         end
@@ -1264,7 +1268,11 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_path::T2 ) where { T1 
     # Looping over atoms species
     while true
         keywords  = utils.getLineElements( file_in )
-        if keywords[1] == "&END" || keywords == "VELOCITIES"
+        # Skip blank lines
+        while size(keywords)[1] == 0
+            keywords  = utils.getLineElements( file_in )
+        end
+        if keywords[1] == "&END" || keywords[1] == "VELOCITIES"
             break
         end
         # Copy PP line
