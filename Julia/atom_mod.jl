@@ -1,20 +1,12 @@
 module atom_mod
 
 export Atom, AtomList, AtomMolList,
-export switchAtoms, moveAtom, moveAtom!
+export switchAtoms
 export getNbAtoms, getNbStep, getNbMol
 
 using utils
 
 #-------------------------------------------------------------------------------
-mutable struct Atom
-    name::AbstractString
-    index::Int
-    position::Vector{Real}
-    function Atom()
-        new("",-1,[0,0,0]);
-    end
-end
 mutable struct AtomList
     names::Vector{AbstractString}
     index::Vector{Int}
@@ -284,15 +276,7 @@ end
 
 #-------------------------------------------------------------------------------
 function computeVelocities( traj::Vector{T1}, target_step::T2, dt::T3 ) where { T1 <: AtomList, T2 <: Int, T3 <: Real }
-    nb_step=getNbStep(traj)
-    if target_step > nb_step
-        print("Target step: ",target_step," is above the maximum possible step number: ",nb_step," !\n")
-        return false
-    elseif target_step < 0
-        print("Target step: ",target_step," should be > 1.\n")
-        return false
-    end
-    return dx = ( traj[target_step].positions - traj[target_step-1].positions )/dt
+    return ( traj[target_step].positions - traj[target_step-1].positions )/dt
 end
 #-------------------------------------------------------------------------------
 

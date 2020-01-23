@@ -203,6 +203,17 @@ function writePositions( file_out::T1, positions::Array{T2,2} ) where { T1 <: IO
     end
     return true
 end
+function computeTimestep( input_path::T1 ) where { T1 <: AbstractString }
+    timestep = readInputTimestep( input_path )
+    if timestep == false
+        return false
+    end
+    stride_traj = readIntputStrideTraj( input_path )
+    if stride_traj == false
+        return false
+    end
+    return stride_traj*timestep
+end
 #==============================================================================#
 
 # Read Output files
@@ -1153,7 +1164,7 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_positions_suffix::T2, 
         return true
     end
 end
-function relaunchTrajec( folder_in_target::T1 ) where { T1 <: AbstractString }
+function relaunchRunTrajec( folder_in_target::T1 ) where { T1 <: AbstractString }
 
     #------------------------------------------------------------
     path_input_file = string(folder_in_target,"input")
@@ -1166,12 +1177,16 @@ function relaunchTrajec( folder_in_target::T1 ) where { T1 <: AbstractString }
 
     # Getting positions and velocities
     #------------------------------------------------------------
+    dt = computeTimestep( path_input_file )
+    if dt == false
+        return false
+    end
     traj = readTraj( string( folder_in_target, "TRAJEC.xyz" ) )
     if traj == false
         return false
     end
     nb_step=size(traj)[1]
-    velocities=computeVelocities( traj, nb_step )
+    velocities=computeVelocities( traj, nb_step, dt )*conversion.ang2Bohr/conversion.fs2hatime
     traj=traj[nb_step]
     #------------------------------------------------------------
 
@@ -1210,7 +1225,7 @@ function relaunchTrajec( folder_in_target::T1 ) where { T1 <: AbstractString }
     close( file_in  )
     close( file_out )
 end
-function relaunchFtraj( folder_in_target::T1 ) where { T1 <: AbstractString }
+function relaunchRunFtraj( folder_in_target::T1 ) where { T1 <: AbstractString }
 
     #------------------------------------------------------------
     path_input_file = string(folder_in_target,"input")
