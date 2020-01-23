@@ -153,6 +153,8 @@ function copyInputParams( handle_in::T1, handle_out::T2 ) where { T1 <: IO, T2 <
                 utils.copyLine2file( keywords, handle_out )
                 #------------------------------------------------
             end
+        else
+            write( handle_out, string("\n") )
         end
     end
 
@@ -1231,7 +1233,7 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_path::T2 ) where { T1 
 
     #------------------------------------------------------------
     path_input_file = string(folder_in_target,"input")
-    if isfile(path_input_file)
+    if ! isfile(path_input_file)
         print("No input file found at ",path_input_file,"!\n")
         return false
     end
