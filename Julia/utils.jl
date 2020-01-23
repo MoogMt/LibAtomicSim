@@ -5,7 +5,7 @@ module utils
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-function getLineElements( file_io::T1 ) where {T1 <: AbstractString }
+function getLineElements( file_io::T1 ) where {T1 <: IO }
   return split( readline(file_io) )
 end
 function copyLine2file( line::T1, file_io::T2 ) where { T1 <: AbstractString, T2 <: IO }

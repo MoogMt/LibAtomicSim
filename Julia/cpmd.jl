@@ -142,15 +142,17 @@ function copyInputParams( file_input_path::T1, file_output_path::T2 ) where { T1
 end
 function copyInputParams( handle_in::T1, handle_out::T2 ) where { T1 <: IO, T2 <: IO }
 
-    while ! eof( file_in )
-        keywords = utils.getLineElements( file_in )
-        if keywords[1] == "&ATOMS"
-            break
-        else
-            # copying line
-            #-----------------------------------------------
-            utils.copyLine2file( keywords, handle_out )
-            #------------------------------------------------
+    while ! eof( handle_in )
+        keywords = utils.getLineElements( handle_in )
+        if size(keywords)[1] > 0
+            if keywords[1] == "&ATOMS"
+                break
+            else
+                # copying line
+                #-----------------------------------------------
+                utils.copyLine2file( keywords, handle_out )
+                #------------------------------------------------
+            end
         end
     end
 
@@ -1164,11 +1166,11 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_positions_suffix::T2, 
         return true
     end
 end
-function relaunchRunTrajec( folder_in_target::T1 ) where { T1 <: AbstractString }
+function relaunchRunTrajec( folder_in_target::T1, file_out_path::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
 
     #------------------------------------------------------------
     path_input_file = string(folder_in_target,"input")
-    if isfile(path_input_file)
+    if ! isfile(path_input_file)
         print("No input file found at ",path_input_file,"!\n")
         return false
     end
@@ -1181,18 +1183,18 @@ function relaunchRunTrajec( folder_in_target::T1 ) where { T1 <: AbstractString 
     if dt == false
         return false
     end
-    traj = readTraj( string( folder_in_target, "TRAJEC.xyz" ) )
+    traj = filexyz.readFileAtomList( string( folder_in_target, "TRAJEC.xyz" ) )
     if traj == false
         return false
     end
     nb_step=size(traj)[1]
-    velocities=computeVelocities( traj, nb_step, dt )*conversion.ang2Bohr/conversion.fs2hatime
+    velocities = atom_mod.computeVelocities( traj, nb_step, dt )*conversion.ang2Bohr/conversion.fs2hatime
     traj=traj[nb_step]
     #------------------------------------------------------------
 
     # Copy parameters of input
     #---------------------------------------
-    file_out = open( folder_in_target, "w")
+    file_out = open( file_out_path, "w")
     copyInputParams( file_in, file_out )
     #----------------------------------------
     # Copying &ATOMS line
@@ -1225,7 +1227,7 @@ function relaunchRunTrajec( folder_in_target::T1 ) where { T1 <: AbstractString 
     close( file_in  )
     close( file_out )
 end
-function relaunchRunFtraj( folder_in_target::T1 ) where { T1 <: AbstractString }
+function relaunchRunFtraj( folder_in_target::T1, file_out_path::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
 
     #------------------------------------------------------------
     path_input_file = string(folder_in_target,"input")
@@ -1250,7 +1252,7 @@ function relaunchRunFtraj( folder_in_target::T1 ) where { T1 <: AbstractString }
 
     # Copy parameters of input
     #---------------------------------------
-    file_out = open( folder_in_target, "w")
+    file_out = open( file_out_path, "w")
     copyInputParams( file_in, file_out )
     #----------------------------------------
     # Copying &ATOMS line
