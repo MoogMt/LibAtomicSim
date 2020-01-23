@@ -1225,9 +1225,7 @@ function relaunchRunTrajec( folder_in_target::T1, file_out_path::T2 ) where { T1
         # Writting actual positions for specie
         writePositions( file_out, traj.positions )
         # Ignore the atoms positions
-        for atom=1:nb_atoms
-            readline( file_in )
-        end
+        utils.skipLines( file_out, nb_atoms)
     end
     write( file_out, string("\n") )
     writeVelocities( file_out, velocities )
@@ -1287,9 +1285,7 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_path::T2 ) where { T1 
         # Writting actual positions for specie
         writePositions( file_out, positions )
         # Ignore the atoms positions
-        for atom=1:nb_atoms
-            readline( file_in )
-        end
+        utils.skipLines( file_out, nb_atoms )
     end
     write( file_out, string("\n") )
     writeVelocities( file_out, velocities )

@@ -29,6 +29,9 @@ mutable struct Cell_param
     function Cell_param( a::T1, b::T2, c::T3, alpha::T4, beta::T5, gamma::T6 ) where { T1 <: Real, T2<: Real, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
         new([a,b,c],[alpha,beta,gamma])
     end
+    function Cell_param( lengths::Vector{T1}, angles::Vector{T2} ) where { T1 <: Real, T2 <: Real }
+        new( lengths, angles )
+    end
 end
 
 mutable struct Cell_vec
