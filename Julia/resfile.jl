@@ -56,7 +56,7 @@ function getNbAtoms( file_path::T1 ) where { T1 <: AbstractString }
         test = readline( handle_in )
         nb_lines += 1
     end
-    close(file_path)
+    close(handle_in)
     #-------------------------------------------
 
     return nb_lines-3
@@ -65,9 +65,6 @@ function extractAtomsInfo( handle_in::T1 ) where { T1 <: IO }
     nb_atoms = getNbAtoms( handle_in )
     seekstart(io)
     utils.skipLines( handle_in, 3)
-    
-    for atom=1:nb_atoms
-    end
 end
 #-------------------------------------------------------------------------------
 
