@@ -162,6 +162,49 @@ function copyInputParams( handle_in::T1, file_output_path::T2 ) where { T1 <: IO
     close(file_out)
     return test
 end
+function writeVelocities( file_out::T1, velocities::Array{T2,2} ) where { T1 <: IO, T2 <: Real }
+    write( file_out, string("VELOCITIES") )
+    nb_atoms=size(velocities)[1]
+    for atom=1:nb_atoms
+        write( file_out, string(atom," ") )
+    end
+    write( file_out, string("\n") )
+    for atom=1:nb_atoms
+        for i=1:3
+            write( file_out, string(velocities[atom,i]," ") )
+        end
+        write(file_out,string("\n"))
+    end
+    write("END VELOCITIES\n")
+    return true
+end
+function writeVelocities( file_path::T1, velocities::Array{T2,2} ) where { T1 <: AbstractString, T2 <: Real }
+    file_out = open( file_path, "w" )
+    test = writeVelocities( file_out, velocities )
+    close( file_path )
+    return test
+end
+function writeVelocities( file_out::T1, velocities::Array{T2,2}, nb_atoms_nb::Vector{T3} ) where { T1 <: IO, T2 <: Real, T3 <: Int }
+    write( file_out, string("VELOCITIES") )
+    for atom in nb_atoms_nb
+        write( file_out, string( atom, " " ) )
+    end
+    write( file_out, string("\n") )
+    for atom in nb_atoms_nb
+        for i=1:3
+            write( file_out, string(velocities[atom,i]," ") )
+        end
+        write(file_out,string("\n"))
+    end
+    write("END VELOCITIES\n")
+    return true
+end
+function writeVelocities( file_path::T1, velocities::Array{T2,2}, nb_atoms_nb::Vector{T3} ) where { T1 <: AbstractString, T2 <: Real, T3 <: Int }
+    file_out = open( file_path, "w" )
+    test = writeVelocities( file_out, velocities, nb_atoms_nb )
+    close( file_path )
+    return test
+end
 #==============================================================================#
 
 # Read Output files
@@ -1014,9 +1057,6 @@ function writeRelaunchVelocities( folder_target::T1, velocities::Array{T2,2}, fi
 
     #----------------------------------------
     nb_atoms=size(velocities)[1]
-    #----------------------------------------
-
-    #----------------------------------------
     file_out = open( string( folder_target, file_out_velocities ), "w" )
     for atom = 1:nb_atoms
         for i=1:3
@@ -1045,7 +1085,7 @@ function writeRelaunchVelocitiesTraj( folder_target::T1, traj::Vector{T2}, file_
     if stride_traj == false
         return false
     end
-    dt = stride_traj*timestep
+    dt = stride_traj*timestep*conversion.fs2hatime
     #---------------------------------------
 
     #----------------------------------------
@@ -1132,6 +1172,10 @@ function relaunchFTRAJ( folder_in_target::T1 ) where { T1 <: AbstractString }
     if positions == false
         return false
     end
+    forces = []
+    nb_step = size( positions )[1]
+    positions=positions[nb_step,:,:]
+    velocities=[nb_step,:,:]
     #------------------------------------------------------------
 
     # Copy parameters of input
@@ -1158,14 +1202,19 @@ function relaunchFTRAJ( folder_in_target::T1 ) where { T1 <: AbstractString }
         utils.copyLine2File( keywords, file_out )
         # Writting actual positions for specie
         for atom=1:nb_atoms
-
+            for i=1:3
+                write( file_out, string( positions[atom,i], " " ) )
+            end
+            write( file_out, "\n" )
         end
         # Ignore the atoms positions
         for atom=1:nb_atoms
             readline( file_in )
         end
     end
-
+    write( file_out, string("\n") )
+    writeVelocities( file_out, velocities )
+    write( file_out, string("&END") )
     close( file_in  )
     close( file_out )
 end
