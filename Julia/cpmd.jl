@@ -167,8 +167,9 @@ function copyInputParams( handle_in::T1, file_output_path::T2 ) where { T1 <: IO
     return test
 end
 function writeVelocities( file_out::T1, velocities::Array{T2,2} ) where { T1 <: IO, T2 <: Real }
-    write( file_out, string("VELOCITIES") )
+    write( file_out, string("VELOCITIES\n") )
     nb_atoms=size(velocities)[1]
+    write( file_out, string(nb_atoms," "))
     for atom=1:nb_atoms
         write( file_out, string(atom," ") )
     end
@@ -183,7 +184,8 @@ function writeVelocities( file_out::T1, velocities::Array{T2,2} ) where { T1 <: 
     return true
 end
 function writeVelocities( file_out::T1, velocities::Array{T2,2}, nb_atoms_nb::Vector{T3} ) where { T1 <: IO, T2 <: Real, T3 <: Int }
-    write( file_out, string("VELOCITIES") )
+    write( file_out, string("VELOCITIES\n") )
+    write( file_out, string( size(nb_atoms_nb)[1], " " ) )
     for atom in nb_atoms_nb
         write( file_out, string( atom, " " ) )
     end
@@ -1204,7 +1206,7 @@ function relaunchRunTrajec( folder_in_target::T1, file_out_path::T2 ) where { T1
     # Looping over atoms species
     while true
         keywords  = utils.getLineElements( file_in )
-        if keywords[1] == "&END"
+        if keywords[1] == "&END" || keywords[1] == "VELOCITIES"
             break
         end
         # Copy PP line
@@ -1262,7 +1264,7 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_path::T2 ) where { T1 
     # Looping over atoms species
     while true
         keywords  = utils.getLineElements( file_in )
-        if keywords[1] == "&END"
+        if keywords[1] == "&END" || keywords == "VELOCITIES"
             break
         end
         # Copy PP line
