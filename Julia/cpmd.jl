@@ -125,7 +125,7 @@ function copyInputParams( file_input::T1, handle_out::T2 ) where { T1 <: Abstrac
         else
             # copying line
             #-----------------------------------------------
-            utils.copyLine2file( keywords handle_out )
+            utils.copyLine2file( keywords, handle_out )
             #------------------------------------------------
         end
     end

@@ -1,7 +1,7 @@
 module atom_mod
 
-export Atom, AtomList, AtomMolList,
-export switchAtoms
+export AtomList, AtomMolList
+export switchAtoms!
 export getNbAtoms, getNbStep, getNbMol
 
 using utils
