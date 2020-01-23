@@ -11,7 +11,6 @@ export readEnergiesFile, readStress, readTraj
 export getNbStepEnergies, getNbStepStress, getNbStepAtomsFtraj
 export writeEnergies, writeStress, writeFtraj
 export buildingDataBase
-export
 
 # Read input
 # Reads the input file of a CPMD simuation
@@ -109,7 +108,7 @@ function readIntputStrideTraj( file_input_path::T1 ) where { T1 <: AbstractStrin
 
     return stride_traj
 end
-function copyInput( file_input::T1, handle_out::T2 ) where { T1 <: AbstractString, T2 <: IO }
+function copyInputParams( file_input::T1, handle_out::T2 ) where { T1 <: AbstractString, T2 <: IO }
     #--------------------------------------
     if ! isfile( file_input_path )
         print("No input file found at ",file_input," !\n")
@@ -122,33 +121,11 @@ function copyInput( file_input::T1, handle_out::T2 ) where { T1 <: AbstractStrin
     while ! eof( file_in )
         keywords = utils.getLineElements( file_in )
         if keywords[1] == "&ATOMS"
-            # Copying &ATOMS line
-            utils.copyLine2file( keywords, file_out )
-            # Looping over atoms species
-            while true
-                keywords  = utils.getLineElements( file_in )
-                if keywords[1] == "&END"
-                    break
-                end
-                # Copy PP line
-                utils.copyLine2file( keywords, file_out )
-                # Copy basis PP line
-                utils.copyLine2file( utils.getElements( file_in ), file_out )
-                # Getting Nb of atoms of species
-                keywords =  utils.getElements( file_in )
-                nb_atoms = parse( Int, keywords[1] )
-                # Writing atom line to file
-                utils.copyLine2File( keywords, file_out )
-                # Copying atom positions
-                for i=1:nb_atoms
-                    utils.copyLine2file( utils.getElements( file_in ), file_out )
-                end
-            end
             break
         else
             # copying line
             #-----------------------------------------------
-            utils.copyLine2file( keywords file_out )
+            utils.copyLine2file( keywords handle_out )
             #------------------------------------------------
         end
     end
@@ -157,9 +134,31 @@ function copyInput( file_input::T1, handle_out::T2 ) where { T1 <: AbstractStrin
 
     return true
 end
-function copyInput( file_input_path::T1, file_output_path::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
+function copyInputParams( file_input_path::T1, file_output_path::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
     file_out = open( file_out_path, "w" )
     test = copyInput( file_input_path, file_out )
+    close(file_out)
+    return test
+end
+function copyInputParams( handle_in::T1, handle_out::T2 ) where { T1 <: IO, T2 <: IO }
+
+    while ! eof( file_in )
+        keywords = utils.getLineElements( file_in )
+        if keywords[1] == "&ATOMS"
+            break
+        else
+            # copying line
+            #-----------------------------------------------
+            utils.copyLine2file( keywords, handle_out )
+            #------------------------------------------------
+        end
+    end
+
+    return true
+end
+function copyInputParams( handle_in::T1, file_output_path::T2 ) where { T1 <: IO, T2 <: AbstractString }
+    file_out = open( file_output_path, "w")
+    test = copyInputParams( handle_in, file_out )
     close(file_out)
     return test
 end
@@ -987,7 +986,7 @@ end
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-function writeRelaunchPositions( folder_target::T1, atoms::T2 ) where { T1 <: AbstractString }
+function writeRelaunchPositions( folder_target::T1, atoms::T2, file_out_positions_suffix::T3 ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList, T3 <: AbstractString }
 
     #--------------------------------------------------------
     species = atom_mod.getSpecies( atoms )
@@ -998,7 +997,7 @@ function writeRelaunchPositions( folder_target::T1, atoms::T2 ) where { T1 <: Ab
 
     #--------------------------------------------------------
     for i_spec=1:nb_species
-        file_out=open( string( folder_in_target, species[i_spec], "_relaunch_positions.dat"), "w" )
+        file_out=open( string( folder_in_target, species[i_spec], "_", file_out_positions_suffix ), "w" )
         for atom = start_species[i_spec]:start_species[i_spec]+nb_element_species[i_spec]
             for i=1:3
                 write( file_out, string( atoms.positions[atom,i]), " " )
@@ -1011,14 +1010,14 @@ function writeRelaunchPositions( folder_target::T1, atoms::T2 ) where { T1 <: Ab
 
     return true
 end
-function writeRelaunchVelocities( folder_target::T1, velocities::Array{T2,2} ) where { T1 <: AbstractString, T2 <: Real }
+function writeRelaunchVelocities( folder_target::T1, velocities::Array{T2,2}, file_out_velocities::T3 ) where { T1 <: AbstractString, T2 <: Real, T3 <: AbstractString }
 
     #----------------------------------------
     nb_atoms=size(velocities)[1]
     #----------------------------------------
 
     #----------------------------------------
-    file_out = open( string( folder_target, "velocities_restart.dat" ), "w" )
+    file_out = open( string( folder_target, file_out_velocities ), "w" )
     for atom = 1:nb_atoms
         for i=1:3
             write( file_out, string( velocities[atom,i], " " ) )
@@ -1030,7 +1029,7 @@ function writeRelaunchVelocities( folder_target::T1, velocities::Array{T2,2} ) w
 
     return true
 end
-function writeRelaunchVelocitiesTraj( folder_target::T1, traj::Vector{T2} ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList }
+function writeRelaunchVelocitiesTraj( folder_target::T1, traj::Vector{T2}, file_out_velocities::T3 ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList, T3 <: AbstractString }
 
     #----------------------------------------
     nb_step  = filexyz.getNbStep( traj )
@@ -1050,7 +1049,7 @@ function writeRelaunchVelocitiesTraj( folder_target::T1, traj::Vector{T2} ) wher
     #---------------------------------------
 
     #----------------------------------------
-    file_out = open( string( folder_target, "velocities_restart.dat" ), "w" )
+    file_out = open( string( folder_target, file_out_velocities ), "w" )
     for atom = 1:nb_atoms
         for i=1:3
             dx=(traj[nb_step].positions[atom,i]-traj[nb_step-1].positions[atom,i])*conversion.ang2Bohr
@@ -1063,7 +1062,7 @@ function writeRelaunchVelocitiesTraj( folder_target::T1, traj::Vector{T2} ) wher
 
     return true
 end
-function relaunchRunTrajec( folder_in_target::T1 ) where { T1 <: AbstractString }
+function relaunchRunTrajec( folder_in_target::T1, file_out_positions_suffix::T2, file_out_velocities::T3 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString }
 
     #------------------------------------------------
     traj = filexyz.readFileAtomList( string( folder_in_target, "TRAJEC.xyz" ) )
@@ -1074,13 +1073,14 @@ function relaunchRunTrajec( folder_in_target::T1 ) where { T1 <: AbstractString 
     #------------------------------------------------
 
     #------------------------------------------------
-    if writeRelaunchPositions( folder_in_target, traj[1] ) && writeRelaunchVelocitiesTraj( folder_in_target, traj )
+    if writeRelaunchPositions( folder_in_target, traj[1], file_out_positions_suffix ) && writeRelaunchVelocitiesTraj( folder_in_target, traj, file_out_velocities )
         return true
     else
         return false
+    end
     #-------------------------------------------------
 end
-function relaunchRunFtraj( folder_in_target::T1 ) where { T1 <: AbstractString }
+function relaunchRunFtraj( folder_in_target::T1, file_out_positions_suffix::T2, file_out_velocities::T3 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString }
 
     #------------------------------------------------
     positions, velocities, forces = readTraj( string( folder_in_target, "FTRAJECTORY" ) )
@@ -1103,14 +1103,71 @@ function relaunchRunFtraj( folder_in_target::T1 ) where { T1 <: AbstractString }
 
     #------------------------------------------------
     if nb_step_traj != nb_step_ftraj
-        return relaunchRunTrajec( folder_in_target )
+        print("TRAJEC.xyz and FTRAJECTORY DO NOT HAVE THE SAME SIZE!\n")
+        print("TRAJEC.xyz at: ",folder_in_target,"TRAJEC.xyz n_step: ",nb_step_traj,"\n")
+        print("FTRAJECTORY at: ",folder_in_target,"FTRAJECTORY n_step: ",nb_step_ftraj,"\n")
+        return false
     end
     #------------------------------------------------
 
     #------------------------------------------------
-    if writeRelaunchPositions( folder_in_target, traj[1] ) && writeRelaunchVelocities( folder_in_target, velocities )
+    if writeRelaunchPositions( folder_in_target, traj[1], file_out_positions_suffix ) && writeRelaunchVelocities( folder_in_target, velocities, file_out_velocities )
         return true
     end
+end
+function relaunchFTRAJ( folder_in_target::T1 ) where { T1 <: AbstractString }
+
+    #------------------------------------------------------------
+    path_input_file = string(folder_in_target,"input")
+    if isfile(path_input_file)
+        print("No input file found at ",path_input_file,"!\n")
+        return false
+    end
+    file_in=open( path_input_file )
+    #------------------------------------------------------------
+
+    # Getting positions and velocities
+    #------------------------------------------------------------
+    positions, velocities, forces = readTraj( string( folder_in_target, "FTRAJECTORY" ) )
+    if positions == false
+        return false
+    end
+    #------------------------------------------------------------
+
+    # Copy parameters of input
+    #---------------------------------------
+    file_out = open( folder_in_target, "w")
+    copyInputParams( file_in, file_out )
+    #----------------------------------------
+    # Copying &ATOMS line
+    write(file_out,"&ATOMS\n")
+    # Looping over atoms species
+    while true
+        keywords  = utils.getLineElements( file_in )
+        if keywords[1] == "&END"
+            break
+        end
+        # Copy PP line
+        utils.copyLine2file( keywords, file_out )
+        # Copy basis PP line
+        utils.copyLine2file( utils.getElements( file_in ), file_out )
+        # Getting Nb of atoms of species
+        keywords =  utils.getElements( file_in )
+        nb_atoms = parse( Int, keywords[1] )
+        # Writing nb atoms line to file
+        utils.copyLine2File( keywords, file_out )
+        # Writting actual positions for specie
+        for atom=1:nb_atoms
+
+        end
+        # Ignore the atoms positions
+        for atom=1:nb_atoms
+            readline( file_in )
+        end
+    end
+
+    close( file_in  )
+    close( file_out )
 end
 #-------------------------------------------------------------------------------
 
