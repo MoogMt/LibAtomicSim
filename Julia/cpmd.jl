@@ -177,7 +177,7 @@ function writeVelocities( file_out::T1, velocities::Array{T2,2} ) where { T1 <: 
         end
         write(file_out,string("\n"))
     end
-    write("END VELOCITIES\n")
+    write(file_out,string("END VELOCITIES\n"))
     return true
 end
 function writeVelocities( file_out::T1, velocities::Array{T2,2}, nb_atoms_nb::Vector{T3} ) where { T1 <: IO, T2 <: Real, T3 <: Int }
@@ -1208,12 +1208,12 @@ function relaunchRunTrajec( folder_in_target::T1, file_out_path::T2 ) where { T1
         # Copy PP line
         utils.copyLine2file( keywords, file_out )
         # Copy basis PP line
-        utils.copyLine2file( utils.getElements( file_in ), file_out )
+        utils.copyLine2file( utils.getLineElements( file_in ), file_out )
         # Getting Nb of atoms of species
-        keywords =  utils.getElements( file_in )
+        keywords =  utils.getLineElements( file_in )
         nb_atoms = parse( Int, keywords[1] )
         # Writing nb atoms line to file
-        utils.copyLine2File( keywords, file_out )
+        utils.copyLine2file( keywords, file_out )
         # Writting actual positions for specie
         writePositions( file_out, traj.positions )
         # Ignore the atoms positions
