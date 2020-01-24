@@ -10,9 +10,12 @@ using utils
 mutable struct AtomList
     names::Vector{AbstractString}
     index::Vector{Int}
-    positions::Array{Real}
+    positions::Array{Real,2}
     function AtomList( nb_atoms::T1 ) where { T1 <: Int }
         new( Array{AbstractString,1}(undef,nb_atoms) , zeros(nb_atoms), zeros(nb_atoms,3) )
+    end
+    function AtomList( names::Vector{T1}, index::Vector{T2}, positions::Array{T3,2} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real }
+        new( names, index, positions )
     end
 end
 mutable struct AtomMolList
@@ -20,7 +23,7 @@ mutable struct AtomMolList
     atom_index::Vector{Int}
     mol_names::Vector{AbstractString}
     mol_index::Vector{Int}
-    positions::Array{Real}
+    positions::Array{Real,2}
     function AtomMolList( nb_atoms::T1 ) where { T1 <: Int }
         new( Vector{AbstractString}( undef,nb_atoms ),Vector{Int}(undef, nb_atoms ) ,Vector{AbstractString}(undef, nb_atoms ), Vector{Int}(undef,nb_atoms), Array{Real}(undef,nb_atoms,3))
     end
