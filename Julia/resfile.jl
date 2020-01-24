@@ -72,7 +72,7 @@ function extractAtomsInfo( handle_in::T1 ) where { T1 <: IO }
         keywords = utils.getLineElements( handle_in )
         names[atom] = keywords[1]
         for i=1:3
-            positions[atom,i] = parse(Float64, keywords[ 2+i ] )
+            positions[atom,i] = parse(Float64, keywords[ 2+i ] )*cell.lengths[i]
         end
         index[atom] = atom
     end

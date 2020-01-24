@@ -5,6 +5,7 @@ export getNbSteps, readStep, writePDB, writePDBplumed
 using utils
 using atom_mod
 using cell_mod
+using periodicTable
 
 # Reading file
 #==============================================================================#
@@ -302,15 +303,15 @@ function writePDBplumed(atoms::T1, cell::T2, file::T3 ) where { T1 <: atom_mod.A
     atom=utils.spaces(atom,25-length(atom))
     atom=string(atom,atoms.mol_index[i])
     atom=utils.spaces(atom,32-length(atom))
-    atom=string(atom,round(atoms.positions[i,1]*1000)/1000)
+    atom=string(atom,round(atoms.positions[i,1],digits=3 ) )
     atom=utils.spaces(atom,40-length(atom))
-    atom=string(atom,round(atoms.positions[i,2]*1000)/1000)
+    atom=string(atom,round(atoms.positions[i,2],digits=3 ) )
     atom=utils.spaces(atom,48-length(atom))
-    atom=string(atom,round(atoms.positions[i,3]*1000)/1000)
+    atom=string(atom,round(atoms.positions[i,3],digits=3 ) )
     atom=utils.spaces(atom,56-length(atom))
-    atom=string(atom,"8.00")
+    atom=string(atom, string( round( periodicTable.names2Z(atoms.names[i]) ) ) )
     atom=utils.spaces(atom,62-length(atom))
-    atom=string(atom,"8.00")
+    atom=string(atom, string( round( periodicTable.names2Z(atoms.names[i]) ) ) )
     atom=utils.spaces(atom,77-length(atom))
     atom=string(atom,"\n")
     Base.write(out,atom)
@@ -326,8 +327,8 @@ function writePDBplumed(atoms::T1, cell::T2, file::T3 ) where { T1 <: atom_mod.A
 
   out=open(file,"w")
 
-  a,b,c = string(cell.length[1]), string(cell.length[2]), string(cell.length[3])
-  alpha, beta, gamma = string(cell.angles[1]), string(cell.angles[2]), string(cell.angles[3])
+  a,b,c = string(round(cell.length[1],digits=2)), string(round(cell.length[2],digits=2)), string(round(cell.length[3],digits=2))
+  alpha, beta, gamma = string(round(cell.angles[1],digits=2)), string(round(cell.angles[2],digits=2)), string(round(cell.angles[3],digits=2))
 
   cryst1=string("CRYST1 ",a)
   cryst1=utils.spaces(cryst1,16-length(cryst1))
@@ -339,7 +340,8 @@ function writePDBplumed(atoms::T1, cell::T2, file::T3 ) where { T1 <: atom_mod.A
   cryst1=utils.spaces(cryst1,41-length(cryst1))
   cryst1=string(cryst1,beta)
   cryst1=utils.spaces(cryst1,48-length(cryst1))
-  cryst1=string(cryst1,gamma)
+  cryst1=string(cryst1,gamma
+  )
   cryst1=utils.spaces(cryst1,56-length(cryst1))
   cryst1=string(cryst1,"P 1")
   cryst1=utils.spaces(cryst1,67-length(cryst1))
@@ -347,10 +349,10 @@ function writePDBplumed(atoms::T1, cell::T2, file::T3 ) where { T1 <: atom_mod.A
   cryst1=string(cryst1,"\n")
   Base.write(out,cryst1)
 
-  nb_atoms = size(atoms.atom_names)[1]
+  nb_atoms = size(atoms.names)[1]
   for i=1:nb_atoms
     atom="ATOM"
-    atom=utils.spaces(atom,11-length(string(atoms.atom_index[i]))-length(atom))
+    atom=utils.spaces(atom,11-length(string(atoms.index[i]))-length(atom))
     atom=string(atom,atoms.index[i])
     atom=utils.spaces(atom,13-length(atom))
     atom=string(atom,atoms.names[i])
@@ -361,15 +363,15 @@ function writePDBplumed(atoms::T1, cell::T2, file::T3 ) where { T1 <: atom_mod.A
     atom=utils.spaces(atom,25-length(atom))
     atom=string(atom,atoms.index[i])
     atom=utils.spaces(atom,32-length(atom))
-    atom=string(atom,round(atoms.positions[i,1]*1000)/1000)
+    atom=string(atom,round(atoms.positions[i,1], digits=3 ) )
     atom=utils.spaces(atom,40-length(atom))
-    atom=string(atom,round(atoms.positions[i,2]*1000)/1000)
+    atom=string(atom,round(atoms.positions[i,2], digits=3 ) )
     atom=utils.spaces(atom,48-length(atom))
-    atom=string(atom,round(atoms.positions[i,3]*1000)/1000)
+    atom=string(atom,round(atoms.positions[i,3], digits=3 ) )
     atom=utils.spaces(atom,56-length(atom))
-    atom=string(atom,"8.00")
+    atom=string(atom, string( round( periodicTable.names2Z(atoms.names[i]) ) ) )
     atom=utils.spaces(atom,62-length(atom))
-    atom=string(atom,"8.00")
+    atom=string(atom, string( round( periodicTable.names2Z(atoms.names[i]) ) ) )
     atom=utils.spaces(atom,77-length(atom))
     atom=string(atom,"\n")
     Base.write(out,atom)
