@@ -1295,4 +1295,44 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_path::T2 ) where { T1 
 end
 #-------------------------------------------------------------------------------
 
+function cpmdArcheology( folder_target::T1 , output_suffix::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
+
+    #---------------------------------------------------------
+    if ! isdir( folder_target )
+        print("No folder at ",folder_target," !\n")
+        return false
+    end
+    if ! isfile( string( folder_target,"TRAJEC.xyz"))
+        print("No TRAJEC.xyz file at ",folder_target," , this function will not work, try another one.\n")
+        return false
+    end
+    if ! isfile( string( folder_target,"ENERGIES") )
+        print("No ENERGIES file in ",folder_target," , this function will not work, try another one.\n")
+        return false
+    end
+    if ! isfile( string( folder_target, "FTRAJECTORY" ) )
+        print("No FTRAJECTORY file in ", folder_target, " this function will not work, try another one.\n")
+        return false
+    end
+    if ! isifile( string( folder_target, "STRESS" ) )
+        print("No STRESS file in ", folder_target, " this function will not work, try another one.\n")
+        return false
+    end
+    #---------------------------------------------------------
+
+    #---------------------------------------------------------
+    file_in_traj    = open( string( folder_target, "TRAJEC.xyz" ) )
+    file_in_stress  = open( string( folder_target, "STRESS") )
+    file_in_ftraj   = open( string( folder_target, "FTRAJECTORY" ) )
+    file_in_energy  = open( string( folder_target, "ENERGIES" ) )
+    #---------------------------------------------------------
+
+    #---------------------------------------------------------
+    file_out_traj   = open( string( folder_target, "TRAJEC", output_suffix, ".xyz" ), "w" )
+    file_out_ftraj  = open( string( folder_target, "FTRAJECTORY", output_suffix ), "w" )
+    file_out_stress = open( string( folder_target, "STRESS", output_suffix ), "w" )
+    file_out_energy = open( string( folder_target, "ENERGIES", output_suffix ), "w" )
+    #---------------------------------------------------------
+
+    return true
 end
