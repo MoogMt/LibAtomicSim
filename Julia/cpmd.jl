@@ -1318,6 +1318,10 @@ function cpmdArcheology( folder_target::T1 , output_suffix::T2 ) where { T1 <: A
         print("No STRESS file in ", folder_target, " this function will not work, try another one.\n")
         return false
     end
+    if ! isfile( string( folder_target, "input") )
+        print("No input file at ",folder_target," \n")
+        return false
+    end
     #---------------------------------------------------------
 
     #---------------------------------------------------------
@@ -1333,6 +1337,11 @@ function cpmdArcheology( folder_target::T1 , output_suffix::T2 ) where { T1 <: A
     file_out_stress = open( string( folder_target, "STRESS", output_suffix ), "w" )
     file_out_energy = open( string( folder_target, "ENERGIES", output_suffix ), "w" )
     #---------------------------------------------------------
+
+    # Reading steps
+    step_number=1
+
+
 
     return true
 end
