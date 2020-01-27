@@ -528,18 +528,29 @@ end
 function duplicateAtoms( atoms::Array{T1,2}, cell_vector::Vector{T2}, n_grow::T3 ) where { T1 <: AtomList, T2 <: Real, T3 <: Int }
     nb_atoms = size(atoms.names)[1]
     new_atoms = AtomList( nb_atoms*n_grow )
-    for i=1:nb_atoms
-
+    count_=0
+    for atom=1:nb_atoms
+        for n = 1:n_grow
+            for i=1:3
+                atoms.positions[count_i] = cell_vector[i]
+            end
+            atoms.names[count_] = atoms.names[atom]
+            atoms.index[count_] = count_
+            count_ += 1
+        end
     end
+    atom_mod.sortAtomsbyZ( new_atoms )
+    return new_atoms
 end
-function duplicateAtoms( atoms::Array{T1,2}, cell::Array{T2,2}, n_grow::Vector{T3} ) where { T1 <: AtomList, T2 <: Real, T3 <: Int }
-    for direc=1:3
-        atoms = duplicateAtoms( atoms, cell[i,:], n_grow[i] )
+function makeSuperCell( atoms::T1, cell::Array{T2,2}, n_grow::Vector{T3}  ) where { T1 <: atom_mod.AtomList, T2 <: Real, T3 <: Int }
+    return duplicateAtoms( atoms, cell, n_grow ), growCell( cell, n_grow )
+end
+function makeSuperCell!( traj::Vector{T1}, cell::Array{T2,2}, n_grow::Vector{T3}  ) where { T1 <: atom_mod.AtomList, T2 <: Real, T3 <: Int }
+    nb_step = size(traj)
+    for i=1:nb_step
+        traj[step] = duplicateAtoms( traj[step], cell, n_grow )
     end
-    return positions
-end
-function makeSuperCell( positions::Array{T1,2}, cell::Array{T2,2}, n_grow::Vector{T3}  ) where { T1 <: atom_mod.AtomList, T2 <: Real, T3 <: Int }
-    cell=growCell(cell)
+    return traj
 end
 #-------------------------------------------------------------------------------
 
