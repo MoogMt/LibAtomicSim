@@ -74,11 +74,11 @@ function extractAtomsInfo( handle_in::T1 ) where { T1 <: IO }
         keywords = utils.getLineElements( handle_in )
         names[atom] = keywords[1]
         for i=1:3
-            positions[atom,i] = parse(Float64, keywords[ 2+i ] )*sum
+            positions[atom,i] = parse(Float64, keywords[ 2+i ] )
         end
         index[atom] = atom
     end
-    reduced2Cartesian!( positions[:,:], cell_mod.params2Matrix( extractCellInfo( handle_in ) ) )
+    cell_mod.reduced2Cartesian!( positions[:,:], cell_mod.params2Matrix( extractCellInfo( handle_in ) ) )
     return AtomList( names, index, positions )
 end
 function extractAtomsInfo( file_path::T1 ) where { T1 <: AbstractString }
