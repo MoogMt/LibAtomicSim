@@ -500,7 +500,7 @@ function reduced2Cartesian( positions_reduced::Vector{T1}, cell_matrix::Array{T2
     new_positions=zeros(Real,3)
     for i=1:3 # x,y,z
         for j=1:3 # 1,2,3
-            new_positions[i] += positions_reduced[j]*cell_matrix[j,i]
+            new_positions[i] += positions_reduced[j]*cell_matrix[i,j]
         end
     end
     return new_positions
