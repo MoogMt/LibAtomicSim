@@ -77,7 +77,7 @@ end
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-function sortAtomsByZ( atoms::T1 ) where { T1 <: AtomList }
+function sortAtomsByZ!( atoms::T1 ) where { T1 <: AtomList }
     nb_atoms = size(atoms.names)[1]
     for atom = 1:nb_atoms
         for atom2 = atom+1:nb_atoms
@@ -88,7 +88,7 @@ function sortAtomsByZ( atoms::T1 ) where { T1 <: AtomList }
     end
     return true
 end
-function sortAtomsByZ( traj::Vector{T1} ) where { T1 <: AtomList }
+function sortAtomsByZ!( traj::Vector{T1} ) where { T1 <: AtomList }
     nb_step = size(traj)[1]
     for step = 1:nb_step
         sortAtomsByZ( traj[step] )
