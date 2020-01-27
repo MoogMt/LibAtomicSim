@@ -505,20 +505,15 @@ function reduced2Cartesian( positions_reduced::Vector{T1}, cell_matrix::Array{T2
     end
     return positions_reduced
 end
-function reduced2Cartesian!( positions_reduced::Array{T1,2}, cell_matrix::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
+function reduced2Cartesian( positions_reduced::Array{T1,2}, cell_matrix::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
     nb_atoms=size(positions_reduced)[1]
     for atom = 1:nb_atoms
         positions_reduced[atom,:] = reduced2Cartesian( positions_reduced[atom,:], cell_matrix )
     end
-    return
-end
-function reduced2Cartesian!( positions_reduced::Array{T1,2}, cell_matrix::T2 ) where { T1 <: Real, T2 <: Cell_matrix }
-    return reduced2Cartesian!( positions_reduced, cell_matrix.matrix )
+    return positions_reduced
 end
 function reduced2Cartesian( positions_reduced::Array{T1,2}, cell_matrix::T2 ) where { T1 <: Real, T2 <: Cell_matrix }
-    positions_reduced_copy = copy( positions_reduced )
-    reduced2Cartesian!( positions_reduced_copy , cell_matrix )
-    return positions_reduced_copy
+    return reduced2Cartesian( positions_reduced, cell_matrix.matrix)
 end
 #---------------------------------------------------------------------------
 
