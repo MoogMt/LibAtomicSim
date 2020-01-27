@@ -33,7 +33,7 @@ mutable struct Cell_param
         new( lengths, angles )
     end
 end
-
+# Probably will be deleted soon as it is useless
 mutable struct Cell_vec
     v1::Vector{Real}
     v2::Vector{Real}
@@ -492,6 +492,30 @@ function checkInfinityAndUnWrap( visited::Vector{T1}, matrix::Array{T2,2}, adjac
         end
     end
     return
+end
+#---------------------------------------------------------------------------
+
+#---------------------------------------------------------------------------
+function reduced2Cartesian( positions_reduced::Vector{T1}, cell_matrix::T2 ) where { T1 <: Real, T2 <: Cell_matrix }
+    new_positions=zeros(Real,3)
+    for i=1:3 # x,y,z
+        for j=1:3 # 1,2,3
+            new_positions[i] += positions_reduced[j]*cell_matrix[i,j]
+        end
+    end
+    return positions_reduced
+end
+function reduced2Cartesian!( positions_reduced::Array{T1,2}, cell_matrix::T2 ) where { T1 <: Real, T2 <: Cell_matrix }
+    nb_atoms=size(positions_reduced)[1]
+    for atom = 1:nb_atoms
+        positions_reduced[atom,:] = reduced2Cartesian( positions_reduced[atom,:], cell_matrix )
+    end
+    return
+end
+function reduced2Cartesian( positions_reduced::Array{T1,2}, cell_matrix::T2 ) where { T1 <: Real, T2 <: Cell_matrix }
+    positions_reduced_copy = copy( positions_reduced )
+    reduced2Cartesian!( positions_reduced_copy , cell_matrix )
+    return positions_reduced_copy
 end
 #---------------------------------------------------------------------------
 
