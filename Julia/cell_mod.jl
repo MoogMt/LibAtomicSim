@@ -496,7 +496,7 @@ end
 #---------------------------------------------------------------------------
 
 #---------------------------------------------------------------------------
-function reduced2Cartesian( positions_reduced::Vector{T1}, cell_matrix::Array{T2,2} ) where { T1 <: Real, T2 <: Cell_Real }
+function reduced2Cartesian( positions_reduced::Vector{T1}, cell_matrix::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
     new_positions=zeros(Real,3)
     for i=1:3 # x,y,z
         for j=1:3 # 1,2,3
