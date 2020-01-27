@@ -141,7 +141,7 @@ function params2Matrix( cell_params::T1 ) where { T1 <: Cell_param }
 
     temp=(1.0 + 2.0 *cos_ang[1]*cos_ang[2]*cos_ang[3] - cos_ang[1]*cos_ang[1] - cos_ang[2]*cos_ang[2] - cos_ang[3]*cos_ang[3])
     matrix[3,3] = lengths[1]*lengths[3]*sqrt(temp/(1-cos_ang[3]*cos_ang[3]))
-    return matrix
+    return Cell_matrix(matrix)
 end
 #---------------------------------------------------------------------------\
 
@@ -496,7 +496,7 @@ end
 #---------------------------------------------------------------------------
 
 #---------------------------------------------------------------------------
-function reduced2Cartesian( positions_reduced::Vector{T1}, cell_matrix::T2 ) where { T1 <: Real, T2 <: Cell_matrix }
+function reduced2Cartesian( positions_reduced::Vector{T1}, cell_matrix::Array{T2,2} ) where { T1 <: Real, T2 <: Cell_Real }
     new_positions=zeros(Real,3)
     for i=1:3 # x,y,z
         for j=1:3 # 1,2,3
@@ -505,12 +505,15 @@ function reduced2Cartesian( positions_reduced::Vector{T1}, cell_matrix::T2 ) whe
     end
     return positions_reduced
 end
-function reduced2Cartesian!( positions_reduced::Array{T1,2}, cell_matrix::T2 ) where { T1 <: Real, T2 <: Cell_matrix }
+function reduced2Cartesian!( positions_reduced::Array{T1,2}, cell_matrix::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
     nb_atoms=size(positions_reduced)[1]
     for atom = 1:nb_atoms
         positions_reduced[atom,:] = reduced2Cartesian( positions_reduced[atom,:], cell_matrix )
     end
     return
+end
+function reduced2Cartesian!( positions_reduced::Array{T1,2}, cell_matrix::T2 ) where { T1 <: Real, T2 <: Cell_matrix }
+    return reduced2Cartesian!( positions_reduced, cell_matrix.matrix )
 end
 function reduced2Cartesian( positions_reduced::Array{T1,2}, cell_matrix::T2 ) where { T1 <: Real, T2 <: Cell_matrix }
     positions_reduced_copy = copy( positions_reduced )
