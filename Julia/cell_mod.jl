@@ -526,18 +526,31 @@ function growCell( cell::Array{T1}, n_grow::Vector{T2} ) where { T1 <: Real, T2 
     return cell2
 end
 function duplicateAtoms( atoms::Array{T1,2}, cell_vector::Vector{T2}, n_grow::T3 ) where { T1 <: AtomList, T2 <: Real, T3 <: Int }
-    nb_atoms = size(atoms.names)[1]
-    new_atoms = AtomList( nb_atoms*n_grow )
+    nb_atoms_base = size(atoms.names)[1]
+    nb_atoms_new = nb_atoms_base
+    for i=1:3
+        nb_atoms_new *= n_grow[i]
+    end
+    new_atoms = AtomList( nb_atoms_new )
     count_=0
-    for atom=1:nb_atoms
-        for n = 1:n_grow
-            for i=1:3
-                atoms.positions[count_i] = cell_vector[i]
+    for direc=1:3
+        for atom=1:nb_atoms_base
+            for n = 2:n_grow
+                moveVector=zeros(Real,3)
+                for i=1:3
+                    for j=1:3
+                        moveVector[i] += cell_matrix[i,j]
+                    end
+                end
+                for i=1:3
+                    atoms.positions[count_,i] += moveVector[i]
+                end
+                atoms.names[count_] = atoms.names[atom]
+                atoms.index[count_] = count_
+                count_ += 1
             end
-            atoms.names[count_] = atoms.names[atom]
-            atoms.index[count_] = count_
-            count_ += 1
         end
+        nb_atoms_base *= n_grow[direc]
     end
     atom_mod.sortAtomsbyZ( new_atoms )
     return new_atoms
