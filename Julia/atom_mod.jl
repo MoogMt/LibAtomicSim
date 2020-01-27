@@ -5,6 +5,7 @@ export switchAtoms!
 export getNbAtoms, getNbStep, getNbMol
 
 using utils
+using periodicTable
 
 #-------------------------------------------------------------------------------
 mutable struct AtomList
@@ -72,6 +73,27 @@ function switchAtoms!( atoms::T1 , index1::T2, index2::T3 ) where { T1 <: AtomMo
 end
 function switchAtoms!( traj::Vector{T1}, index1::T2, index2::T3, step::T4 ) where { T1 <: AtomMolList, T2 <: Int, T3 <: Int, T4 <: Int }
     return switchAtoms!( traj[step], index1, index2 )
+end
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+function sortAtomsByZ( atoms::T1 ) where { T1 <: AtomList }
+    nb_atoms = size(atoms.names)[1]
+    for atom = 1:nb_atoms
+        for atom2 = atom+1:nb_atoms
+            if periodicTable.names2Z( atoms.names[atom] ) < periodicTable.names2Z( atoms.names[atom2] )
+                switchAtoms!( atoms, atom, atom2 )
+            end
+        end
+    end
+    return true
+end
+function sortAtomsByZ( traj::Vector{T1} ) where { T1 <: AtomList }
+    nb_step = size(traj)[1]
+    for step = 1:nb_step
+        sortAtomsByZ( traj[step] )
+    end
+    return true
 end
 #-------------------------------------------------------------------------------
 

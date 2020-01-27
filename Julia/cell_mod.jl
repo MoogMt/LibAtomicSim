@@ -517,4 +517,30 @@ function reduced2Cartesian( positions_reduced::Array{T1,2}, cell_matrix::T2 ) wh
 end
 #---------------------------------------------------------------------------
 
+#-------------------------------------------------------------------------------
+function growCell( cell::Array{T1}, n_grow::Vector{T2} ) where { T1 <: Real, T2 <: Int }
+    cell2 = copy(cell)
+    for i=1:3
+        cell2[i,:] = cell[i,:]*n_grow[i]
+    end
+    return cell2
+end
+function duplicateAtoms( atoms::Array{T1,2}, cell_vector::Vector{T2}, n_grow::T3 ) where { T1 <: AtomList, T2 <: Real, T3 <: Int }
+    nb_atoms = size(atoms.names)[1]
+    new_atoms = AtomList( nb_atoms*n_grow )
+    for i=1:nb_atoms
+
+    end
+end
+function duplicateAtoms( atoms::Array{T1,2}, cell::Array{T2,2}, n_grow::Vector{T3} ) where { T1 <: AtomList, T2 <: Real, T3 <: Int }
+    for direc=1:3
+        atoms = duplicateAtoms( atoms, cell[i,:], n_grow[i] )
+    end
+    return positions
+end
+function makeSuperCell( positions::Array{T1,2}, cell::Array{T2,2}, n_grow::Vector{T3}  ) where { T1 <: atom_mod.AtomList, T2 <: Real, T3 <: Int }
+    cell=growCell(cell)
+end
+#-------------------------------------------------------------------------------
+
 end
