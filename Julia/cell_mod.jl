@@ -525,7 +525,7 @@ function growCell( cell::Array{T1}, n_grow::Vector{T2} ) where { T1 <: Real, T2 
     end
     return cell2
 end
-function duplicateAtoms( atoms::Array{T1,2}, cell_vector::Vector{T2}, n_grow::T3 ) where { T1 <: AtomList, T2 <: Real, T3 <: Int }
+function duplicateAtoms( atoms::Array{T1,2}, cell_matrix::Vector{T2}, n_grow::T3 ) where { T1 <: AtomList, T2 <: Real, T3 <: Int }
     nb_atoms_base = size(atoms.names)[1]
     nb_atoms_new = nb_atoms_base
     for i=1:3
