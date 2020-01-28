@@ -95,17 +95,21 @@ Cell=Union{Cell_param, Cell_vec, Cell_matrix}
 # Conversions
 #-------------------------------------------------------------------------------
 function cellMatrix2Params( cell_matrix::Array{T1,2} )  where { T1 <: Real }
-    params=zeros(Real,3)
-    for i=1:size(cell_matrix)[1]
-        for j=1:size(cell_matrix)[2]
-            params[i] += cell_matrix[i,j]*cell_matrix[i,j]
+    length = zeros( Real, 3 )
+    for j=1:3
+        for i=1:3
+            length[j] += cell_matrix[i,j]*cell_matrix[i,j]
         end
-        params[i] = sqrt( params[i])
+        length[j] = sqrt( length[j] )
     end
-    return params
+    angles = zeros( Real, 3 )
+    angles[1] = acos(sum( cell_matrix[:,2].*cell_matrix[:,3] )/(length[2]*length[3]))*180/pi
+    angles[2] = acos(sum( cell_matrix[:,1].*cell_matrix[:,3] )/(length[1]*length[3]))*180/pi
+    angles[3] = acos(sum( cell_matrix[:,1].*cell_matrix[:,2] )/(length[1]*length[2]))*180/pi
+    return Cell_param( length, angles )
 end
 function cellMatrix2Params( cell_matrix::T1 )  where { T1 <: Cell_matrix }
-    return cellMatrix2Params(cell_matrix.matrix)
+    return cellMatrix2Params( cell_matrix.matrix )
 end
 function cellVector2Matrix( vectors::T1 ) where { T1 <: Cell_vec }
     matrix=Cell_matrix()
@@ -169,25 +173,31 @@ function wrap( position::T1, length::T2 ) where { T1 <: Real, T2 <: Real}
     return position
 end
 function wrap( atoms::T1, cell::T2 ) where { T1 <: atom_mod.AtomList, T2 <: Cell_matrix }
-    # Computes cell parameters
-    #--------------------------------------------
-    params=[0.,0.,0.]
-    for i=1:3
-        for j=1:3
-            params[i]=params[i]+cell.matrix[i,j]
-        end
-    end
-    #--------------------------------------------
+
+    # Getting Scaled positions
+    atoms.positions = getTransformedPosition( atoms.positions, LinearAlgebra.inv(cell.matrix ) )
 
     #---------------
     # Compute atoms
     #---------------------------------
-    for i=1:size(atoms.positions)[1]
-        for j=1:3
-            atoms.positions[i,j] = wrap( atoms.positions[i,j],params[j])
+    nb_atoms=size(atoms.names)[1]
+    for atom=1:nb_atoms
+        for i=1:3
+            if atoms.positions[atom,i] < 1
+                atoms.positions[atom,i] += 1
+            end
+            if atoms.positions[atom,i] > 1
+                atoms.positions[atom,i] -= 1
+            end
+            if atoms.positions[atom,i] == 1  || atoms.positions[atom,i] == 0
+                atoms.positions[atom,i] = 0.000977
+            end
         end
     end
     #----------------------------------
+
+    # Descaling
+    atoms.positions = getTransformedPosition( atoms.positions, cell.matrix )
 
     return atoms
 end
@@ -249,6 +259,18 @@ function getTransformedPosition( target_vector::Vector{T1}, cell_matrix::Array{T
     end
     return vector
 end
+function getTransformedPosition( target_matrix::Array{T1,2}, cell_matrix::Array{T2,2} ) where {T1 <: Real, T2 <: Real }
+    nb_point=size(target_matrix)[1]
+    matrix_transformed = zeros( nb_point, 3 )
+    for point=1:nb_point
+        for i=1:3
+            for j=1:3
+                matrix_transformed[ point, i ] += cell_matrix[i,j]*target_matrix[point,j]
+            end
+        end
+    end
+    return matrix_transformed
+end
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
@@ -274,6 +296,8 @@ end
 #-------------------------------------------------------------------------------
 
 # Distance related functions
+# TODO Some bugs in the definition of distances, make sure everything is correct,
+# when possible use longer names to define more precisely...
 #-------------------------------------------------------------------------------
 function dist1D( x1::T1, x2::T2, a::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Real }
     dx=x1-x2
@@ -338,9 +362,6 @@ end
 function distance( v1::Vector{T1}, v2::Vector{T2}, cell_params::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Cell_param }
     return distance(v1,v2,params2Matrix(cell_params))
 end
-#-------------------------------------------------------------------------------
-
-#-------------------------------------------------------------------------------
 function distance( positions::Array{T1,2}, cell::T2, atom1::T3, atom2::T4 ) where { T1 <: Real,  T2 <: Cell_param, T3 <: Real, T4 <: Real }
     dist=0
     for i=1:3
@@ -348,13 +369,13 @@ function distance( positions::Array{T1,2}, cell::T2, atom1::T3, atom2::T4 ) wher
     end
     return sqrt(dist)
 end
-function distance( positions1::Vector{T1}, positions2::Vector{T2}, cell_length::Vector{T3} ) where { T1 <: Real, T2 <: Real, T3 <: Real }
-    dist=0
-    for i=1:3
-        dist += dist1D(positions1[i],positions2[i],cell_length[i])
-    end
-    return sqrt(dist)
-end
+# function distance( positions1::Vector{T1}, positions2::Vector{T2}, cell_length::Vector{T3} ) where { T1 <: Real, T2 <: Real, T3 <: Real }
+#     dist=0
+#     for i=1:3
+#         dist += dist1D(positions1[i],positions2[i],cell_length[i])
+#     end
+#     return sqrt(dist)
+# end
 function distance( atoms::T1, cell::T2, index1::T3, index2::T4 ) where { T1 <: atom_mod.AtomList, T2 <: Cell_param , T3 <: Int, T4 <: Int }
     dis=0
     for i=1:3
@@ -520,8 +541,8 @@ end
 #-------------------------------------------------------------------------------
 function computeMoveVector( index::Vector{T1}, cell_matrix::Array{T2,2} ) where { T1 <: Int, T2 <: Real }
     moveVector = zeros(Real,3)
-    for i = 1:3
-        for j = 1:3
+    for i=1:3
+        for j=1:3
             moveVector[i] += index[i]*cell_matrix[i,j]
         end
     end
@@ -530,15 +551,15 @@ end
 function growCell( cell::Array{T1}, n_grow::Vector{T2} ) where { T1 <: Real, T2 <: Int }
     cell2 = copy(cell)
     for i=1:3
-        cell2[i,:] = cell[i,:]*n_grow[i]
+        cell2[:,i] = cell[:,i]*n_grow[i]
     end
-    return cell2
+    return Cell_matrix(cell2)
 end
 function growCell( cell::T1 , n_grow::Vector{T2} ) where { T1 <: Cell_matrix, T2 <: Int }
     return growCell( cell.matrix, n_grow )
 end
 function growCell( cell::T1, n_grow::Vector{T2} ) where { T1 <: Cell_param, T2 <: Int }
-    return growCell( cell.params, n_grow )
+    return growCell( params2Matrix(cell), n_grow )
 end
 function duplicateAtoms( atoms::T1, cell_matrix::Array{T2,2}, n_grow::Vector{T3} ) where { T1 <: AtomList, T2 <: Real, T3 <: Int }
     nb_atoms_base = size(atoms.names)[1]
@@ -548,12 +569,21 @@ function duplicateAtoms( atoms::T1, cell_matrix::Array{T2,2}, n_grow::Vector{T3}
     end
     new_atoms = AtomList( nb_atoms_new )
     count_ = 1
-    for i = 1:n_grow[1]
-        for j = 1:n_grow[2]
-            for k = 1:n_grow[3]
-                moveVector=computeMoveVector( [i,j,k], cell_matrix )
+    for i=0:n_grow[1]-1
+        for j=0:n_grow[2]-1
+            for k=0:n_grow[3]-1
+                moveVector = zeros(Real,3)
+                mov_box=[i,j,k]
+                print("BOX: ",mov_box,"\n")
+                for l=1:3
+                    for m=1:3
+                        moveVector[l] += mov_box[m]*cell_matrix[l,m]
+                    end
+                end
                 for atom = 1:nb_atoms_base
-                    new_atoms.positions[count_,:] = atoms.positions[atom,:] + moveVector
+                    for n=1:3
+                        new_atoms.positions[count_,n] = atoms.positions[atom,n] + moveVector[n]
+                    end
                     new_atoms.names[count_] = atoms.names[atom]
                     new_atoms.index[count_] = count_
                     count_ += 1
@@ -561,7 +591,7 @@ function duplicateAtoms( atoms::T1, cell_matrix::Array{T2,2}, n_grow::Vector{T3}
             end
         end
     end
-    atom_mod.sortAtomsByZ!(new_atoms)
+    #atom_mod.sortAtomsByZ!(new_atoms)
     return new_atoms
 end
 function makeSuperCell( atoms::T1, cell::Array{T2,2}, n_grow::Vector{T3}  ) where { T1 <: atom_mod.AtomList, T2 <: Real, T3 <: Int }
