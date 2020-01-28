@@ -574,7 +574,6 @@ function duplicateAtoms( atoms::T1, cell_matrix::Array{T2,2}, n_grow::Vector{T3}
             for k=0:n_grow[3]-1
                 moveVector = zeros(Real,3)
                 mov_box=[i,j,k]
-                print("BOX: ",mov_box,"\n")
                 for l=1:3
                     for m=1:3
                         moveVector[l] += mov_box[m]*cell_matrix[l,m]
@@ -591,7 +590,7 @@ function duplicateAtoms( atoms::T1, cell_matrix::Array{T2,2}, n_grow::Vector{T3}
             end
         end
     end
-    #atom_mod.sortAtomsByZ!(new_atoms)
+    atom_mod.sortAtomsByZ!(new_atoms)
     return new_atoms
 end
 function makeSuperCell( atoms::T1, cell::Array{T2,2}, n_grow::Vector{T3}  ) where { T1 <: atom_mod.AtomList, T2 <: Real, T3 <: Int }
