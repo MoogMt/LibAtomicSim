@@ -552,35 +552,30 @@ function makeSuperCell( atoms::T1, cell_matrix::Array{T2,2}, n_grow::Vector{T3} 
         nb_atoms_new *= n_grow[i]
     end
     new_atoms = AtomList( nb_atoms_new )
-    positions_origin=getTransformedPosition( atoms.positions, LinearAlgebra.inv( cell_matrix ) )
     count_ = 1
     for dirx=0:n_grow[1]-1
         for diry=0:n_grow[2]-1
             for dirz=0:n_grow[3]-1
                 mov_box=[dirx,diry,dirz]
-                for dir=1:3
-                    new_atoms.positions[count_,dir] = atoms.positions[atom,dir] + mov_box[dir]
-                end
                 # OLD IMPLEMENTATION
-                # moveVector = zeros(Real,3)
-                # for xyz=1:3
-                #     for v123=1:3
-                #         moveVector[xyz] += mov_box[v123]*cell_matrix[xyz,v123]
-                #     end
-                # end
-                # for atom = 1:nb_atoms_base
-                #     for n=1:3
-                #         new_atoms.positions[count_,n] = atoms.positions[atom,n] + moveVector[n]
-                #     end
-                new_atoms.names[count_] = atoms.names[atom]
-                new_atoms.index[count_] = count_
-                count_ += 1
-                # end
+                moveVector = zeros(Real,3)
+                for xyz=1:3
+                    for v123=1:3
+                        moveVector[xyz] += mov_box[v123]*cell_matrix[xyz,v123]
+                    end
+                end
+                for atom = 1:nb_atoms_base
+                    for n=1:3
+                            new_atoms.positions[count_,n] = atoms.positions[atom,n] + moveVector[n]
+                    end
+                    new_atoms.names[count_] = atoms.names[atom]
+                    new_atoms.index[count_] = count_
+                    count_ += 1
+                end
             end
         end
     end
-    super_cell = growCell( cell, n_grow )
-    new_atoms.positions = getTransformedPosition( new_atoms.positions, super_cell )
+    super_cell = growCell( cell_matrix, n_grow )
     atom_mod.sortAtomsByZ!(new_atoms)
     return new_atoms, cell_mod.cellMatrix2Params( super_cell )
 end
