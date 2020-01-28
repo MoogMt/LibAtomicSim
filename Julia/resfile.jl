@@ -78,8 +78,11 @@ function extractAtomsInfo( handle_in::T1 ) where { T1 <: IO }
         end
         index[atom] = atom
     end
-    positions=cell_mod.reduced2Cartesian( positions, cell_mod.params2Matrix( extractCellInfo( handle_in ) ) )
-    return AtomList( names, index, positions )
+    cell = cell_mod.params2Matrix( extractCellInfo( handle_in ) )
+    positions=cell_mod.getTransformedPosition( positions, cell  )
+    atoms=AtomList( names, index, positions )
+    atoms=cell_mod.wrap( atoms, cell )
+    return atoms
 end
 function extractAtomsInfo( file_path::T1 ) where { T1 <: AbstractString }
 
