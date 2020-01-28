@@ -245,7 +245,7 @@ function getTransformedPosition( target_vector::Vector{T1}, cell_matrix::Array{T
     vector=zeros(3)
     for i=1:3
         for j=1:3
-            vector[i] += cell_matrix[j,i]*target_vector[j]
+            vector[i] += cell_matrix[i,j]*target_vector[j]
         end
     end
     return vector
