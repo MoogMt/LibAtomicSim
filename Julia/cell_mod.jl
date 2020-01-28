@@ -96,16 +96,17 @@ Cell=Union{Cell_param, Cell_vec, Cell_matrix}
 #-------------------------------------------------------------------------------
 function cellMatrix2Params( cell_matrix::Array{T1,2} )  where { T1 <: Real }
     length = zeros( Real, 3 )
-    for j=1:3
-        for i=1:3
-            length[j] += cell_matrix[i,j]*cell_matrix[i,j]
+    for col=1:3
+        for line=1:3
+            length[col] += cell_matrix[line,col]*cell_matrix[line,col]
         end
-        length[j] = sqrt( length[j] )
+        length[col] = sqrt( length[col] )
     end
+    tau=180/pi
     angles = zeros( Real, 3 )
-    angles[1] = acos(sum( cell_matrix[:,2].*cell_matrix[:,3] )/(length[2]*length[3]))*180/pi
-    angles[2] = acos(sum( cell_matrix[:,1].*cell_matrix[:,3] )/(length[1]*length[3]))*180/pi
-    angles[3] = acos(sum( cell_matrix[:,1].*cell_matrix[:,2] )/(length[1]*length[2]))*180/pi
+    angles[1] = acos(sum( cell_matrix[:,2].*cell_matrix[:,3] )/(length[2]*length[3]))*tau
+    angles[2] = acos(sum( cell_matrix[:,1].*cell_matrix[:,3] )/(length[1]*length[3]))*tau
+    angles[3] = acos(sum( cell_matrix[:,1].*cell_matrix[:,2] )/(length[1]*length[2]))*tau
     return Cell_param( length, angles )
 end
 function cellMatrix2Params( cell_matrix::T1 )  where { T1 <: Cell_matrix }
@@ -126,26 +127,16 @@ function cellVector2Matrix( vectors::T1 ) where { T1 <: Cell_vec }
 end
 function params2Matrix( cell_params::T1 ) where { T1 <: Cell_param }
     matrix=zeros(3,3)
-    lengths=copy(cell_params.length)
-    for i=2:3
-        lengths[i] /= lengths[1]
-    end
-    tau=pi/180
-    # COS of angles
-    cos_ang=zeros(3)
-    for i=1:3
-        cos_ang[i] = cos( cell_params.angles[i]*tau)
-    end
-    temp=sqrt(1.0-cos_ang[3]*cos_ang[3])
+    lengths=copy( cell_params.length)
+    angles=copy(cell_params.angles)*pi/180
     matrix[1,1] = lengths[1]
-    matrix[1,2] = lengths[1]*lengths[2]*cos_ang[3]
-    matrix[2,2] = lengths[1]*lengths[2]*temp
-    matrix[3,1] = lengths[1]*lengths[3]*cos_ang[2]
-    matrix[3,2] = lengths[1]*lengths[3]*(cos_ang[1]-cos_ang[2]*cos_ang[3])/temp
-
-    temp=(1.0 + 2.0 *cos_ang[1]*cos_ang[2]*cos_ang[3] - cos_ang[1]*cos_ang[1] - cos_ang[2]*cos_ang[2] - cos_ang[3]*cos_ang[3])
-    matrix[3,3] = lengths[1]*lengths[3]*sqrt(temp/(1-cos_ang[3]*cos_ang[3]))
-    return Cell_matrix(matrix)
+    matrix[1,2] = lengths[2]*cos( angles[3] )
+    matrix[1,3] = lengths[3]*cos( angles[2] )
+    matrix[2,2] = lengths[2]*sin( angles[3] )
+    matrix[2,3] = lengths[3]*( cos( angles[1] ) - cos( angles[2] )*cos( angles[3] ) )/sin( angles[3] )
+    volume=sqrt( 1 + 2*cos(angles[1])*cos(angles[2])*cos(angles[3]) -cos(angles[1])^2 -cos(angles[2])^2 -cos(angles[3])^2 )
+    matrix[3,3] = lengths[3]*volume/sin( angles[3] )
+    return Cell_matrix( matrix )
 end
 #---------------------------------------------------------------------------\
 
@@ -254,7 +245,7 @@ function getTransformedPosition( target_vector::Vector{T1}, cell_matrix::Array{T
     vector=zeros(3)
     for i=1:3
         for j=1:3
-            vector[i] += cell_matrix[i,j]*target_vector[j]
+            vector[i] += cell_matrix[j,i]*target_vector[j]
         end
     end
     return vector
@@ -263,11 +254,7 @@ function getTransformedPosition( target_matrix::Array{T1,2}, cell_matrix::Array{
     nb_point=size(target_matrix)[1]
     matrix_transformed = zeros( nb_point, 3 )
     for point=1:nb_point
-        for i=1:3
-            for j=1:3
-                matrix_transformed[ point, i ] += cell_matrix[i,j]*target_matrix[point,j]
-            end
-        end
+        matrix_transformed[ point, : ] = getTransformedPosition( target_matrix[ point,: ], cell_matrix )
     end
     return matrix_transformed
 end
