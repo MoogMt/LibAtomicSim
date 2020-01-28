@@ -180,9 +180,6 @@ function wrap( atoms::T1, cell::T2 ) where { T1 <: atom_mod.AtomList, T2 <: Cell
             if atoms.positions[atom,i] > 1
                 atoms.positions[atom,i] -= 1
             end
-            if atoms.positions[atom,i] == 1  || atoms.positions[atom,i] == 0
-                atoms.positions[atom,i] = 0.000977
-            end
         end
     end
     #----------------------------------
@@ -535,7 +532,7 @@ function computeMoveVector( index::Vector{T1}, cell_matrix::Array{T2,2} ) where 
     end
     return moveVector
 end
-function growCell( cell::Array{T1}, n_grow::Vector{T2} ) where { T1 <: Real, T2 <: Int }
+function growCell( cell::Array{T1,2}, n_grow::Vector{T2} ) where { T1 <: Real, T2 <: Int }
     cell2 = copy(cell)
     for i=1:3
         cell2[:,i] = cell[:,i]*n_grow[i]
@@ -548,40 +545,44 @@ end
 function growCell( cell::T1, n_grow::Vector{T2} ) where { T1 <: Cell_param, T2 <: Int }
     return growCell( params2Matrix(cell), n_grow )
 end
-function duplicateAtoms( atoms::T1, cell_matrix::Array{T2,2}, n_grow::Vector{T3} ) where { T1 <: AtomList, T2 <: Real, T3 <: Int }
+function makeSuperCell( atoms::T1, cell_matrix::Array{T2,2}, n_grow::Vector{T3} ) where { T1 <: AtomList, T2 <: Real, T3 <: Int }
     nb_atoms_base = size(atoms.names)[1]
     nb_atoms_new = nb_atoms_base
     for i=1:3
         nb_atoms_new *= n_grow[i]
     end
     new_atoms = AtomList( nb_atoms_new )
+    positions_origin=getTransformedPosition( atoms.positions, LinearAlgebra.inv( cell_matrix ) )
     count_ = 1
-    for i=0:n_grow[1]-1
-        for j=0:n_grow[2]-1
-            for k=0:n_grow[3]-1
-                moveVector = zeros(Real,3)
-                mov_box=[i,j,k]
-                for l=1:3
-                    for m=1:3
-                        moveVector[l] += mov_box[m]*cell_matrix[l,m]
-                    end
+    for dirx=0:n_grow[1]-1
+        for diry=0:n_grow[2]-1
+            for dirz=0:n_grow[3]-1
+                mov_box=[dirx,diry,dirz]
+                for dir=1:3
+                    new_atoms.positions[count_,dir] = atoms.positions[atom,dir] + mov_box[dir]
                 end
-                for atom = 1:nb_atoms_base
-                    for n=1:3
-                        new_atoms.positions[count_,n] = atoms.positions[atom,n] + moveVector[n]
-                    end
-                    new_atoms.names[count_] = atoms.names[atom]
-                    new_atoms.index[count_] = count_
-                    count_ += 1
-                end
+                # OLD IMPLEMENTATION
+                # moveVector = zeros(Real,3)
+                # for xyz=1:3
+                #     for v123=1:3
+                #         moveVector[xyz] += mov_box[v123]*cell_matrix[xyz,v123]
+                #     end
+                # end
+                # for atom = 1:nb_atoms_base
+                #     for n=1:3
+                #         new_atoms.positions[count_,n] = atoms.positions[atom,n] + moveVector[n]
+                #     end
+                new_atoms.names[count_] = atoms.names[atom]
+                new_atoms.index[count_] = count_
+                count_ += 1
+                # end
             end
         end
     end
+    super_cell = growCell( cell, n_grow )
+    new_atoms.positions = getTransformedPosition( new_atoms.positions, super_cell )
     atom_mod.sortAtomsByZ!(new_atoms)
-    return new_atoms
-end
-function makeSuperCell( atoms::T1, cell::Array{T2,2}, n_grow::Vector{T3}  ) where { T1 <: atom_mod.AtomList, T2 <: Real, T3 <: Int }
-    return duplicateAtoms( atoms, cell, n_grow ), growCell( cell, n_grow )
+    return new_atoms, cell_mod.cellMatrix2Params( super_cell )
 end
 function makeSuperCell!( traj::Vector{T1}, cell::Array{T2,2}, n_grow::Vector{T3}  ) where { T1 <: atom_mod.AtomList, T2 <: Real, T3 <: Int }
     nb_step = size(traj)
