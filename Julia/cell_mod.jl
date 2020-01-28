@@ -556,20 +556,18 @@ function makeSuperCell( atoms::T1, cell_matrix::Array{T2,2}, n_grow::Vector{T3} 
     for dirx=0:n_grow[1]-1
         for diry=0:n_grow[2]-1
             for dirz=0:n_grow[3]-1
-                mov_box=[dirx,diry,dirz]
+                move_box=[dirx,diry,dirz]
                 # OLD IMPLEMENTATION
                 moveVector = zeros(Real,3)
                 for xyz=1:3
                     for v123=1:3
-                        moveVector[xyz] += mov_box[v123]*cell_matrix[xyz,v123]
+                        moveVector[xyz] += move_box[v123]*cell_matrix[xyz,v123]
                     end
                 end
                 for atom = 1:nb_atoms_base
-                    for n=1:3
-                            new_atoms.positions[count_,n] = atoms.positions[atom,n] + moveVector[n]
-                    end
+                    new_atoms.positions[count_,:] = atoms.positions[atom,:] .+ moveVector[:]
                     new_atoms.names[count_] = atoms.names[atom]
-                    new_atoms.index[count_] = count_
+                    new_atoms.index[count_] = 1
                     count_ += 1
                 end
             end
@@ -577,6 +575,9 @@ function makeSuperCell( atoms::T1, cell_matrix::Array{T2,2}, n_grow::Vector{T3} 
     end
     super_cell = growCell( cell_matrix, n_grow )
     atom_mod.sortAtomsByZ!(new_atoms)
+    for i=1:nb_atoms_new
+        new_atoms.index[i] = i 
+    end
     return new_atoms, cell_mod.cellMatrix2Params( super_cell )
 end
 function makeSuperCell!( traj::Vector{T1}, cell::Array{T2,2}, n_grow::Vector{T3}  ) where { T1 <: atom_mod.AtomList, T2 <: Real, T3 <: Int }

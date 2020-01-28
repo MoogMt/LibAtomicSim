@@ -290,8 +290,8 @@ end
 function writeXYZ( file_path::T1, atoms::T2 ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList }
   file_out = open( file_path, "w" )
   nb_atoms=size(atoms.names)[1]
-  Base.write( out, string( nb_atoms, "\n"))
-  Base.write( out, string( "STEP: X\n" ) )
+  write( file_out, string( nb_atoms, "\n"))
+  write( file_out, string( "STEP: X\n" ) )
   for i=1:nb_atoms
     write( file_out, string( atoms.names[i], " " ) )
     for j=1:3
