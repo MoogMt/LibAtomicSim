@@ -5,6 +5,14 @@ module utils
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
+function ifLongerCut( string_::T1, length_max::T2, cut_ind::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int }
+    if length(string_) > length_max
+        number=parse(Float64,string_)
+        number=round(number,digits=cut_ind)
+        string_=string_(number)
+    end
+    return string_
+end
 function skipLines( handle::T1, nb_line::T2 ) where { T1 <: IO, T2 <: Int  }
     for i=1:nb_line
         test=readline( handle )

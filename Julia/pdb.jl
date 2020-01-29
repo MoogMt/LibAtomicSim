@@ -338,10 +338,9 @@ function writePDBplumed(atoms::T1, cell::T2, file::T3 ) where { T1 <: atom_mod.A
   cryst1=utils.spaces(cryst1,34-length(cryst1))
   cryst1=string(cryst1,alpha)
   cryst1=utils.spaces(cryst1,41-length(cryst1))
-  cryst1=string(cryst1,beta)
+  cryst1=string(cryst1,beta )
   cryst1=utils.spaces(cryst1,48-length(cryst1))
-  cryst1=string(cryst1,gamma
-  )
+  cryst1=string(cryst1,gamma )
   cryst1=utils.spaces(cryst1,56-length(cryst1))
   cryst1=string(cryst1,"P 1")
   cryst1=utils.spaces(cryst1,67-length(cryst1))
@@ -381,6 +380,129 @@ function writePDBplumed(atoms::T1, cell::T2, file::T3 ) where { T1 <: atom_mod.A
   Base.write(out,"END\n")
 
   close(out)
+
+  return
+end
+
+function writeCRYST1( handle_out::T1, lenghts::Vector{T1}, angles::Vector{T2} ) where { T1 <: IO, T2 <: Real, T3 <: Real }
+    return true
+end
+
+function writePdbVmd( file::T1, atoms::T2, cell::T3 ) where { T1 <: AbstractString , T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param }
+
+  handle_out=open(file,"w")
+
+  a,b,c = string(round(cell.length[1],digits=3)), string(round(cell.length[2],digits=3)), string(round(cell.length[3],digits=3))
+  alpha, beta, gamma = string(round(cell.angles[1],digits=2)), string(round(cell.angles[2],digits=2)), string(round(cell.angles[3],digits=2))
+  space_group=string("P 1") # In Hermann Mauguin notation, by default P 1 works... never seen a case where something else is used 28/01/2020 (M Moog)
+  z_number = string("1") # Number of polumeric chains or in hetero polymers the n umber of occurences of the most populous chain
+
+  #Implement if longer cut?
+
+  # Writting CRYST1 info -> Cell information
+  cryst1=string("CRYST1")
+  cryst1=utils.spaces(cryst1,15-length(cryst1)-length(a))
+  cryst1=string(cryst1,a)
+  cryst1=utils.spaces(cryst1,24-length(cryst1)-length(b))
+  cryst1=string(cryst1,b)
+  cryst1=utils.spaces(cryst1,33-length(cryst1)-length(c))
+  cryst1=string(cryst1,c)
+  cryst1=utils.spaces(cryst1,40-length(cryst1)-length(alpha))
+  cryst1=string(cryst1,alpha)
+  cryst1=utils.spaces(cryst1,47-length(cryst1)-length(beta))
+  cryst1=string(cryst1,beta)
+  cryst1=utils.spaces(cryst1,54-length(cryst1)-length(gamma))
+  cryst1=string(cryst1,gamma )
+  cryst1=utils.spaces(cryst1,56-length(cryst1))
+  cryst1=string(cryst1,space_group)
+  cryst1=utils.spaces(cryst1,70-length(cryst1)-length(z_number))
+  cryst1=string(cryst1,z_number)
+  cryst1=string(cryst1,"\n")
+  Base.write(handle_out,cryst1)
+
+  # Atomic Positions
+  nb_atoms = size(atoms.names)[1]
+  for i=1:nb_atoms
+    atom="ATOM"
+    # Right justified
+    atom=utils.spaces(atom,11-length(string(atoms.index[i]))-length(atom))
+    atom=string(atom,atoms.index[i])
+    # If atom name is 1 length, start on 13, otherwise 14
+    # atom names are left justified here
+    if length(atoms.names[i])==1
+        atom=utils.spaces(atom,13-length(atom))
+    else
+        atom=utils.spaces(atom,14-length(atom))
+    end
+    atom=string(atom,atoms.names[i])
+
+    # Alternate location indicator ( default blank )
+    alt_loc=string(" ")
+    atom=utils.spaces(atom,17-length(atom)-length(alt_loc))
+    atom=string(atom," ")
+
+    # Residue name (3 col max) righ justified?
+    residue_name=string("   ")
+    atom=utils.spaces(atom,20-length(atom)-length(residue_name))
+    atom=string(atom,residue_name)
+
+    # Chain Identifier
+    # Default is "X"
+    chain_id=string("X")
+    atom=utils.spaces(atom,22-length(atom)-length(chain_id))
+    atom=string(atom,"X")
+
+    # Residue Sequence Nb - Molecule nb
+    mol_nb=string("1")
+    atom=utils.spaces(atom,26-length(atom)-length(mol_nb))
+    atom=string(atom,mol_nb)
+
+    # Code for insertion of residues
+    code_insertion=string(" ")
+    atom=utils.spaces(atom,27-length(atom)-length(code_insertion))
+    atom=string(atom,code_insertion)
+
+    # Positions are right justified
+    # X
+    x=string( round(atoms.positions[i,1], digits=3 ) )
+    atom=utils.spaces( atom, 38-length(atom)-length(x) )
+    atom=string( atom, x)
+    # Y
+    y=string( round(atoms.positions[i,2], digits=3 ) )
+    atom=utils.spaces( atom, 46-length(atom)-length(y) )
+    atom=string( atom, y )
+    # Z
+    z=string( round( atoms.positions[i,3], digits=3 ))
+    atom=utils.spaces( atom, 54-length(atom)-length(z) )
+    atom=string( atom, z )
+
+    # Occupancy and Temperature Factor (default 0, except for PLUMED where used for masses)
+    # Occupancy
+    occ = periodicTable.names2Z( atoms.names[i] )
+    atom=utils.spaces(atom, 60-length(atom)-length(occ) )
+    atom=string(atom, occ )
+    # Temperature Factor
+    tempfac = periodicTable.names2Z( atoms.names[i] )
+    atom=utils.spaces(atom,66-length(atom))
+    atom=string(atom, string( 0.0 ),string(0) )
+
+    # Atom name (right justified)
+    atom=utils.spaces(atom,78-length(atom)-length(atoms.names[i]))
+    atom=string(atom,atoms.names[i])
+
+    # Charge (2 col max, default is blank)
+    charge=string(" ")
+    atom=utils.spaces(atom,80-length(atom)-length(charge))
+    atom=string(atom,charge)
+
+    # End of line
+    atom=string(atom,"\n")
+    Base.write(handle_out,atom)
+  end
+
+  Base.write(handle_out,"END\n")
+
+  close(handle_out)
 
   return
 end
