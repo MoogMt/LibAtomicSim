@@ -231,7 +231,7 @@ function writeCRYST1(  handle_out::IO, lengths::Vector{Real}, angles::Vector{Rea
         return false
     end
     # Z number (right justified)
-    cryst1 = addJustifyRight( end_z, cryst1, z )
+    cryst1 = addJustifyRight( end_z, cryst1, z_number )
     if cryst1 == false
         print("Error writting CRYST1 line (z).\n")
         return false
