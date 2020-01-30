@@ -134,14 +134,27 @@ end
 # Write file
 #==============================================================================#
 function addJustifyRight( max_column::T1, string_target::T2, string_toadd::T3 ) where  { T1 <: Int, T2 <: AbstractString, T3 <: AbstractString }
-    string_target = utils.space( string_target, max_column-length(string_target)-length(string_toadd) )
+    string_target = utils.spaces( string_target, max_column-length(string_target)-length(string_toadd) )
     return string( string_target, string_toadd)
 end
-function addJustifyLeft( min_column::T1, string_target::T2, string_toadd::T3 ) where { T1 <: Int, T2 <: AbstractString, T3 <: AbstractString }
-    string_target = utils.space( string_target, max_column-length(string_target) )
+function addJustifyLeft( max_column::T1, string_target::T2, string_toadd::T3 ) where { T1 <: Int, T2 <: AbstractString, T3 <: AbstractString }
+    string_target = utils.spaces( string_target, max_column-length(string_target) )
     return string( string_target, string_toadd)
 end
-function writeCRYST1( handle_out::T1, lengths::Vector{T2}, angles::Vector{T3}, round_length::T4=3, round_angles::T5=2, space_group::T6=string("P 1"), z_number::T7=1, end_a::T8=15, end_b::T9=24, end_c::T10=33, end_alpha::T11=40, end_beta::T12=47, end_gamma::T13=54, start_sg::T14=56, end_z::T15=70 ) where { T1 <: IO, T2 <: Real, T3 <: Real, T4 <: Int, T5 <: Int, T6 <: AbstractString, T7::Int, T8 <: Int, T9 <: Int, T10, <: Int, T11 <: Int, T12 <: Int, T13 <: int, T14 <: Int, T15 <: Int  }
+function writeCRYST1(  handle_out::IO, lengths::Vector{Real}, angles::Vector{Real},
+    round_length::Int=3,
+    round_angles::Int=2,
+    space_group::AbstractString="P 1",
+    z_number::Int=1,
+    end_a::Int=15,
+    end_b::Int=24,
+    end_c::Int=33,
+    end_alpha::Int=40,
+    end_beta::Int=47,
+    end_gamma::Int=54,
+    start_sg::Int=56,
+    end_z::Int=70 )
+
     # Role: write CRYST1 to file
     # Parametric, in order to adapt to the various PDB format in existence
 
@@ -179,15 +192,53 @@ function writeCRYST1( handle_out::T1, lengths::Vector{T2}, angles::Vector{T3}, r
 
     # Writting CRYST1 info -> Cell information
     cryst1 = string("CRYST1")
+    # Cell lengths (right justified)
     cryst1 = addJustifyRight( end_a, cryst1, a )
+    if cryst1 == false
+        print("Error writting CRYST1 line (a).\n")
+        return false
+    end
     cryst1 = addJustifyRight( end_b, cryst1, b )
+    if cryst1 == false
+        print("Error writting CRYST1 line (b).\n")
+        return false
+    end
     cryst1 = addJustifyRight( end_c, cryst1, c )
+    if cryst1 == false
+        print("Error writting CRYST1 line (c).\n")
+        return false
+    end
+    # Angles (right justified)
     cryst1 = addJustifyRight( end_alpha, cryst1, alpha )
+    if cryst1 == false
+        print("Error writting CRYST1 line (alpha).\n")
+        return false
+    end
     cryst1 = addJustifyRight( end_beta,  cryst1, beta  )
+    if cryst1 == false
+        print("Error writting CRYST1 line (beta).\n")
+        return false
+    end
     cryst1 = addJustifyRight( end_gamma, cryst1, gamma )
+    if cryst1 == false
+        print("Error writting CRYST1 line (gamma).\n")
+        return false
+    end
+    # Space Group (left justified)
     cryst1 = addJustifyLeft( start_sg, cryst1, space_group )
+    if cryst1 == false
+        print("Error writting CRYST1 line (Space Group).\n")
+        return false
+    end
+    # Z number (right justified)
     cryst1 = addJustifyRight( end_z, cryst1, z )
+    if cryst1 == false
+        print("Error writting CRYST1 line (z).\n")
+        return false
+    end
     cryst1=string(cryst1,"\n")
+
+    # Writting line
     Base.write(handle_out,cryst1)
 
     return true
