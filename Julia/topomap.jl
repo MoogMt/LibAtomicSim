@@ -49,7 +49,7 @@ function monteCarloProject( n_dim::T1, n_iterations::T2, cost_coeff::T3, move_co
     for iteration=1:n_iterations
         print("MonteCarlo Projection - Progress: ",iteration/n_iterations*100,"%\n")
         # Choose a random point
-        random_point = round(Int, rand()*nb_structure ) #
+        random_point = Int( trunc( rand()*nb_structure+1 ) )
         # Move
         point_pos_moved = copy( point_pos )
         point_pos_moved[ random_point, :] = point_pos[ random_point, : ] .+ (rand(n_dim).-0.5).*move_coef
