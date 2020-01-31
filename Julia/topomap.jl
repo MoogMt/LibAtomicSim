@@ -52,7 +52,7 @@ function monteCarloProject( n_dim::T1, n_iterations::T2, cost_coeff::T3, move_co
         random_point = round(Int, rand()*nb_structure+1 ) #
         # Move
         point_pos_moved = copy( point_pos )
-        point_pos_moved[ random_point, n_dim ] = point_pos[ random_point, n_dim ] .+ (rand(n_dim).-0.5).*move_coef
+        point_pos_moved[ random_point, :] = point_pos[ random_point, : ] .+ (rand(n_dim).-0.5).*move_coef
         # Compute the cost of the move
         cost_move = computeCost( distance_matrix, point_pos_moved , cost_coeff )
         deltaE = ( cost_move - cost )/thermalEnergy
