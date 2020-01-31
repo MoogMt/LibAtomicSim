@@ -32,7 +32,7 @@ function readFrameToFrameMatrix( file_path::T1 ) where { T1 <: AbstractString }
     dist_max = parse(Float64, keywords[2] )
     distance_matrix=zeros(nb_structure,nb_structure)
     for i=1:nb_structure
-        print("Reading FRAME_TO_FRAME.MATRIX at ",file_path," Progress: ",i/nb_structure*100,"%\n" )
+        print("Reading FRAME_TO_FRAME.MATRIX - progress: ",i/nb_structure*100,"%\n" )
         line= split( readline( handle_in ) )
         for j=1:nb_structure
             distance_matrix[i,j] = parse(Float64, line[j] )
@@ -40,7 +40,7 @@ function readFrameToFrameMatrix( file_path::T1 ) where { T1 <: AbstractString }
         end
     end
     close(handle_in)
-    return distance_matrix, dmax, nb_structure
+    return distance_matrix, dist_max, nb_structure
 end
 #-------------------------------------------------------------------------------
 
