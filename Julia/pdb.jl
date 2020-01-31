@@ -41,6 +41,31 @@ function getNbSteps( file_path::T1 ) where { T1 <: AbstractString }
         return false
     end
 end
+function getNbAtoms( file_path::T1 ) where { T1 <: AbstractString }
+
+    #-----------------------------------------
+    if ! isfile( file_path )
+        print("No pdb file found at ",file_path," !\n")
+        return false
+    end
+    #-----------------------------------------
+
+    #-----------------------------------------
+    nb_atoms  = 0
+    file_in = open( file_path )
+    while !eof(f)
+        keyword1 = split(readline(f))[1]
+        if keyword1 == "ATOM"
+            nb_atoms += 1
+        elseif keyword1 == "END"
+            break
+        end
+    end
+    close( file_in )
+    #-----------------------------------------
+
+    return nb_atoms
+end
 function readStructure( file_path::T1 ) where { T1 <: AbstractString }
   #--------------
   # Reading file
