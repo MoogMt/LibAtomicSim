@@ -49,14 +49,14 @@ function monteCarloProject( n_dim::T1, n_iterations::T2, cost_coeff::T3, move_co
     for iteration=1:n_iterations
         print("MonteCarlo Projection - Progress: ",iteration/n_iterations*100,"%\n")
         # Choose a random point
-        random_point = round(Int, rand()*nb_structure+1 ) #
+        random_point = round(Int, rand()*nb_structure ) #
         # Move
         point_pos_moved = copy( point_pos )
         point_pos_moved[ random_point, :] = point_pos[ random_point, : ] .+ (rand(n_dim).-0.5).*move_coef
         # Compute the cost of the move
         cost_move = computeCost( distance_matrix, point_pos_moved , cost_coeff )
         deltaE = ( cost_move - cost )/thermalEnergy
-        if de > 0
+        if deltaE > 0
             # If cost is unfavorable, random
             if rand() < exp(-deltaE)
                 point_pos = copy( point_pos_moved )
