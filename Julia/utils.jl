@@ -5,6 +5,46 @@ module utils
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
+function computeCost( distance_matrix::Array{T1,2}, positions::Array{T2}, cost_coeff::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Real }
+    n_structures=size(distance_matrix)[1]
+    cost=0.
+    n_dim=size(positions)[2]
+    for i=1:n_structures-1
+        for j=i+1:n_structures
+            dist = 0
+            for k=1:n_dim
+                dist += ( positions[i,k] - positions[j,k] )*( positions[i,k] - positions[j,k] )
+            end
+            dist=sqrt(dist)
+            cost += 0.5*cost_coeff*( dist - distance_matrix[i,j] )*( dist - distance_matrix[i,j] )
+        end
+    end
+    return cost
+end
+function readFrameToFrameMatrix( file_path::T1 ) where { T1 <: AbstractString }
+    if ! isfile(file_path)
+        print("File: ", file_path, " not found!\n")
+        return false, false, false
+    end
+    handle_in = open( file_path )
+    keywords=split( readline( handle_in ) )
+    nb_structure = parse(Int, keywords[1] )
+    dist_max = parse(Float64, keywords[2] )
+    distance_matrix=zeros(nb_structure,nb_structure)
+    for i=1:nb_structure
+        print("Reading FRAME_TO_FRAME.MATRIX at ",file_path," Progress: ",i/nb_structure*100,"%\n" )
+        line= split( readline( handle_in ) )
+        for j=1:nb_structure
+            distance_matrix[i,j] = parse(Float64, line[j] )
+            distance_matrix[j,i] = distance_matrix[i,j]
+        end
+    end
+    close(handle_in)
+    return distance_matrix, dmax, nb_structure
+end
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
 function ifLongerCut( string_::T1, length_max::T2, cut_ind::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int }
     if length(string_) > length_max
         number=parse(Float64,string_)
