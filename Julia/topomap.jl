@@ -42,17 +42,19 @@ function readFrameToFrameMatrix( file_path::T1 ) where { T1 <: AbstractString }
 end
 function monteCarloProject( n_dim::T1, n_iterations::T2, cost_coeff::T3, move_coef::T4, thermalEnergy::T5, distance_matrix::Array{T6,2} ) where { T1 <: Int,  T2 <: Int, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
     nb_structure=size(distance_matrix)[1]
-    point_pos=rand(nb_structure,2)
+    # Randomly put points on the plan
+    point_pos=rand(nb_structure,n_dim)
+    # Compute initial cost
+    cost = computeCost( distance_matrix, point_pos , cost_coeff )
     for iteration=1:n_iterations
         print("MonteCarlo Projection - Progress: ",iteration/n_iterations*100,"%\n")
         # Choose a random point
         random_point = round(Int, rand()*nb_structure+1 ) #
         # Move
         point_pos_moved = copy( point_pos )
-        point_pos_moved[ random_point, :] = point_pos[ random_point, 2 ] .+ (rand(2).-0.5).*move_coef
+        point_pos_moved[ random_point, n_dim ] = point_pos[ random_point, n_dim ] .+ (rand(n_dim).-0.5).*move_coef
         # Compute the cost of the move
         cost_move = computeCost( distance_matrix, point_pos_moved , cost_coeff )
-        m=0
         deltaE = ( cost_move - cost )/thermalEnergy
         if de > 0
             # If cost is unfavorable, random
