@@ -86,7 +86,7 @@ function readStructureAtomList( file_path::T1 ) where { T1 <: AbstractString }
         end
     else
         print("Problem with .pdb file at: ",file_path,"\n")
-        false
+        return false
     end
     #----------------------------------------------------
 
@@ -132,7 +132,7 @@ function readStructureAtomList( file_path::T1 ) where { T1 <: AbstractString }
         end
     else
         print("Problem with .pdb file at: ",file_path,"\n")
-        false
+        return false
     end
     #----------------------------------------------------
 
@@ -166,7 +166,6 @@ function readTrajNVAtomList( file_path::T1 ) where { T1 <: AbstractString }
 
     nb_step = getNbSteps( file_path )
     nb_atoms = getNbAtoms( file_path )
-
     handle_in = open( file_path )
 
     #----------------------------------------------------
@@ -178,8 +177,8 @@ function readTrajNVAtomList( file_path::T1 ) where { T1 <: AbstractString }
             cell.angles[i] = parse( Float64, split(keyword)[i+4] )
         end
     else
-        print("Problem with .pdb file at: ",file_path,"\n")
-        false
+        print("Problem with .pdb file at: ",file_path," at CRYST1 (start)\n")
+        return false
     end
     seekstart( handle_in )
     #----------------------------------------------------
@@ -187,13 +186,76 @@ function readTrajNVAtomList( file_path::T1 ) where { T1 <: AbstractString }
     #---------------------------------
     # Reading atomic informations
     #---------------------------------------------------------------------
+    traj = Vector{ AtomList }( undef, nb_step )
     for step=1:nb_step
-        for atom=1:nb_atoms
+        keyword = readline( handle_in )
+        if keyword[1] != "CRYST1"
+            return false
+        end
+        check = false
+        traj[1] = atom_mod.AtomList(nb_atoms)
+        count_ = 1
+        while ! check
+            keyword = readline( handle_in )
+            if keyword[1] == "ATOM"
+                traj[step].names = keyword[3]
+                traj[step].index = count_
+                for i=1:3
+                    traj[step].positions[count_,i] = parse( Float64, keyword[6+i] )
+                end
+                count_ += 1
+            end
+            elseif keyword[1] == "END"
+                break
+            end
         end
     end
     #---------------------------------------------------------------------
 
-    return atoms, cell
+    return traj, cell
+end
+function readTrajAtomList( file_path::T1 ) where { T1 <: AbstractString }
+
+    #---------------------------------
+    nb_step = getNbSteps( file_path )
+    nb_atoms = getNbAtoms( file_path )
+    handle_in = open( file_path )
+    #---------------------------------
+
+    #---------------------------------
+    # Reading atomic informations
+    #---------------------------------------------------------------------
+    traj = Vector{ AtomList }( undef, nb_step )
+    cells = Vector{cell_mod.Cell_param}(undef,nb_step)
+    for step=1:nb_step
+        check = false
+        traj[step] = atom_mod.AtomList(nb_atoms)
+        count_ = 1
+        while ! check
+            keyword = readline( handle_in )
+            if keyword[1] != "CRYST1"
+                for i=1:3
+                    cells[step].length[i] = parse( Float64, split(keyword)[i+1] )
+                    cell[step].angles[i] = parse( Float64, split(keyword)[i+4] )
+                end
+            elseif keyword[1] == "ATOM"
+                traj[step].atom_index[count_] = parse( Int, keyword[2] )
+                traj[step].atom_names[count_] = keyword[3]
+                traj[step].mol_names[count_] =  keyword[4]
+                traj[step].mol_index[count_] = parse( Int, keyword[6] )
+                for i=1:3
+                    traj[step].positions[count_,i] = parse( Float64, keyword[6+i] )
+                end
+                count_ += 1
+            end
+            elseif keyword[1] == "END"
+                break
+            end
+        end
+    end
+    #---------------------------------------------------------------------
+
+    return traj, cells
 end
 #==============================================================================#
 
