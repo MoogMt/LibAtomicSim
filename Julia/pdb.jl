@@ -1,8 +1,8 @@
 module pdb
 
 export getNbSteps, readStructure, readTraj
-export writePdb, writePdbPlumed
 
+export writePdb, writePdbPlumed
 using utils
 using atom_mod
 using cell_mod
@@ -66,93 +66,134 @@ function getNbAtoms( file_path::T1 ) where { T1 <: AbstractString }
 
     return nb_atoms
 end
-function readStructure( file_path::T1 ) where { T1 <: AbstractString }
-  #--------------
-  # Reading file
-  #----------------------
-  lines = utils.getLines( file_path )
-  #------------------------
+#----------------------------------------------------
+# Reads a .pdb file containing a single structure
+function readStructureAtomList( file_path::T1 ) where { T1 <: AbstractString }
 
-  #----------------------------------------------------
-  # Reading informations about cell and number of atoms
-  #----------------------------------------------------
-  cell = cell_mod.Cell_param()
-  nb_atoms=0
-  for line in lines
-    if split(line)[1] == "CRYST1"
-      for i=1:3
-        cell.length[i]=parse(Float64,split(line)[i+1])
-        cell.angles[i]=parse(Float64,split(line)[i+4])
-      end
-    elseif split(line)[1] == "ATOM"
-      nb_atoms+=1
+    #-----------------------------
+    nb_atoms=getNbAtoms(file_path)
+    #-----------------------------
+
+    handle_in = open( file_path )
+
+    #----------------------------------------------------
+    cell = cell_mod.Cell_param()
+    keyword=split( readline( handle_in ) )
+    if keyword[1] == "CRYST1"
+        for i=1:3
+            cell.length[i] = parse( Float64, split(keyword)[i+1] )
+            cell.angles[i] = parse( Float64, split(keyword)[i+4] )
+        end
+    else
+        print("Problem with .pdb file at: ",file_path,"\n")
+        false
     end
-  end
+    #----------------------------------------------------
 
-  #----------------------------------------------------
-
-  #---------------------------------
-  # Reading atomic informations
-  #---------------------------------------------------------------------
-  atoms=atom_mod.AtomMolList(nb_atoms)
-  count=1
-  for line in lines
-    if split(line)[1] == "ATOM"
-      atoms.atom_names[count]=split(line)[3]
-      atoms.atom_index[count]=parse(Float64,split(line)[2])
-      atoms.mol_names[count]=split(line)[4]
-      atoms.mol_index[count]=parse(Float64,split(line)[6])
-      atoms.positions[count,:]=[ parse(Float64,split(line)[7]), parse(Float64,split(line)[8]), parse(Float64,split(line)[9]) ]
-      count+=1;
+    #----------------------------------------------------
+    # Reading informations about cell and number of atoms
+    #----------------------------------------------------
+    atoms = atom_mod.AtomList( nb_atoms )
+    for atom=1:nb_atoms
+        keyword = split( readline( handle_in ) )
+        if keyword[1] == "ATOM"
+            atoms.index[atom] = atom
+            atoms.names[atom] = keyword[3]
+            for i=1:3
+                atoms.positions[atom,i] = parse( Float64, keyword[6+i] )
+            end
+        else
+            print("Problem with .pdb file at: ",file_path," at ATOM keyword.\n")
+            return false
+        end
     end
-  end
-  #---------------------------------------------------------------------
+    #----------------------------------------------------
 
-  return atoms, cell
+    close( handle_in )
+
+    return atoms, cell
 end
-function readTraj( file_path::T1 ) where { T1 <: AbstractString }
-  #--------------
-  # Reading file
-  #----------------------
-  lines = utils.getLines( file_path )
-  #------------------------
+# Reads a .pdb file containing a single structure
+function readStructureAtomList( file_path::T1 ) where { T1 <: AbstractString }
 
-  #----------------------------------------------------
-  # Reading informations about cell and number of atoms
-  #----------------------------------------------------
-  cell = cell_mod.Cell_param()
-  nb_atoms=0
-  for line in lines
-    if split(line)[1] == "CRYST1"
-      for i=1:3
-        cell.length[i]=parse(Float64,split(line)[i+1])
-        cell.angles[i]=parse(Float64,split(line)[i+4])
-      end
-    elseif split(line)[1] == "ATOM"
-      nb_atoms+=1
+    #-----------------------------
+    nb_atoms=getNbAtoms(file_path)
+    #-----------------------------
+
+    handle_in = open( file_path )
+
+    #----------------------------------------------------
+    cell = cell_mod.Cell_param()
+    keyword=split( readline( handle_in ) )
+    if keyword[1] == "CRYST1"
+        for i=1:3
+            cell.length[i] = parse( Float64, split(keyword)[i+1] )
+            cell.angles[i] = parse( Float64, split(keyword)[i+4] )
+        end
+    else
+        print("Problem with .pdb file at: ",file_path,"\n")
+        false
     end
-  end
+    #----------------------------------------------------
 
-  #----------------------------------------------------
-
-  #---------------------------------
-  # Reading atomic informations
-  #---------------------------------------------------------------------
-  atoms=atom_mod.AtomMolList(nb_atoms)
-  count=1
-  for line in lines
-    if split(line)[1] == "ATOM"
-      atoms.atom_names[count]=split(line)[3]
-      atoms.atom_index[count]=parse(Float64,split(line)[2])
-      atoms.mol_names[count]=split(line)[4]
-      atoms.mol_index[count]=parse(Float64,split(line)[6])
-      atoms.positions[count,:]=[ parse(Float64,split(line)[7]), parse(Float64,split(line)[8]), parse(Float64,split(line)[9]) ]
-      count+=1;
+    #----------------------------------------------------
+    # Reading informations about cell and number of atoms
+    #----------------------------------------------------
+    atoms = atom_mod.AtomList( nb_atoms )
+    for atom=1:nb_atoms
+        keyword = split( readline( handle_in ) )
+        if keyword[1] == "ATOM"
+            atoms.atom_index[atom] = parse( Int, keyword[2] )
+            atoms.atom_names[atom] = keyword[3]
+            atoms.mol_names[atom] =  keyword[4]
+            atoms.mol_index[atom] = parse( Int, keyword[6] )
+            for i=1:3
+                atoms.positions[atom,i] = parse( Float64, keyword[6+i] )
+            end
+        else
+            print("Problem with .pdb file at: ",file_path," at ATOM keyword.\n")
+            return false
+        end
     end
-  end
-  #---------------------------------------------------------------------
+    #----------------------------------------------------
 
-  return atoms, cell
+    close( handle_in )
+
+    return atoms, cell
+end
+#----------------------------------------------------
+function readTrajNVAtomList( file_path::T1 ) where { T1 <: AbstractString }
+
+    nb_step = getNbSteps( file_path )
+    nb_atoms = getNbAtoms( file_path )
+
+    handle_in = open( file_path )
+
+    #----------------------------------------------------
+    cell = cell_mod.Cell_param()
+    keyword=split( readline( handle_in ) )
+    if keyword[1] == "CRYST1"
+        for i=1:3
+            cell.length[i] = parse( Float64, split(keyword)[i+1] )
+            cell.angles[i] = parse( Float64, split(keyword)[i+4] )
+        end
+    else
+        print("Problem with .pdb file at: ",file_path,"\n")
+        false
+    end
+    seekstart( handle_in )
+    #----------------------------------------------------
+
+    #---------------------------------
+    # Reading atomic informations
+    #---------------------------------------------------------------------
+    for step=1:nb_step
+        for atom=1:nb_atoms
+        end
+    end
+    #---------------------------------------------------------------------
+
+    return atoms, cell
 end
 #==============================================================================#
 
