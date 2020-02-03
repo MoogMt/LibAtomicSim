@@ -24,7 +24,7 @@ function writeRestart( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: Abstra
     matrix=cell.matrix
     norms_v=zeros(Real,3)
     for i=1:3
-        norms_v[i] = LinearAlgebra.norm(matrix[:,i])
+        norms_v[i] = LinearAlgebra.norm(matrix[i,:])
         matrix[:,i] = matrix[:,i]./norms_v[i]
     end
     for i=1:3
@@ -40,6 +40,37 @@ function writeRestart( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: Abstra
         write(handle_out,string(norms_v[i]*conversion.ang2Bohr,"\n"))
     end
     close(handle_out)
+end
+
+function writeCrystalCell( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_matrix }
+    handle_in = open( path_file, "w" )
+    norms_v=zeros( Real, 3 )
+    matrix = copy( cell.matrix )
+    species = atom_mod.getSpecies( atoms )
+    for i=1:3
+        norms_v[i] = LinearAlgebra.norm(matrix[i,:])
+        matrix[:,i] = matrix[:,i]./norms_v[i]
+    end
+    for i=3
+        for j=1:3
+            write( handle_in, string( matrix[j,i], " " ) )
+        end
+        write( handle_in, string("\n") )
+    end
+    for i=1:3
+        write( handle_in, string( norms_v[i], "\n")  )
+    end
+    for i=1:3
+        write( handle_in, "1\n" )
+    end
+    for i=1:size(species)[1]
+        write( handle_in, string( periodicTable.z2Names( species[i] ), "\n" ) )
+        write( handle_in, string( species[i], "_quartz.mat" ) )
+    end
+    for i=1:3
+        write( handle_in, string( norms_v[i], "\n")  )
+    end
+    return true
 end
 
 end

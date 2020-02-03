@@ -5,13 +5,13 @@ module utils
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-function getAllFilesWithExtension( folder_path::T1, extension <: T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
+function getAllFilesWithExtension( folder_path::T1, extension::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
     if ! isdir( folder_path )
         print("Folder ",folder_path," does not exists!\n")
         return false
     end
-    all_files=readdir(folder_path)
-    files=[]
+    all_files = readdir( folder_path )
+    files = Vector{ AbstractString }( undef, 0 )
     for file=1:size(all_files)[1]
         keyword = split( all_files[file], "." )
         nb_keys = size( keyword )[1]
@@ -20,6 +20,20 @@ function getAllFilesWithExtension( folder_path::T1, extension <: T2 ) where { T1
         end
     end
     return files
+end
+function getFileName( file::T1 ) where { T1 <: AbstractString }
+    keyword = split( file, "." )
+    nb_keys = size( keyword )[1]
+    extension = string( ".", keyword[nb_keys] )
+    keyword2 = split( file, extension )
+    return keyword2[1]
+end
+function getFilesName( files::Vector{T1} ) where { T1 <: AbstractString }
+    names = Vector{ AbstractString }( undef, size(files)[1] )
+    for i=1:size(files)[1]
+        names[i] = getFileName( files[i] )
+    end
+    return names
 end
 #-------------------------------------------------------------------------------
 
