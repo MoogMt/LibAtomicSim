@@ -94,7 +94,9 @@ function writeErrors( file_out::T1, positions::Array{T2,2}, distances_matrix::Ar
                 distance += (positions[structure,i]-positions[structure2,i])*(positions[structure,i]-positions[structure2,i])
             end
             distance=sqrt(distance)
-            write( file_out, string( distances_matrix[structure,structure2], " ", distance, "\n" ) )
+            print("test: ",structure,"\n")
+            print("test2: ",structure2,"\n")
+            write( handle_out, string( distances_matrix[structure,structure2], " ", distance, "\n" ) )
         end
     end
     close(handle_out)

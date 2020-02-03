@@ -22,19 +22,19 @@ function getNbSteps( file_path::T1 ) where { T1 <: AbstractString }
     #-----------------------------------------
     nb_step  = 0
     nb_step2 = 0
-    file_in = open( file_path )
-    while !eof(f)
-        keyword1 = split(readline(f))[1]
+    handle_in = open( file_path )
+    while !eof( handle_in )
+        keyword1 = split(readline(handle_in))[1]
         if keyword1 == "END"
             nb_step += 1
         elseif keyword1 == "CRYST1"
             nb_step2 +=1
         end
     end
-    close( file_in )
+    close( handle_in )
     #-----------------------------------------
 
-    if count_step == count_step2
+    if nb_step == nb_step2
         return nb_step
     else
         print("PDB file at ",file_path," is probably corrupted.\n")
@@ -52,16 +52,16 @@ function getNbAtoms( file_path::T1 ) where { T1 <: AbstractString }
 
     #-----------------------------------------
     nb_atoms  = 0
-    file_in = open( file_path )
-    while !eof(f)
-        keyword1 = split(readline(f))[1]
+    handle_in = open( file_path )
+    while ! eof( handle_in )
+        keyword1 = split( readline( handle_in ) )[1]
         if keyword1 == "ATOM"
             nb_atoms += 1
         elseif keyword1 == "END"
             break
         end
     end
-    close( file_in )
+    close( handle_in )
     #-----------------------------------------
 
     return nb_atoms
@@ -81,8 +81,8 @@ function readStructureAtomList( file_path::T1 ) where { T1 <: AbstractString }
     keyword=split( readline( handle_in ) )
     if keyword[1] == "CRYST1"
         for i=1:3
-            cell.length[i] = parse( Float64, split(keyword)[i+1] )
-            cell.angles[i] = parse( Float64, split(keyword)[i+4] )
+            cell.length[i] = parse( Float64, keyword[i+1] )
+            cell.angles[i] = parse( Float64, keyword[i+4] )
         end
     else
         print("Problem with .pdb file at: ",file_path,"\n")
@@ -100,7 +100,7 @@ function readStructureAtomList( file_path::T1 ) where { T1 <: AbstractString }
             atoms.index[atom] = atom
             atoms.names[atom] = keyword[3]
             for i=1:3
-                atoms.positions[atom,i] = parse( Float64, keyword[6+i] )
+                atoms.positions[atom,i] = parse( Float64, keyword[5+i] )
             end
         else
             print("Problem with .pdb file at: ",file_path," at ATOM keyword.\n")
@@ -114,7 +114,7 @@ function readStructureAtomList( file_path::T1 ) where { T1 <: AbstractString }
     return atoms, cell
 end
 # Reads a .pdb file containing a single structure
-function readStructureAtomList( file_path::T1 ) where { T1 <: AbstractString }
+function readStructureAtomMolList( file_path::T1 ) where { T1 <: AbstractString }
 
     #-----------------------------
     nb_atoms=getNbAtoms(file_path)
@@ -173,12 +173,12 @@ function readTrajNVAtomList( file_path::T1 ) where { T1 <: AbstractString }
     keyword=split( readline( handle_in ) )
     if keyword[1] == "CRYST1"
         for i=1:3
-            cell.length[i] = parse( Float64, split(keyword)[i+1] )
-            cell.angles[i] = parse( Float64, split(keyword)[i+4] )
+            cell.length[i] = parse( Float64, keyword[i+1] )
+            cell.angles[i] = parse( Float64, keyword[i+4] )
         end
     else
         print("Problem with .pdb file at: ",file_path," at CRYST1 (start)\n")
-        return false
+        return false, false
     end
     seekstart( handle_in )
     #----------------------------------------------------
@@ -190,7 +190,8 @@ function readTrajNVAtomList( file_path::T1 ) where { T1 <: AbstractString }
     for step=1:nb_step
         keyword = readline( handle_in )
         if keyword[1] != "CRYST1"
-            return false
+            print("Problem with .pdb file at: ",file_path," at CRYST1 step:",step," !\n")
+            return false, false
         end
         check = false
         traj[1] = atom_mod.AtomList(nb_atoms)
@@ -204,7 +205,6 @@ function readTrajNVAtomList( file_path::T1 ) where { T1 <: AbstractString }
                     traj[step].positions[count_,i] = parse( Float64, keyword[6+i] )
                 end
                 count_ += 1
-            end
             elseif keyword[1] == "END"
                 break
             end
@@ -247,7 +247,6 @@ function readTrajAtomList( file_path::T1 ) where { T1 <: AbstractString }
                     traj[step].positions[count_,i] = parse( Float64, keyword[6+i] )
                 end
                 count_ += 1
-            end
             elseif keyword[1] == "END"
                 break
             end
