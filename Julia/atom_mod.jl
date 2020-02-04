@@ -185,7 +185,7 @@ function getSpecies( atoms::T1 ) where { T1 <: AtomList }
                 end
             end
             if add
-                push!( species, atom.names[atom] )
+                push!( species, atoms.names[atom] )
             end
         end
         return species

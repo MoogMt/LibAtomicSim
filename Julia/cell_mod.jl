@@ -576,7 +576,7 @@ function makeSuperCell( atoms::T1, cell_matrix::Array{T2,2}, n_grow::Vector{T3} 
     super_cell = growCell( cell_matrix, n_grow )
     atom_mod.sortAtomsByZ!(new_atoms)
     for i=1:nb_atoms_new
-        new_atoms.index[i] = i 
+        new_atoms.index[i] = i
     end
     return new_atoms, cell_mod.cellMatrix2Params( super_cell )
 end
@@ -586,6 +586,19 @@ function makeSuperCell!( traj::Vector{T1}, cell::Array{T2,2}, n_grow::Vector{T3}
         traj[step] = duplicateAtoms( traj[step], cell, n_grow )
     end
     return traj
+end
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+function nonOrtho2Ortho( cell::T1 ) where { T1 <: cell_mod.Cell_matrix }
+    lengths = zeros( Real, 3 )
+    lengths[1] = LinearAlgebra.norm( cell.matrix[:,1] )
+    for i=2:3
+        for j=1:3
+            lengths[j] += cell.matrix[i,j]
+        end
+    end
+    return cell_mod.Cell_param( lengths )
 end
 #-------------------------------------------------------------------------------
 
