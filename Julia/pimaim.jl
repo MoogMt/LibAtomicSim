@@ -7,6 +7,7 @@ using atom_mod
 using cell_mod
 using filexyz
 using pdb
+using periodicTable
 
 function writeRestart( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_matrix }
     nb_atoms=atom_mod.getNbAtoms(atoms)
@@ -43,7 +44,7 @@ function writeRestart( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: Abstra
 end
 
 function writeCrystalCell( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_matrix }
-    handle_in = open( path_file, "w" )
+
     norms_v=zeros( Real, 3 )
     matrix = copy( cell.matrix )
     species = atom_mod.getSpecies( atoms )
@@ -51,9 +52,15 @@ function writeCrystalCell( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: Ab
         norms_v[i] = LinearAlgebra.norm(matrix[i,:])
         matrix[:,i] = matrix[:,i]./norms_v[i]
     end
-    for i=3
+
+    handle_in = open( path_file, "w" )
+    for i=1:3
         for j=1:3
-            write( handle_in, string( matrix[j,i], " " ) )
+            if matrix[j,i] < 0.001
+                write( handle_in, string( 0 , " " ) )
+            else
+                write( handle_in, string( matrix[j,i], " " ) )
+            end
         end
         write( handle_in, string("\n") )
     end
@@ -64,12 +71,13 @@ function writeCrystalCell( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: Ab
         write( handle_in, "1\n" )
     end
     for i=1:size(species)[1]
-        write( handle_in, string( periodicTable.z2Names( species[i] ), "\n" ) )
-        write( handle_in, string( species[i], "_quartz.mat" ) )
+        write( handle_in, string( periodicTable.names2Z( species[i] ), "\n" ) )
+        write( handle_in, string( species[i], "_quartz.mat\n" ) )
     end
     for i=1:3
         write( handle_in, string( norms_v[i], "\n")  )
     end
+    close(handle_in)
     return true
 end
 
