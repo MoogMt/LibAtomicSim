@@ -116,16 +116,21 @@ function getSpeciesAndNumber( path_file::T1 ) where { T1 <: AbstractString }
     handle_in = open( path_file )
     utils.skipLines( handle_in, 4 )
     nb_species=parse( Int, split( readline( handle_in ) )[1] )
+    #---------------------------------------
     species=Vector{AbstractString}(undef,nb_species)
     species_line = split( readline( handle_in ), "," )
-    for i_spec = 1:nb_species
+    for i_spec = 1:nb_species-1
         species[i_spec] = species_line[i_spec]
     end
+    species[ nb_species ] = split(species_line[nb_species])[1]  # Avoid pesky comment
+    #---------------------------------------
     species_nb = zeros(Int, nb_species )
-    species_nb_line = split( readline( handle_in ) )
-    for i_spec = 1:nb_species
-        species[i_spec] = parse(Float64, species_nb_line[i_spec] )
+    species_nb_line = split( readline( handle_in ),"," )
+    for i_spec = 1:nb_species-1
+        species_nb[i_spec] = parse(Int, species_nb_line[i_spec] )
     end
+    species_nb[ nb_species ] = parse(Int, split(species_nb_line[nb_species])[1] )  # Avoid pesky comment
+    #---------------------------------------
     close( handle_in )
     return species, species_nb
 end
