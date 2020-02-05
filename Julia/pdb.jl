@@ -580,7 +580,7 @@ function writePdb( file::T1, traj::Vector{T2}, cells::Vector{T3} ) where { T1 <:
 
     handle_out=open(file,"w")
 
-    nb_step=size(traj)
+    nb_step=size(traj)[1]
     for step=1:nb_step
 
         if ! writeCRYST1( handle_out, cells[step].length, cells[step].angles )

@@ -307,16 +307,26 @@ end
 
 function buildNames( species::Vector{T1}, nb_species::Vector{T2} ) where { T1 <: AbstractString, T2 <: Int }
     nb_atoms=sum(nb_species)
-    nb_species=size(nb_species)[1]
+    nb_species_=size(nb_species)[1]
     names=Vector{AbstractString}(undef,nb_atoms)
     count_ = 1
-    for i_spec=1:nb_species
+    for i_spec=1:nb_species_
         for atom=1:nb_species[1]
             names[count_] = species[i_spec]
             count_ += 1
         end
     end
     return names
+end
+
+function makeTrajAtomList( positions::Array{T1,3}, names::Vector{T2}, index::Array{T3} ) where { T1 <: Real, T2 <: AbstractString, T3 <: Int }
+    nb_step = size(positions)[1]
+    nb_atoms = size(positions)[2]
+    traj = Vector{ AtomList }( undef, nb_step)
+    for step=1:nb_step
+        traj[step] = AtomList( names, index, positions[step,:,:])
+    end
+    return traj
 end
 
 end
