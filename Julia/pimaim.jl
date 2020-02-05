@@ -134,6 +134,41 @@ function getSpeciesAndNumber( path_file::T1 ) where { T1 <: AbstractString }
     close( handle_in )
     return species, species_nb
 end
+function readCellParams( path_file_len::T1, path_file_angles::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
 
+    #-------------------------------------------------
+    nb_lines = utils.getNbLines( path_file_angles )
+    if nb_lines == false
+        return false, false
+    end
+    nb_lines2 = utils.getNbLines( path_file_len )
+    if nb_lines2 == false
+        return false, false
+    end
+    #-------------------------------------------------
+
+    #-------------------------------------------------
+    lengths=zeros(Real,nb_lines,3)
+    angles=zeros(Real,nb_lines,3)
+    #-------------------------------------------------
+
+    #-------------------------------------------------
+    tau=180/pi
+    handle_in_len = open( path_file_len )
+    handle_in_ang = open( path_file_angles )
+    for line=1:nb_lines
+        key_len = split( readline( handle_in_len ) )
+        key_ang = split( readline( handle_in_ang ) )
+        for i=1:3
+            lengths[line,i] = parse( Float64, key_len[1+i] )*tau
+            angles[line,i]  = parse( Float64, key_ang[1+i] )*tau
+        end
+    end
+    close( handle_in_len )
+    close( handle_in_ang )
+    #-------------------------------------------------
+
+    return lengths, angles
+end
 
 end

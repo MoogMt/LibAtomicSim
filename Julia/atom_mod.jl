@@ -305,4 +305,18 @@ function computeVelocities( traj::Vector{T1}, target_step::T2, dt::T3 ) where { 
 end
 #-------------------------------------------------------------------------------
 
+function buildNames( species::Vector{T1}, nb_species::Vector{T2} ) where { T1 <: AbstractString, T2 <: Int }
+    nb_atoms=sum(nb_species)
+    nb_species=size(nb_species)[1]
+    names=Vector{AbstractString}(undef,nb_atoms)
+    count_ = 1
+    for i_spec=1:nb_species
+        for atom=1:nb_species[1]
+            names[count_] = species[i_spec]
+            count_ += 1
+        end
+    end
+    return names
+end
+
 end
