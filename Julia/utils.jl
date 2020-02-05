@@ -4,6 +4,22 @@ module utils
 #  List of useful random functions that I could not fit elsewhere
 #-------------------------------------------------------------------------------
 
+
+function getNbLines( file_path::T1 ) where { T1 <: AbstractString }
+    if ! isfile( file_path )
+        print("No file found at: ",file_path,"\n")
+        return false
+    end
+    count_ = 0
+    handle_in = open( file_path )
+    while ! eof( handle_in )
+        readline( handle_in )
+        count_ += 1
+    end
+    close(handle_in)
+    return count_
+end
+
 #-------------------------------------------------------------------------------
 function getAllFilesWithExtension( folder_path::T1, extension::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
     if ! isdir( folder_path )
