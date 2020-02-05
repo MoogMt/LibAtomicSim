@@ -309,11 +309,10 @@ function buildNames( species::Vector{T1}, nb_species::Vector{T2} ) where { T1 <:
     nb_atoms=sum(nb_species)
     nb_species_=size(nb_species)[1]
     names=Vector{AbstractString}(undef,nb_atoms)
-    count_ = 1
     for i_spec=1:nb_species_
-        for atom=1:nb_species[1]
-            names[count_] = species[i_spec]
-            count_ += 1
+        start_ = sum( nb_species[1:i_spec-1])
+        for atom_spec=1:nb_species[i_spec]
+            names[start_+atom_spec] = species[i_spec]
         end
     end
     return names
