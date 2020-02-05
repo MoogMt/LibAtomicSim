@@ -101,7 +101,7 @@ function readPositions( path_file::T1, nb_atoms::T2 ) where { T1 <: AbstractStri
         for atom=1:nb_atoms
             keys = split( readline( handle_in ) )
             for i=1:3
-                positions[step,atom,i] = parse( Float64, keys[i] )
+                positions[step,atom,i] = parse( Float64, keys[i] )*conversion.bohr2Ang
             end
         end
     end
@@ -160,7 +160,7 @@ function readCellParams( path_file_len::T1, path_file_angles::T2 ) where { T1 <:
         key_len = split( readline( handle_in_len ) )
         key_ang = split( readline( handle_in_ang ) )
         for i=1:3
-            lengths[line,i] = parse( Float64, key_len[1+i] )*tau
+            lengths[line,i] = parse( Float64, key_len[1+i] )*conversion.bohr2Ang
             angles[line,i]  = parse( Float64, key_ang[1+i] )*tau
         end
     end
