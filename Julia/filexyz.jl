@@ -82,12 +82,45 @@ end
 
 # Reading XYZ files
 #==============================================================================#
+function readStructureAtomList( file_path::T1 ) where { T1 <: AbstractString }
+
+  #-----------------------------------------------
+  if ! isfile(file_path)
+    print("No file found at: ",file_path,"\n")
+    return false
+  end
+  #-----------------------------------------------
+
+  # Reading
+  #------------------------------------------------------
+  file_in = open( file_path )
+  nb_atoms=parse( Int64, split( readline( file_in ) )[1] )
+  temp=readline( file_in )
+  atoms = atom_mod.AtomList( nb_atoms )
+  for atom=1:nb_atoms
+    keywords=split( readline(file_in) )
+    atoms.names[atom] = keywords[1]
+    atoms.index[atom] = atom
+    for i=1:3
+      atoms.positions[ atom, i ] = parse( Float64, keywords[ i+1 ] )
+    end
+  end
+  #------------------------------------------------
+
+  return atoms
+end
 function readFileAtomList( file_path::T1 ) where { T1 <: AbstractString }
 
   #-----------------------------------------------
   nb_step = getNbSteps( file_path )
   if nb_step == false
     return false
+  end
+  #-----------------------------------------------
+
+  #-----------------------------------------------
+  if nb_step == 1
+    return readStructureAtomList( file_path )
   end
   #-----------------------------------------------
 
