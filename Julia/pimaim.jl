@@ -170,18 +170,17 @@ function readCellParams( path_file_len::T1, path_file_angles::T2 ) where { T1 <:
 
     return lengths, angles
 end
-
-function traj2pdb( input_path::T1, position_path::T2, cellangles_path::T3, celllength_path::T4, out_path::T5 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString, T4 <: AbstractString, T5 <: AbstractString }
+function traj2pdb( input_path::T1, position_path::T2, cell_angles_path::T3, cell_length_path::T4, out_path::T5 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString, T4 <: AbstractString, T5 <: AbstractString }
     species, species_nb = pimaim.getSpeciesAndNumber( input_path )
     nb_atoms = sum(species_nb)
     names_atoms = atom_mod.buildNames( species, species_nb )
-    positions=readPositions( file_positions, nb_atoms )
+    positions=readPositions( position_path, nb_atoms )
     index_atoms=[1:nb_atoms;]
     nb_step = size(positions)[1]
-    lengths, angles = readCellParams( file_lengths, file_angles )
+    lengths, angles = readCellParams( cell_length_path, cell_angles_path )
     traj = atom_mod.makeTrajAtomList( positions,  names_atoms, index_atoms )
     cells = cell_mod.makeCells( lengths, angles )
-    pdb.writePdb( file_out, traj, cells )
+    pdb.writePdb( out_path , traj, cells )
     return true
 end
 
