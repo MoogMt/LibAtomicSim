@@ -23,40 +23,38 @@ function writeRestart( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: Abstra
         end
         write( handle_out, string("\n") )
     end
-    matrix=cell.matrix
-    norms_v=zeros(Real,3)
+    matrix=copy(cell.matrix)
+    lengths=cell_mod.cellMatrix2Params(cell).length
     for i=1:3
-        norms_v[i] = LinearAlgebra.norm(matrix[i,:])
-        matrix[:,i] = matrix[:,i]./norms_v[i]
+        matrix[:,i] = matrix[:,i]/lengths[i]
     end
     for i=1:3
         for j=1:3
-            if matrix[i,j] < 10^(-5)
-                matrix[i,j] = 0
+            if abs(matrix[j,i]) < 10^(-3)
+                matrix[j,i] = 0
             end
-            write( handle_out, string( matrix[i,j], " ") )
+            write( handle_out, string( matrix[j,i], " ") )
         end
         write( handle_out, string("\n") )
     end
     for i=1:3
-        write(handle_out,string(norms_v[i]*conversion.ang2Bohr,"\n"))
+        write(handle_out,string(lengths[i]*conversion.ang2Bohr,"\n"))
     end
     close(handle_out)
 end
 function writeCrystalCell( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_matrix }
 
-    norms_v=zeros( Real, 3 )
+    lengths=cell_mod.cellMatrix2Params(cell).length
     matrix = copy( cell.matrix )
     species = atom_mod.getSpecies( atoms )
     for i=1:3
-        norms_v[i] = LinearAlgebra.norm(matrix[i,:])
-        matrix[:,i] = matrix[:,i]./norms_v[i]
+        matrix[:,i] = matrix[:,i]/lengths[i]
     end
 
     handle_in = open( path_file, "w" )
     for i=1:3
         for j=1:3
-            if matrix[j,i] < 0.001
+            if abs(matrix[j,i]) <  10^(-3)
                 write( handle_in, string( 0 , " " ) )
             else
                 write( handle_in, string( matrix[j,i], " " ) )
@@ -65,7 +63,7 @@ function writeCrystalCell( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: Ab
         write( handle_in, string("\n") )
     end
     for i=1:3
-        write( handle_in, string( norms_v[i], "\n")  )
+        write( handle_in, string( lengths[i], "\n")  )
     end
     for i=1:3
         write( handle_in, "1\n" )
@@ -75,7 +73,7 @@ function writeCrystalCell( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: Ab
         write( handle_in, string( species[i], "_quartz.mat\n" ) )
     end
     for i=1:3
-        write( handle_in, string( norms_v[i], "\n")  )
+        write( handle_in, string( lengths[i], "\n")  )
     end
     close(handle_in)
     return true
@@ -108,6 +106,48 @@ function readPositions( path_file::T1, nb_atoms::T2 ) where { T1 <: AbstractStri
     close( handle_in )
 
     return positions
+end
+function readPosCar( path_file::T1 ) where { T1 <: AbstractString, T2 <: Int }
+
+    #---------------------------------------------------------------------
+    nb_lines = utils.getNbLines( path_file )
+    if nb_lines == false
+        return false
+    end
+    #---------------------------------------------------------------------
+
+    handle_in = open( path_file )
+    utils.skipLines( handle_in, 3) # Skip the three first lines
+    #---------------------------------------------------------------------
+    matrix=zeros(Real,3,3)
+    for i=1:3
+        keyword=split( readline( handle_in) )
+        for j=1:3
+            matrix[i,j] = parse(Float64,keyword[i,j])
+        end
+    end
+    cell = cell_mod.Cell_matrix(matrix)
+    #---------------------------------------------------------------------
+    species=split( readline( handle_in ) )
+    nb_species_ = split( readline(handle_in ) )
+    nb_species = zeros( Int, size(species)[1] )
+    for i_spec=1:size(species)[1]
+        nb_species[i_spec] = parse( Int, nb_species_[i_spec] )
+    end
+    names_ = atom_mod.buildNames( species, nb_species )
+    #---------------------------------------------------------------------
+    nb_atoms=sum(nb_species)
+    atoms=AtomList(nb_atoms)
+    for atom=1:nb_atoms
+        keys = split( readline( handle_in ) )
+        for i=1:3
+            atoms.positions[atom,i] = parse( Float64, keys[i] )
+        end
+    end
+    #---------------------------------------------------------------------
+    close( handle_in )
+
+    return positions, cell
 end
 function getSpeciesAndNumber( path_file::T1 ) where { T1 <: AbstractString }
     if ! isfile( path_file )
