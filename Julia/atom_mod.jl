@@ -263,7 +263,7 @@ function getNbElementSpecies( atoms::T1, species::Vector{T2} ) where { T1 <: Ato
     nb_atoms = getNbAtoms( atoms )
     for i_specie = 1:nb_species
         for atom = 1:nb_atoms
-            if specie[ i_specie ] == atoms.names[i_specie]
+            if species[ i_specie ] == atoms.names[i_specie]
                 nb_element_species[ specie ] += 1
             end
         end

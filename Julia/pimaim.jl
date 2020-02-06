@@ -17,9 +17,14 @@ function writeRestart( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: Abstra
     write( handle_out, string("F\n") )
     write( handle_out, string("F\n") )
     write( handle_out, string("F\n") )
+    positions_ = copy(atoms.positions)
+    positions_ = cell_mod.getTransformedPosition( positions_, inv(cell.matrix) )
+    for i=1:3
+        positions_[:,i] *= LinearAlgebra.norm( cell.matrix[:,i] )
+    end
     for atom=1:nb_atoms
         for i=1:3
-            write( handle_out, string( atoms.positions[atom,i]*conversion.ang2Bohr," " ) )
+            write( handle_out, string( positions_[atom,i]*conversion.ang2Bohr," " ) )
         end
         write( handle_out, string("\n") )
     end
@@ -107,7 +112,7 @@ function readPositions( path_file::T1, nb_atoms::T2 ) where { T1 <: AbstractStri
 
     return positions
 end
-function readPosCar( path_file::T1 ) where { T1 <: AbstractString, T2 <: Int }
+function readPosCar( path_file::T1 ) where { T1 <: AbstractString }
 
     #---------------------------------------------------------------------
     nb_lines = utils.getNbLines( path_file )
@@ -150,7 +155,53 @@ function readPosCar( path_file::T1 ) where { T1 <: AbstractString, T2 <: Int }
     #---------------------------------------------------------------------
     close( handle_in )
 
-    return atoms, cell
+    #---------------------------------------------------------------------
+    matrix2 = zeros(Real,3,3)
+    for i=1:3
+        matrix[i,i] = sum( matrix[i,:] )
+    end
+    cell2=cell_mod.Cell_matrix(matrix2)
+    #---------------------------------------------------------------------
+
+    return atoms, cell2
+end
+function readPosCarTraj( path_file::T1, species::Vector{T2}, nb_species::Vector{T3} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int }
+
+    #---------------------------------------------------------------------
+    nb_lines = utils.getNbLines( path_file )
+    if nb_lines == false
+        return false
+    end
+    #---------------------------------------------------------------------
+
+    #---------------------------------------------------------------------
+    nb_atoms = sum(nb_species)
+    names_=atom_mod.buildNames( species, nb_species )
+    if nb_lines % nb_atoms != 0
+        print("Problem within file: ",path_file," :\n")
+        print("Number of lines is not a multiple of the number of atoms given.\n")
+        return false
+    end
+    nb_step = Int(nb_lines/nb_atoms)
+    traj = Vector{AtomList}( undef, nb_step )
+    #---------------------------------------------------------------------
+
+    #---------------------------------------------------------------------
+    handle_in = open( path_file )
+    for step=1:nb_step
+        for atom=1:nb_atoms
+            keys = split( readline( handle_in ) )
+            for i=1:3
+                atoms.positions[atom,i] = parse( Float64, keys[i] )
+            end
+            atoms.names[atom] = names_[atom]
+            atoms.index[atom] = atom
+        end
+    end
+    #---------------------------------------------------------------------
+    close( handle_in )
+
+    return traj
 end
 function getSpeciesAndNumber( path_file::T1 ) where { T1 <: AbstractString }
     if ! isfile( path_file )
