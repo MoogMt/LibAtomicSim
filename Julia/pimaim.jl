@@ -158,7 +158,7 @@ function readPosCar( path_file::T1 ) where { T1 <: AbstractString }
     #---------------------------------------------------------------------
     matrix2 = zeros(Real,3,3)
     for i=1:3
-        matrix2[i,i] = sum( matrix[i,:] )
+        matrix2[i,i] = LinearAlgebra.norm(matrix[i,:])
     end
     cell2=cell_mod.Cell_matrix(matrix2)
     #---------------------------------------------------------------------
@@ -193,7 +193,7 @@ function readPosCarTraj( path_file::T1, species::Vector{T2}, nb_species::Vector{
         for atom=1:nb_atoms
             keys = split( readline( handle_in ) )
             for i=1:3
-                traj[step].positions[atom,i] = parse( Float64, keys[i] )
+                traj[step].positions[atom,i] = parse( Float64, keys[i] )*conversion.bohr2Ang
             end
             traj[step].names[atom] = names_[atom]
             traj[step].index[atom] = atom
