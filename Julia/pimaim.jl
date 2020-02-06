@@ -189,10 +189,11 @@ function readPosCarTraj( path_file::T1, species::Vector{T2}, nb_species::Vector{
     #---------------------------------------------------------------------
     handle_in = open( path_file )
     for step=1:nb_step
+        traj[step] = atom_mod.AtomList(nb_atoms)
         for atom=1:nb_atoms
             keys = split( readline( handle_in ) )
             for i=1:3
-                atoms.positions[atom,i] = parse( Float64, keys[i] )
+                traj[step].positions[atom,i] = parse( Float64, keys[i] )
             end
             atoms.names[atom] = names_[atom]
             atoms.index[atom] = atom
