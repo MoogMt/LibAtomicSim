@@ -259,12 +259,12 @@ function getStartSpecies( traj::Vector{T1}, species::Vector{T2} ) where { T1 <: 
 end
 function getNbElementSpecies( atoms::T1, species::Vector{T2} ) where { T1 <: AtomList, T2 <: AbstractString }
     nb_species = size(species)[1]
-    nb_element_species = zeros( nb_species )
+    nb_element_species = zeros(Int, nb_species )
     nb_atoms = getNbAtoms( atoms )
     for i_specie = 1:nb_species
         for atom = 1:nb_atoms
-            if species[ i_specie ] == atoms.names[i_specie]
-                nb_element_species[ specie ] += 1
+            if species[ i_specie ] == atoms.names[atom]
+                nb_element_species[ i_specie ] += 1
             end
         end
     end
