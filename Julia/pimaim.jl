@@ -112,18 +112,18 @@ function readPosCar( path_file::T1 ) where { T1 <: AbstractString, T2 <: Int }
     #---------------------------------------------------------------------
     nb_lines = utils.getNbLines( path_file )
     if nb_lines == false
-        return false
+        return false, false
     end
     #---------------------------------------------------------------------
 
     handle_in = open( path_file )
-    utils.skipLines( handle_in, 3) # Skip the three first lines
+    utils.skipLines( handle_in, 2) # Skip the three first lines
     #---------------------------------------------------------------------
     matrix=zeros(Real,3,3)
     for i=1:3
         keyword=split( readline( handle_in) )
         for j=1:3
-            matrix[i,j] = parse(Float64,keyword[i,j])
+            matrix[i,j] = parse(Float64,keyword[j])
         end
     end
     cell = cell_mod.Cell_matrix(matrix)
@@ -136,6 +136,7 @@ function readPosCar( path_file::T1 ) where { T1 <: AbstractString, T2 <: Int }
     end
     names_ = atom_mod.buildNames( species, nb_species )
     #---------------------------------------------------------------------
+    readline( handle_in ) # skip
     nb_atoms=sum(nb_species)
     atoms=AtomList(nb_atoms)
     for atom=1:nb_atoms
@@ -143,11 +144,13 @@ function readPosCar( path_file::T1 ) where { T1 <: AbstractString, T2 <: Int }
         for i=1:3
             atoms.positions[atom,i] = parse( Float64, keys[i] )
         end
+        atoms.names[atom] = names_[atom]
+        atoms.index[atom] = atom
     end
     #---------------------------------------------------------------------
     close( handle_in )
 
-    return positions, cell
+    return atoms, cell
 end
 function getSpeciesAndNumber( path_file::T1 ) where { T1 <: AbstractString }
     if ! isfile( path_file )
