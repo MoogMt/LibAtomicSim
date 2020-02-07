@@ -3,8 +3,9 @@ module conversion
 # Pressure
 aU2Pascal=2.9421912*10^(13)
 pascal2AU=1/aU2Pascal
-au2Gpa=6.798*10^(-5)
-gpa2au=1/au2Gpa
+gpa2au=6.798*10^(-5)
+au2Gpa=1/gpa2au
+
 
 # Frequency
 tHz2cm=33.3565

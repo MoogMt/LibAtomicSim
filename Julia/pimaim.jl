@@ -24,7 +24,7 @@ function writeRestart( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: Abstra
     end
     for atom=1:nb_atoms
         for i=1:3
-            write( handle_out, string( positions_[atom,i]*conversion.ang2Bohr," " ) )
+            write( handle_out, string( round(positions_[atom,i]*conversion.ang2Bohr,digits=3)," " ) )
         end
         write( handle_out, string("\n") )
     end
@@ -35,15 +35,12 @@ function writeRestart( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: Abstra
     end
     for i=1:3
         for j=1:3
-            if abs(matrix[j,i]) < 10^(-3)
-                matrix[j,i] = 0
-            end
-            write( handle_out, string( matrix[j,i], " ") )
+            write( handle_out, string( round(matrix[i,j],digits=3), " ") )
         end
         write( handle_out, string("\n") )
     end
     for i=1:3
-        write(handle_out,string(lengths[i]*conversion.ang2Bohr,"\n"))
+        write(handle_out,string(round(LinearAlgebra.norm(cell.matrix[:,i])*conversion.ang2Bohr,digits=3),"\n"))
     end
     close(handle_out)
 end
@@ -59,11 +56,7 @@ function writeCrystalCell( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: Ab
     handle_in = open( path_file, "w" )
     for i=1:3
         for j=1:3
-            if abs(matrix[j,i]) <  10^(-3)
-                write( handle_in, string( 0 , " " ) )
-            else
-                write( handle_in, string( matrix[j,i], " " ) )
-            end
+            write( handle_in, string( round(matrix[j,i],digits=3), " " ) )
         end
         write( handle_in, string("\n") )
     end
