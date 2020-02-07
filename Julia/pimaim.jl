@@ -278,5 +278,65 @@ function traj2pdb( input_path::T1, position_path::T2, cell_angles_path::T3, cell
     pdb.writePdb( out_path , traj, cells )
     return true
 end
+function readEnergy( path_file::T1 ) where { T1 <: AbstractString }
+
+    #---------------------------------------------------------------------
+    nb_lines = utils.getNbLines( path_file )
+    if nb_lines == false
+        return false
+    end
+    #---------------------------------------------------------------------
+
+    enpot = zeros(Real,nb_lines)
+    enkin = zeros(Real,nb_lines)
+    handle_in = open( path_file )
+    for step=1:nb_lines
+        keyword = split(readline(handle_in))
+        enpot[step] = parse(Float64, keyword[2] )
+        enkin[step] = parse(Float64, keyword[3] )
+    end
+    close(handle_in)
+
+    return enpot.+enkin, enpot, enkin
+end
+function readEnthalpy( path_file::T1 ) where { T1 <: AbstractString }
+
+    #---------------------------------------------------------------------
+    nb_lines = utils.getNbLines( path_file )
+    if nb_lines == false
+        return false
+    end
+    #---------------------------------------------------------------------
+
+    enthalpy = zeros(Real,nb_lines)
+    pv = zeros(Real,nb_lines)
+    handle_in = open( path_file )
+    for step=1:nb_lines
+        keyword = split(readline(handle_in))
+        pv[step] = parse(Float64, keyword[2] )
+        enthalpy[step] = parse(Float64, keyword[3] )
+    end
+    close(handle_in)
+
+    return enthalpy, pv
+end
+function readPressure( path_file::T1 ) where { T1 <: AbstractString }
+
+    #---------------------------------------------------------------------
+    nb_lines = utils.getNbLines( path_file )
+    if nb_lines == false
+        return false
+    end
+    #---------------------------------------------------------------------
+
+    pressure = zeros(Real,nb_lines)
+    handle_in = open( path_file )
+    for step=1:nb_lines
+        pressure[step] = parse(Float64, split(readline(handle_in))[2] )*conversion.au2Gpa
+    end
+    close(handle_in)
+
+    return pressure
+end
 
 end
