@@ -823,7 +823,7 @@ function readFtraj( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T
 
     return positions, velocities, forces
 end
-function readFttraj( file_path::T1, stride_::T2, nb_ignored::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int }
+function readFtraj( file_path::T1, stride_::T2, nb_ignored::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int }
 
     # Getting number of line of file
     #---------------------------------------------------------------------------

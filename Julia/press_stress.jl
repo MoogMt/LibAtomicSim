@@ -21,6 +21,15 @@ function diagStressTensor( stress_tensor::Array{T1,2} ) where { T1 <: Real }
     return eigvals( stress_tensor )
 end
 
+function writePressure( file_path::T1, pressure::Vector{T2} ) where { T1 <: AbstractString, T2 <: Real }
+    handle_out = open( file_path, "w" )
+    nb_step = size(pressure)[1]
+    for step = 1:nb_step
+        write( handle_out, string( pressure[i], "\n" ) )
+    end
+    close( handle_out )
+end
+
 # function diagStressTensor( stress_tensor_matrix::Array{T1,3} ) where { T1 <: Real }
 #     nb_step=size(stress_tensor_matrix)[1]
 #     vals=zeros(nb_step,3)
