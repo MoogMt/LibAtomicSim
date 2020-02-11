@@ -197,6 +197,13 @@ function wrap( atoms::T1, cell::T2 ) where { T1 <: atom_mod.AtomList, T2 <: Cell
     end
     return atoms
 end
+function wrap( traj::Vector{T1}, cell::T2 ) where { T1 <: atom_mod.AtomList, T2 <: Cell_param }
+    nb_step=size(traj)[1]
+    for step =1:nb_step
+        traj[step] = wrap( traj[step], cell )
+    end
+    return traj
+end
 function wrap( molecules::T1, cell::T2 ) where { T1 <: atom_mod.AtomMolList, T2 <: Cell_param }
     for i=1:size(molecules.positions)[1]
         for j=1:3

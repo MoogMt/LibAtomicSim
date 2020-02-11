@@ -25,7 +25,7 @@ function writePressure( file_path::T1, pressure::Vector{T2} ) where { T1 <: Abst
     handle_out = open( file_path, "w" )
     nb_step = size(pressure)[1]
     for step = 1:nb_step
-        write( handle_out, string( pressure[i], "\n" ) )
+        write( handle_out, string( pressure[step], "\n" ) )
     end
     close( handle_out )
 end
