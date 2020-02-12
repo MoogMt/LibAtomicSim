@@ -230,10 +230,10 @@ function getStartSpecies( atoms::T1, species::Vector{T2} ) where { T1 <: AtomLis
     nb_species = size( species )[1]
     start_species = zeros( nb_species )
     nb_atoms = getNbAtoms( atoms )
-    for i_specie=1:nb_species
+    for i_spec=1:nb_species
         for atom=1:nb_atoms
-            if species[i_specie] == atoms.names[atom]
-                start_species[specie] = atom
+            if species[i_spec] == atoms.names[atom]
+                start_species[i_spec] = atom
                 break
             end
         end

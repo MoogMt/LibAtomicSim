@@ -23,7 +23,7 @@ function buildMatrix( atoms::T1, cell::T2 ) where { T1 <: atom_mod.AtomList , T2
 end
 function buildMatrix( atoms::T1 , cell::T2, cut_off::T3 ) where { T1 <: atom_mod.AtomList , T2 <: cell_mod.Cell_param, T3 <: Real }
   nb_atoms=size(atoms.names)[1]
-  matrix=zeros(nb_atoms,nb_atoms)
+  matrix=zeros(Int,nb_atoms,nb_atoms)
   for i=1:nb_atoms
     for j=i+1:nb_atoms
       if cell_mod.distance(atoms,cell,i,j) <= cut_off
@@ -38,7 +38,7 @@ end
 
 # Getting bonds
 #-------------------------------------------------------------------------------
-function getBonded( atoms::T1, cell::T2, index::T3 , cut_off::T4 ) where { T1 <: atom_mod.AtomList, T2 <: cell_mod.Cell_param , T3 <: Int , T4 <: Real }
+function printBonds( atoms::T1, cell::T2, index::T3 , cut_off::T4 ) where { T1 <: atom_mod.AtomList, T2 <: cell_mod.Cell_param , T3 <: Int , T4 <: Real }
   nb_atoms=size(atoms.names)[1]
   for i=1:nb_atoms
     dist=cell_mod.distance(atoms,cell,index,i)
