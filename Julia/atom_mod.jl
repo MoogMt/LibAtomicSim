@@ -193,7 +193,7 @@ function getSpecies( atoms::T1 ) where { T1 <: AtomList }
 end
 function getSpecies( traj::Vector{T1} ) where { T1 <: AtomList }
     nb_step = getNbStep( traj )
-    species=[]
+    species = Vector{AbstractString}(undef,0)
     for step = 1:nb_step
         push!(species, getSpecies( traj[step] ) )
     end
@@ -209,7 +209,7 @@ function getNbSpecies( atoms::T1 ) where { T1 <: AtomList }
 end
 function getNbSpecies( traj::Vector{T1} ) where { T1 <: AtomList }
     nb_step = getNbStep( traj )
-    species_nb = zeros( nb_step )
+    species_nb = zeros( Int, nb_step )
     for step = 1:nb_step
         species_nb[ step ] = getNbSpecies( traj[step] )
     end
@@ -228,7 +228,7 @@ function getStartSpecie( atoms::T1, specie::T2 ) where { T1 <: AtomList, T2 <: A
 end
 function getStartSpecies( atoms::T1, species::Vector{T2} ) where { T1 <: AtomList, T2 <: AbstractString }
     nb_species = size( species )[1]
-    start_species = zeros( nb_species )
+    start_species = zeros(Int, nb_species )
     nb_atoms = getNbAtoms( atoms )
     for i_spec=1:nb_species
         for atom=1:nb_atoms
@@ -242,7 +242,7 @@ function getStartSpecies( atoms::T1, species::Vector{T2} ) where { T1 <: AtomLis
 end
 function getStartSpecie( traj::Vector{T1}, specie::T2 ) where { T1 <: AtomList, T2 <: AbstractString }
     nb_step = getNbStep( traj )
-    start_specie = zeros( nb_step )
+    start_specie = zeros(Int, nb_step )
     for step = 1:nb_step
         start_specie[ step ] = getStartSpecie( traj[step], specie )
     end
@@ -251,7 +251,7 @@ end
 function getStartSpecies( traj::Vector{T1}, species::Vector{T2} ) where { T1 <: AtomList, T2 <: AbstractString }
     nb_step = getNbStep( traj )
     nb_species = size(species)[1]
-    start_species = zeros( nb_step, nb_species  )
+    start_species = zeros(Int, nb_step, nb_species  )
     for step=1:nb_step
         start_species[ step, : ] = getStartSpecies( traj[step], species )
     end
