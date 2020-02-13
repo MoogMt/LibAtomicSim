@@ -1,5 +1,7 @@
 module press_stress
 
+using conversion
+
 function computePressure( stress_tensor::Array{T1,2} ) where { T1 <: Real }
     pressure=0
     for i=1:3
@@ -28,6 +30,26 @@ function writePressure( file_path::T1, pressure::Vector{T2} ) where { T1 <: Abst
         write( handle_out, string( pressure[step], "\n" ) )
     end
     close( handle_out )
+end
+
+function readPressure( file_path::T1 ) where { T1 <: AbstractString }
+    if ! isfile( file_path )
+        print("No Pressure file at: ",file_path," !\n")
+        return false
+    end
+    handle_in = open( file_path )
+    nb_step=0
+    while !eof( handle_in )
+        readline( handle_in )
+        nb_step += 1
+    end
+    seekstart( handle_in )
+    pressure = zeros(nb_step)
+    for step=1:nb_step
+        pressure[step] = parse( Float64, split( readline( handle_in ) )[1] )*conversion.kbar2Gpa
+    end
+    close(handle_in)
+    return pressure
 end
 
 # function diagStressTensor( stress_tensor_matrix::Array{T1,3} ) where { T1 <: Real }
