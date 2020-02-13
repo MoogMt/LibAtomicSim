@@ -36,7 +36,7 @@ ang2meters = 1/meters2Ang
 a3tocm3=10^(-24)
 
 # Mass
-amu2hram = 1.660539040*10^(-24)
+amu2gram = 1.660539040*10^(-24)
 gram2Amu = 1/amu2gram
 
 
