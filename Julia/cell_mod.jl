@@ -515,20 +515,19 @@ function checkInfiniteChain( matrix::Array{T1,2},  positions::Array{T2,2} , cell
     size_molecule = size( matrix )[1]
     visited=zeros(Int,size_molecule)
     cell_mod.unWrapOnce( visited, matrices[molecule], adjacent_molecule, positions_local, cell, 1, molecule_indexs , cut_off )
-    check = false
     for atom=1:size_molecule
         for atom2=atom+1:size_molecule
             # matrix[i,j] correspond to the actual bond, norm(positions(i,:)-positions(j,:)) corresponds to the positions in unwrapped
             # so if one is 1 and the other not, we have an infinity loop
             if matrix[atom,atom2] == 1 && norm(positions[atom,atom2])
-                
+                return true
             end
         end
         if ! check
             break
         end
     end
-    return isinf
+    return false
 end
 # Find the atoms that are bonded but whose
 # bonds are cut by the one unwrap policty
