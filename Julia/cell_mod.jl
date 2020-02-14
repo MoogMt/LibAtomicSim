@@ -289,6 +289,7 @@ end
 # Distance related functions
 # TODO Some bugs in the definition of distances, make sure everything is correct,
 # when possible use longer names to define more precisely...
+# TODO SORT THIS MESS
 #-------------------------------------------------------------------------------
 function dist1D( x1::T1, x2::T2, a::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Real }
     dx=x1-x2
@@ -360,13 +361,6 @@ function distance( positions::Array{T1,2}, cell::T2, atom1::T3, atom2::T4 ) wher
     end
     return sqrt(dist)
 end
-# function distance( positions1::Vector{T1}, positions2::Vector{T2}, cell_length::Vector{T3} ) where { T1 <: Real, T2 <: Real, T3 <: Real }
-#     dist=0
-#     for i=1:3
-#         dist += dist1D(positions1[i],positions2[i],cell_length[i])
-#     end
-#     return sqrt(dist)
-# end
 function distance( atoms::T1, cell::T2, index1::T3, index2::T4 ) where { T1 <: atom_mod.AtomList, T2 <: Cell_param , T3 <: Int, T4 <: Int }
     dis=0
     for i=1:3
@@ -409,6 +403,8 @@ function compressAtoms( atoms::T1 , cell::T2, fracs::Vector{T3} ) where { T1 <: 
 end
 #---------------------------------------------------------------------------
 
+# Computes the velocities in a traj by finite elemnet method from
+# the positions (least worst option)
 #---------------------------------------------------------------------------
 function velocityFromPosition( traj::Vector{T1}, dt::T2, dx::T3 ) where { T1 <: atom_mod.AtomList, T2 <: Real, T3 <: Real }
     nb_atoms=size(traj[1].names)[1]
@@ -459,10 +455,29 @@ function unWrapOrtho!( structure::T1, origin::T2, target::T3, cell::T4  ) where 
 end
 #---------------------------------------------------------------------------
 
+#---------------------------------------------------------------------------------------------------------
+# Unwraps a target molecule, even if infinite, unwraping atoms only once, exploring the molecule as a tree
+# Useful for visualization
+# Recursive.
+function unWrapOrthoOnce( visited::Vector{T1}, matrix::Array{T2,2}, adjacency_table::Vector{T3}, positions::Array{T4,2} , cell::T5, target::T6, index_atoms::Vector{T7}) where { T1 <: Int, T2 <: Real, T3 <: Any, T4 <: Real, T5 <: Cell_param, T6 <: Int, T7 <: Int }
+    visited[target]=1
+    nb_neighbor=size(adjacency_table[target])[1]
+    for neigh=1:nb_neighbor
+        if visited[adjacency_table[target][neigh]] == 0
+            unWrapOrtho!( positions, index_atoms[target], index_atoms[ adjacency_table[target][neigh] ], cell )
+            unWrapOrthoOnce(visited,matrix,adjacency_table,positions,cell,adjacency_table[target][neigh],index_atoms)
+        end
+    end
+    return
+end
+#---------------------------------------------------------------------------
+
+
+
+#---------------------------------------------------------------------------
 # Return two bools:
 # - Is the molecule an infinite chain?
 # - Was the chain exploration went ok?
-#---------------------------------------------------------------------------
 function isInfiniteChain( visited::Vector{T1}, matrix::Array{T2,2}, adjacency_table::Vector{T3}, positions::Array{T4,2} , cell::T5, target::T6, index_atoms::Vector{T7}, cut_off::T8 ) where { T1 <: Int, T2 <: Real, T3 <: Any, T4 <: Real, T5 <: cell_mod.Cell_param, T6 <: Int, T7 <: Int, T8 <: Real }
     visited[target]=1
     nb_neighbor=size(adjacency_table[target])[1]
@@ -487,51 +502,54 @@ function isInfiniteChain( visited::Vector{T1}, matrix::Array{T2,2}, adjacency_ta
     end
     return false, true
 end
-#---------------------------------------------------------------------------
-
-
-#---------------------------------------------------------------------------------------------------------
-# Unwraps a target molecule, even if infinite, unwraping atoms only once, exploring the molecule as a tree
-# Useful for visualization
-# Recursive.
-function unWrapOnce( visited::Vector{T1}, matrix::Array{T2,2}, adjacency_table::Vector{T3}, positions::Array{T4,2} , cell::T5, target::T6, index_atoms::Vector{T7}) where { T1 <: Int, T2 <: Real, T3 <: Any, T4 <: Real, T5 <: Cell_param, T6 <: Int, T7 <: Int }
-    visited[target]=1
-    nb_neighbor=size(adjacency_table[target])[1]
-    for neigh=1:nb_neighbor
-        if visited[adjacency_table[target][neigh]] == 0
-            unWrapOrtho!( positions, index_atoms[target], index_atoms[ adjacency_table[target][neigh] ], cell )
-            unWrapOnce(visited,matrix,adjacency_table,positions,cell,adjacency_table[target][neigh],index_atoms)
-        end
-    end
-    return
-end
-#---------------------------------------------------------------------------
-
-#---------------------------------------------------------------------------
 # Check if molecule is infinite
 # by unwraping once all atoms following a graph exploration method
 function checkInfiniteChain( matrix::Array{T1,2},  positions::Array{T2,2} , cell::T3, molecule_indexs::Vector{T4}, cut_off::T5 ) where { T1 <: Real, T2 <: Real, T3 <: Cell_param, T4 <: Int, T5 <: Real }
     adjacent_molecule=getAllAdjacentVertex(matrix)
     size_molecule = size( matrix )[1]
     visited=zeros(Int,size_molecule)
-    cell_mod.unWrapOnce( visited, matrices[molecule], adjacent_molecule, positions_local, cell, 1, molecule_indexs , cut_off )
+    cell_mod.unWrapOrthoOnce( visited, matrices[molecule], adjacent_molecule, positions_local, cell, 1, molecule_indexs , cut_off )
     for atom=1:size_molecule
         for atom2=atom+1:size_molecule
             # matrix[i,j] correspond to the actual bond, norm(positions(i,:)-positions(j,:)) corresponds to the positions in unwrapped
             # so if one is 1 and the other not, we have an infinity loop
-            if matrix[atom,atom2] == 1 && norm(positions[atom,atom2])
+            if matrix[atom,atom2] == 1 && norm(positions[molecule_indexs[atom],:]-positions[molecule_indexs[atom2],:]) > cut_off
                 return true
             end
         end
-        if ! check
-            break
-        end
     end
+    # If we get there, the molecule isn't infinite
     return false
 end
 # Find the atoms that are bonded but whose
 # bonds are cut by the one unwrap policty
-function findUnlinked(  ) where { }
+function findUnlinked( matrix::Array{T1,2},  positions::Array{T2,2} , cell::T3, molecule_indexs::Vector{T4}, cut_off::T5  ) where { T1 <: Real, T2 <: Real, T3 <: Cell_param, T4 <: Int, T5 <: Real }
+    list=Array{Real}(undef,0,2)
+    for atom=1:size_molecule
+        for atom2=atom+1:size_molecule
+            # matrix[i,j] correspond to the actual bond, norm(positions(i,:)-positions(j,:)) corresponds to the positions in unwrapped
+            # so if one is 1 and the other not, we have an infinity loop
+            if matrix[atom,atom2] == 1 && norm(positions[molecule_indexs[atom],:]-positions[molecule_indexs[atom2],:]) > cut_off
+                if size(list)[1] == 0
+                    push!( list, [ molecule_indexs[atom], molecule_indexs[atom2] ] )
+                else
+                    check = true
+                    # Checking that we haven't already added the pair
+                    for i=1:size(list)[1]
+                        if list[i,:] == [ molecule_indexs[atom], molecule_indexs[atom2] ]
+                            check = false
+                        end
+                    end
+                    # If ok we add
+                    if check
+                        push!( list, [ molecule_indexs[atom], molecule_indexs[atom2] ] )
+                    end
+                end
+            end
+        end
+    end
+    # If we get thee, the molecule isn't infinite
+    return list
 end
 #---------------------------------------------------------------------------
 
