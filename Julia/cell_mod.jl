@@ -510,12 +510,10 @@ function checkInfiniteChain( matrix::Array{T1,2},  positions::Array{T2,2} , cell
     adjacent_molecule = graph.getAllAdjacentVertex(matrix)
     size_molecule = size( matrix )[1]
     visited=zeros(Int,size_molecule)
-    cell_mod.unWrapOrthoOnce( visited, matrices[molecule], adjacent_molecule, positions_local, cell, 1, molecule_indexs , cut_off )
+    cell_mod.unWrapOrthoOnce( visited, matrix , adjacent_molecule, positions, cell, 1, molecule_indexs )
     for atom=1:size_molecule
-        for atom2=atom+1:size_molecule
-            # matrix[i,j] correspond to the actual bond, norm(positions(i,:)-positions(j,:)) corresponds to the positions in unwrapped
-            # so if one is 1 and the other not, we have an infinity loop
-            if matrix[atom,atom2] == 1 && norm(positions[molecule_indexs[atom],:]-positions[molecule_indexs[atom2],:]) > cut_off
+        for atom2=1:size(adjacent_molecule[atom])[1]
+            if norm( positions[ molecule_indexs[atom], :] - positions[ molecule_indexs[atom2], :] ) > cut_off
                 return true
             end
         end
