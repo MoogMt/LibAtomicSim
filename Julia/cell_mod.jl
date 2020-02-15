@@ -10,6 +10,7 @@ export velocityFromPosition
 using LinearAlgebra
 using atom_mod
 using geom
+using graph
 #----------------------------
 
 #-------------
@@ -486,7 +487,7 @@ function isInfiniteChain( visited::Vector{T1}, matrix::Array{T2,2}, adjacency_ta
         if visited[adjacency_table[target][neigh]] == 0
             unWrapOrtho!( positions, index_atoms[target], index_atoms[ adjacency_table[target][neigh] ], cell )
             if geom.distance( positions[ index_atoms[target], : ], positions[ index_atoms[ adjacency_table[target][neigh] ] , : ] ) > cut_off
-                return false, false
+                return true, true
             end
             isinf, isok = isInfiniteChain(visited,matrix,adjacency_table,positions,cell,adjacency_table[target][neigh],index_atoms,cut_off)
             # If infinite molecule is spotted, we stop
@@ -506,7 +507,7 @@ end
 # Check if molecule is infinite
 # by unwraping once all atoms following a graph exploration method
 function checkInfiniteChain( matrix::Array{T1,2},  positions::Array{T2,2} , cell::T3, molecule_indexs::Vector{T4}, cut_off::T5 ) where { T1 <: Real, T2 <: Real, T3 <: Cell_param, T4 <: Int, T5 <: Real }
-    adjacent_molecule=getAllAdjacentVertex(matrix)
+    adjacent_molecule = graph.getAllAdjacentVertex(matrix)
     size_molecule = size( matrix )[1]
     visited=zeros(Int,size_molecule)
     cell_mod.unWrapOrthoOnce( visited, matrices[molecule], adjacent_molecule, positions_local, cell, 1, molecule_indexs , cut_off )
