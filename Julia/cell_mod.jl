@@ -531,7 +531,7 @@ function findUnlinked( matrix::Array{T1,2},  positions::Array{T2,2} , cell::T3, 
         for atom2=atom+1:size_molecule
             # matrix[i,j] correspond to the actual bond, norm(positions(i,:)-positions(j,:)) corresponds to the positions in unwrapped
             # so if one is 1 and the other not, we have an infinity loop
-            if matrix[atom,atom2] == 1 && norm(positions[molecule_indexs[atom],:]-positions[molecule_indexs[atom2],:]) > cut_off
+            if matrix[atom,atom2] == 1 && norm(positions[atom,:]-positions[atom2,:]) > cut_off
                 if size(list)[1] == 0
                     push!( list, [ molecule_indexs[atom], molecule_indexs[atom2] ] )
                 else
