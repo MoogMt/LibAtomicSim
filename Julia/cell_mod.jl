@@ -9,6 +9,7 @@ export velocityFromPosition
 #----------------------------
 using LinearAlgebra
 using atom_mod
+using geom
 #----------------------------
 
 #-------------
@@ -525,6 +526,7 @@ end
 # bonds are cut by the one unwrap policty
 function findUnlinked( matrix::Array{T1,2},  positions::Array{T2,2} , cell::T3, molecule_indexs::Vector{T4}, cut_off::T5  ) where { T1 <: Real, T2 <: Real, T3 <: Cell_param, T4 <: Int, T5 <: Real }
     list=Array{Real}(undef,0,2)
+    size_molecule=size(matrix)[1]
     for atom=1:size_molecule
         for atom2=atom+1:size_molecule
             # matrix[i,j] correspond to the actual bond, norm(positions(i,:)-positions(j,:)) corresponds to the positions in unwrapped
