@@ -512,8 +512,8 @@ function checkInfiniteChain( matrix::Array{T1,2},  positions::Array{T2,2} , cell
     visited=zeros(Int,size_molecule)
     cell_mod.unWrapOrthoOnce( visited, matrix , adjacent_molecule, positions, cell, 1, molecule_indexs )
     for atom=1:size_molecule
-        for atom2=1:size(adjacent_molecule[atom])[1]
-            if norm( positions[ molecule_indexs[atom], :] - positions[ molecule_indexs[atom2], :] ) > cut_off
+        for adj=1:size(adjacent_molecule[atom])[1]
+            if norm( positions[ molecule_indexs[atom], :] - positions[ molecule_indexs[adjacent_molecule[atom][adj]], :] ) > cut_off
                 return true
             end
         end
