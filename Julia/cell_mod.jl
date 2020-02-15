@@ -643,7 +643,7 @@ end
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-function nonOrtho2Ortho( cell::T1 ) where { T1 <: cell_mod.Cell_matrix }
+function nonOrtho2OrthoByCut( cell::T1 ) where { T1 <: cell_mod.Cell_matrix }
     lengths = zeros( Real, 3 )
     lengths[1] = LinearAlgebra.norm( cell.matrix[:,1] )
     for i=2:3
@@ -655,6 +655,7 @@ function nonOrtho2Ortho( cell::T1 ) where { T1 <: cell_mod.Cell_matrix }
 end
 #-------------------------------------------------------------------------------
 
+#-------------------------------------------------------------------------------
 function makeCells( lengths::Array{T1,2}, angles::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
     nb_step = size(lengths)[1]
     cells=Vector{ Cell_param }(undef, nb_step )
@@ -663,5 +664,6 @@ function makeCells( lengths::Array{T1,2}, angles::Array{T2,2} ) where { T1 <: Re
     end
     return cells
 end
+#-------------------------------------------------------------------------------
 
 end
