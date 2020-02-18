@@ -63,10 +63,10 @@ function evaluate( swf::T1, r::Array{T2,2} ) where { T1 <: switchingFullRational
 end
 function writePlumedInput( handle_out::T1, swf::T2 ) where { T1 <: IO, T2 <: switchingFullRational }
     Base.write( handle_out, string( "RATIONAL ") )
-    Base.write( handle_out, string( "R_0=",swf.r_0) )
-    Base.write( handle_out, string( "D_0=",swf.d_0) )
-    Base.write( handle_out, string( "MM=",swf.r_m) )
-    Base.write( handle_out, string( "NN=",swf.n) )
+    Base.write( handle_out, string( "R_0=",swf.r_0," ") )
+    Base.write( handle_out, string( "D_0=",swf.d_0," ") )
+    Base.write( handle_out, string( "MM=",swf.r_m," ") )
+    Base.write( handle_out, string( "NN=",swf.n," ") )
     return true
 end
 # Same as above, but with m=2*n so that the evaluation is faster with the trick:
@@ -121,10 +121,10 @@ function evaluate( swf::T1, r::Array{T2,2} ) where { T1 <: switchingRational, T2
 end
 function writePlumedInput( handle_out::T1, swf::T2 ) where { T1 <: IO, T2 <: switchingRational }
     Base.write( handle_out, string( "RATIONAL ") )
-    Base.write( handle_out, string( "R_0=",swf.r_0) )
-    Base.write( handle_out, string( "D_0=",swf.d_0) )
-    Base.write( handle_out, string( "MM=",Int(swf.n*2) ) )
-    Base.write( handle_out, string( "NN=",swf.n) )
+    Base.write( handle_out, string( "R_0=",swf.r_0," ") )
+    Base.write( handle_out, string( "D_0=",swf.d_0," ") )
+    Base.write( handle_out, string( "MM=",Int(swf.n*2)," ") )
+    Base.write( handle_out, string( "NN=",swf.n," ") )
     return true
 end
 # Same as rational, but with d_0=0.0
@@ -169,10 +169,10 @@ function evaluate( swf::T1, r::Array{T2,2} ) where { T1 <: switchingSimpleRation
 end
 function writePlumedInput( handle_out::T1, swf::T2 ) where { T1 <: IO, T2 <: switchingSimpleRational }
     Base.write( handle_out, string( "RATIONAL ") )
-    Base.write( handle_out, string( "R_0=",swf.r_0) )
-    Base.write( handle_out, string( "D_0=",0.0) )
-    Base.write( handle_out, string( "MM=",Int(swf.n*2) ) )
-    Base.write( handle_out, string( "NN=",swf.n) )
+    Base.write( handle_out, string( "R_0=",swf.r_0," ") )
+    Base.write( handle_out, string( "D_0=",0.0," ") )
+    Base.write( handle_out, string( "MM=",Int(swf.n*2)," ") )
+    Base.write( handle_out, string( "NN=",swf.n," ") )
     return true
 end
 #------------------------------------------------------------------------------------------------
@@ -188,6 +188,8 @@ function writeSwitchFunction( handle_out::T1, number::T2, swf::T3 ) where { T1<:
 end
 #------------------------------------------------------------------------------------------------
 
+# INPUT handling
+#------------------------------------------------------------------------------------------------
 mutable struct inputPIV
     #------------------------------------------
     # Parameters of the structure
@@ -205,7 +207,7 @@ mutable struct inputPIV
     #------------------------------------------
     # Constructors
     #------------------------------------------
-    function plumedInput( label::T1,
+    function inputPIV( label::T1,
         ref_files::Vector{T2},
         atom_names::Vector{T3},
         switching_fct::Vector{T4},
@@ -218,8 +220,7 @@ mutable struct inputPIV
         new( label, ref_files, atom_names, switching_fct, cut_off, skin, stride, s_factors, volume, onlydirect )
     end
 end
-
-function writePlumedInputPIV( handle_out::T1, input_::T2 ) where { T1 <: IO, T2 <: inputPIV }
+function writeInputPIV( handle_out::T1, input_::T2 ) where { T1 <: IO, T2 <: inputPIV }
     Base.write( handle_out, string( "PIV ...", "\n" ) )
     # Label for the descriptor
     #----------------------------------------------------------
@@ -240,12 +241,15 @@ function writePlumedInputPIV( handle_out::T1, input_::T2 ) where { T1 <: IO, T2 
     nb_atoms = size( input_.atom_names )[1]
     Base.write( handle_out, string( "ATOMTYPES=",) )
     for atom=1:nb_atoms
-        Base.write( handle_out, string( input_.atoms_names[atom], "," ) )
+        Base.write( handle_out, string( input_.atom_names[atom] ) )
+        if atom < nb_atoms
+            Base.write( handle_out, string(","))
+        end
     end
     Base.write( handle_out, string("\n") )
     # S factors, allows to modulate the importance of the block
     #----------------------------------------------------------
-    nb_block=size(s_factors)[1]
+    nb_block=size(input_.s_factors)[1]
     Base.write( handle_out, string( "SFACTOR=",) )
     for iblock=1:nb_block
         Base.write( handle_out, string( input_.s_factors[iblock], "," ) )
@@ -254,7 +258,7 @@ function writePlumedInputPIV( handle_out::T1, input_::T2 ) where { T1 <: IO, T2 
     # Switching functions, one per block
     #----------------------------------------------------------
     for iblock=1:nb_block
-        writeSwitchFunction( handle_out, iblock, input_.swf[iblock] )
+        writeSwitchFunction( handle_out, iblock, input_.switching_fct[iblock] )
     end
     # Cut Off (nm)
     #----------------------------------------------------------
@@ -273,7 +277,10 @@ function writePlumedInputPIV( handle_out::T1, input_::T2 ) where { T1 <: IO, T2 
     #----------------------------------------------------------
     Base.write( handle_out, string( "... PIV", "\n" ) )
 end
+#------------------------------------------------------------------------------------------------
 
+# COLVAR handling
+#------------------------------------------------------------------------------------------------
 function getNbColumnColvar( file_path::T1 ) where { T1 <: AbstractString }
     handle_in = open( file_path, "w" )
     readline( handle_in)
@@ -309,5 +316,6 @@ function readColvar( file_path::T1 ) where { T1 <: AbstractString }
     close( handle_in )
     return time,data
 end
+#------------------------------------------------------------------------------------------------
 
 end
