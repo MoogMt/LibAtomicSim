@@ -252,7 +252,10 @@ function writeInputPIV( handle_out::T1, input_::T2 ) where { T1 <: IO, T2 <: inp
     nb_block=size(input_.s_factors)[1]
     Base.write( handle_out, string( "SFACTOR=",) )
     for iblock=1:nb_block
-        Base.write( handle_out, string( input_.s_factors[iblock], "," ) )
+        Base.write( handle_out, string( input_.s_factors[iblock] ) )
+        if iblock < nb_block
+            Base.write( handle_out, string(","))
+        end
     end
     Base.write( handle_out, string("\n") )
     # Switching functions, one per block
