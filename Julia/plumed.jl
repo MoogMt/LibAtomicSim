@@ -207,7 +207,7 @@ function writeActDispatch( handle_out::T1, act::T2 ) where { T1 <: IO, T2 <: pat
     Base.write( handle_out, string( act.label, ": ") )
     Base.write( handle_out, string("FUNCPATHMSD ") )
     #------------------------------------------------
-    Base.write( handle_out, string("ARG= ") )
+    Base.write( handle_out, string("ARG=") )
     nb_args=size(act.args)[1]
     for arg=1:nb_args
         Base.write( handle_out, string( act.args[arg] ) )
@@ -218,6 +218,7 @@ function writeActDispatch( handle_out::T1, act::T2 ) where { T1 <: IO, T2 <: pat
     Base.write( handle_out, string( " " ) )
     #------------------------------------------------
     Base.write( handle_out, string( "LAMBDA=", act.lambda ) )
+    Base.write( handle_out, string("\n") )
     return true
 end
 plumedAct=Union{ pathZS }
@@ -314,6 +315,7 @@ function writeInputPIV( handle_out::T1, input_::T2 ) where { T1 <: IO, T2 <: inp
     end
     #----------------------------------------------------------
     Base.write( handle_out, string( "... PIV", "\n" ) )
+    Base.write( handle_out, string("\n") )
 end
 function writeAct( handle_out::T1, act::T2 ) where { T1 <: IO, T2 <: plumedAct }
     return writeActDispatch( handle_out, act )
@@ -322,13 +324,14 @@ function writeOutputInstruction( handle_out::T1 , args::Vector{T2}, stride::T3, 
     Base.write( handle_out, string("PRINT ") )
     #-----------------------------------------
     Base.write( handle_out, string("ARG=") )
-    nb_arg=size(args)
+    nb_arg=size(args)[1]
     for arg=1:nb_arg
-        Base.write( handle_out, string( args[i] ) )
+        Base.write( handle_out, string( args[arg] ) )
         if arg < nb_arg
             Base.write( handle_out, string(",") )
         end
     end
+    Base.write( handle_out, string(" ") )
     #-----------------------------------------
     Base.write( handle_out, string( "STRIDE=", stride, " " ) )
     #-----------------------------------------
