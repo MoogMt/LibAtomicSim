@@ -105,13 +105,13 @@ mutable struct switchingSimpleRational
     #------------------------------------------
     # Constructors
     #------------------------------------------
-    function switchingRational()
+    function switchingSimpleRational()
         new( 0.1, 1 );
     end
-    function switchingRational( r_0::T1 ) where { T1 <: Real, T2 <: Int }
+    function switchingSimpleRational( r_0::T1 ) where { T1 <: Real, T2 <: Int }
         new( r_0, 1 )
     end
-    function switchingRational( r_0::T1, n::T2 ) where { T1 <: Real, T2 <: Int }
+    function switchingSimpleRational( r_0::T1, n::T2 ) where { T1 <: Real, T2 <: Int }
         new( r_0, n )
     end
     #------------------------------------------
