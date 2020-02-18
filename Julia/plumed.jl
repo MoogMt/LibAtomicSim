@@ -45,6 +45,22 @@ end
 function evaluate( swf::T1, r::T2 ) where { T1 <: switchingFullRational, T2 <: Real }
     return (1-((r-swf.d_0)/swf.r0)^swf.n)/(1-((r-swf.d_0)/swf.r0)^swf.m)
 end
+function evaluate( swf::T1, r::Vector{T2} ) where { T1 <: switchingFullRational, T2 <: Real }
+    results=zeros( size(r)[1] )
+    for i=1:size(r)[1]
+        results[i] = evaluate( swf, r[i] )
+    end
+    return results
+end
+function evaluate( swf::T1, r::Array{T2,2} ) where { T1 <: switchingFullRational, T2 <: Real }
+    results=zeros( size(r)[1], size(r)[2] )
+    for i=1:size(r)[1]
+        for j=1:size(r)[2]
+            results[i,j] = evaluate( swf, r[i,j] )
+        end
+    end
+    return results
+end
 function writePlumedInput( handle_out::T1, swf::T2 ) where { T1 <: IO, T2 <: switchingFullRational }
     Base.write( handle_out, string( "RATIONAL ") )
     Base.write( handle_out, string( "R_0=",swf.r_0) )
@@ -87,7 +103,23 @@ end
 function evaluate( swf::T1, r::T2 ) where { T1 <: switchingRational, T2 <: Real }
     return 1/(1+((r-swf.d_0)/r_0)^(swf.n))
 end
-function writePlumedInput( handle_out::T1, swf::T2 ) where { T1 <: IO, T2 <: switchingFullRational }
+function evaluate( swf::T1, r::Vector{T2} ) where { T1 <: switchingRational, T2 <: Real }
+    results=zeros( size(r)[1] )
+    for i=1:size(r)[1]
+        results[i] = evaluate( swf, r[i] )
+    end
+    return results
+end
+function evaluate( swf::T1, r::Array{T2,2} ) where { T1 <: switchingRational, T2 <: Real }
+    results=zeros( size(r)[1], size(r)[2] )
+    for i=1:size(r)[1]
+        for j=1:size(r)[2]
+            results[i,j] = evaluate( swf, r[i,j] )
+        end
+    end
+    return results
+end
+function writePlumedInput( handle_out::T1, swf::T2 ) where { T1 <: IO, T2 <: switchingRational }
     Base.write( handle_out, string( "RATIONAL ") )
     Base.write( handle_out, string( "R_0=",swf.r_0) )
     Base.write( handle_out, string( "D_0=",swf.d_0) )
@@ -117,9 +149,25 @@ mutable struct switchingSimpleRational
     #------------------------------------------
 end
 function evaluate( swf::T1, r::T2 ) where { T1 <: switchingSimpleRational, T2 <: Real }
-    return 1/(1+(r/r_0)^(swf.n))
+    return 1/(1+(r/swf.r_0)^(swf.n))
 end
-function writePlumedInput( handle_out::T1, swf::T2 ) where { T1 <: IO, T2 <: switchingFullRational }
+function evaluate( swf::T1, r::Vector{T2} ) where { T1 <: switchingSimpleRational, T2 <: Real }
+    results=zeros( size(r)[1] )
+    for i=1:size(r)[1]
+        results[i] = evaluate( swf, r[i] )
+    end
+    return results
+end
+function evaluate( swf::T1, r::Array{T2,2} ) where { T1 <: switchingSimpleRational, T2 <: Real }
+    results=zeros( size(r)[1], size(r)[2] )
+    for i=1:size(r)[1]
+        for j=1:size(r)[2]
+            results[i,j] = evaluate( swf, r[i,j] )
+        end
+    end
+    return results
+end
+function writePlumedInput( handle_out::T1, swf::T2 ) where { T1 <: IO, T2 <: switchingSimpleRational }
     Base.write( handle_out, string( "RATIONAL ") )
     Base.write( handle_out, string( "R_0=",swf.r_0) )
     Base.write( handle_out, string( "D_0=",0.0) )
