@@ -188,6 +188,41 @@ function writeSwitchFunction( handle_out::T1, number::T2, swf::T3 ) where { T1<:
 end
 #------------------------------------------------------------------------------------------------
 
+#------------------------------------------------------------------------------------------------
+mutable struct pathZS
+    #----------------------------------------------------------
+    label::AbstractString
+    args::Vector{AbstractString}
+    lambda::Real
+    #----------------------------------------------------------
+    function pathZS( label::T1, args::Vector{T2} ) where { T1 <: AbstractString, T2 <: AbstractString }
+        new( label, args, 1.0 )
+    end
+    function pathZS( label::T1, args::Vector{T2}, lambda::T3 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Real }
+        new( label, args, lambda )
+    end
+    #----------------------------------------------------------
+end
+function writeActDispatch( handle_out, act2 ) where { T1 <: IO, T2 <: pathZS }
+    Base.write( handle_out, string(pathZS.label,": ") )
+    Base.write( handle_out, string("FUNCPATHMSD ") )
+    #------------------------------------------------
+    Base.write( handle_out, string("ARG= ") )
+    nb_args=size(args)[1]
+    for arg=1:nb_args
+        Base.write( handle_out, string( pathZS.args[arg] ) )
+        if arg < nb_args
+            Base.write( handle_out, string(",") )
+        end
+    end
+    Base.write( handle_out, string( " " ) )
+    #------------------------------------------------
+    Base.write( handle_out, string( "LAMBDA=", pathZS.lambda ) )
+    return true
+end
+plumedAct=Union{ pathZS }
+#------------------------------------------------------------------------------------------------
+
 # INPUT handling
 #------------------------------------------------------------------------------------------------
 mutable struct inputPIV
@@ -280,7 +315,32 @@ function writeInputPIV( handle_out::T1, input_::T2 ) where { T1 <: IO, T2 <: inp
     #----------------------------------------------------------
     Base.write( handle_out, string( "... PIV", "\n" ) )
 end
+function writeAct( handle_out::T1, act::T2 ) where { T1 <: IO, T2 <: plumedAct }
+    return writeActDispatch( handle_out, act2 )
+end
+function writeOutputInstruction( handle_out::T1 , args::Vector{T2}, stride::T3, file_out_name::T4="COLVAR", format::T5="%15.6f" ) where { T1 <: IO, T2 <: AbstractString, T3 <: Int, T4 <: AbstractString, T5 <: AbstractString }
+    Base.write( handle_out, string("PRINT ") )
+    #-----------------------------------------
+    Base.write( handle_out, string("ARG=") )
+    nb_arg=size(args)
+    for arg=1:nb_arg
+        Base.write( handle_out, string( args[i] ) )
+        if arg < nb_arg
+            Base.write( handle_out, string(",") )
+        end
+    end
+    #-----------------------------------------
+    Base.write( handle_out, string( "STRIDE=", stride, " " ) )
+    #-----------------------------------------
+    Base.write( handle_out, string( "FILE=", file_out_name, " " ) )
+    #-----------------------------------------
+    Base.write( handle_out, string( "FMT=", format, " " ) )
+    #-----------------------------------------
+    return true
+end
 #------------------------------------------------------------------------------------------------
+
+
 
 # COLVAR handling
 #------------------------------------------------------------------------------------------------
