@@ -203,21 +203,21 @@ mutable struct pathZS
     end
     #----------------------------------------------------------
 end
-function writeActDispatch( handle_out, act2 ) where { T1 <: IO, T2 <: pathZS }
-    Base.write( handle_out, string(pathZS.label,": ") )
+function writeActDispatch( handle_out::T1, act::T2 ) where { T1 <: IO, T2 <: pathZS }
+    Base.write( handle_out, string( act.label, ": ") )
     Base.write( handle_out, string("FUNCPATHMSD ") )
     #------------------------------------------------
     Base.write( handle_out, string("ARG= ") )
-    nb_args=size(args)[1]
+    nb_args=size(act.args)[1]
     for arg=1:nb_args
-        Base.write( handle_out, string( pathZS.args[arg] ) )
+        Base.write( handle_out, string( act.args[arg] ) )
         if arg < nb_args
             Base.write( handle_out, string(",") )
         end
     end
     Base.write( handle_out, string( " " ) )
     #------------------------------------------------
-    Base.write( handle_out, string( "LAMBDA=", pathZS.lambda ) )
+    Base.write( handle_out, string( "LAMBDA=", act.lambda ) )
     return true
 end
 plumedAct=Union{ pathZS }
@@ -316,7 +316,7 @@ function writeInputPIV( handle_out::T1, input_::T2 ) where { T1 <: IO, T2 <: inp
     Base.write( handle_out, string( "... PIV", "\n" ) )
 end
 function writeAct( handle_out::T1, act::T2 ) where { T1 <: IO, T2 <: plumedAct }
-    return writeActDispatch( handle_out, act2 )
+    return writeActDispatch( handle_out, act )
 end
 function writeOutputInstruction( handle_out::T1 , args::Vector{T2}, stride::T3, file_out_name::T4="COLVAR", format::T5="%15.6f" ) where { T1 <: IO, T2 <: AbstractString, T3 <: Int, T4 <: AbstractString, T5 <: AbstractString }
     Base.write( handle_out, string("PRINT ") )
