@@ -126,6 +126,11 @@ function readPosCar( path_file::T1 ) where { T1 <: AbstractString }
     end
     cell = cell_mod.Cell_matrix(matrix)
     #---------------------------------------------------------------------
+    matrix2=copy(matrix)
+    for i=1:3
+        matrix2[i,:] /= LinearAlgebra.norm(matrix2[i,:])
+    end
+    #---------------------------------------------------------------------
     species=split( readline( handle_in ) )
     nb_species_ = split( readline(handle_in ) )
     nb_species = zeros( Int, size(species)[1] )
@@ -137,10 +142,16 @@ function readPosCar( path_file::T1 ) where { T1 <: AbstractString }
     readline( handle_in ) # skip
     nb_atoms=sum(nb_species)
     atoms=AtomList(nb_atoms)
+    temp = zeros(Real,3)
     for atom=1:nb_atoms
         keys = split( readline( handle_in ) )
         for i=1:3
-            atoms.positions[atom,i] = parse( Float64, keys[i] )
+            temp[i] = parse( Float64, keys[i] )
+        end
+        for i=1:3
+            for j=1:3
+                atoms.positions[atom,i] += matrix2[j,i]*temp[j]
+            end
         end
         atoms.names[atom] = names_[atom]
         atoms.index[atom] = atom
@@ -148,15 +159,9 @@ function readPosCar( path_file::T1 ) where { T1 <: AbstractString }
     #---------------------------------------------------------------------
     close( handle_in )
 
-    #---------------------------------------------------------------------
-    matrix2 = zeros(Real,3,3)
-    for i=1:3
-        matrix2[i,i] = LinearAlgebra.norm(matrix[i,:])
-    end
-    cell2=cell_mod.Cell_matrix(matrix2)
-    #---------------------------------------------------------------------
+    cell.matrix=transpose(cell.matrix)
 
-    return atoms, cell2
+    return atoms, cell
 end
 function readPosCarTraj( path_file::T1, species::Vector{T2}, nb_species::Vector{T3} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int }
 
@@ -222,29 +227,33 @@ function getSpeciesAndNumber( path_file::T1 ) where { T1 <: AbstractString }
     close( handle_in )
     return species, species_nb
 end
-function readCellParams( path_file_len::T1, path_file_angles::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
+function readCellOriginParams( path_file_len::T1, path_file_angles::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
 
     #-------------------------------------------------
-    nb_lines = utils.getNbLines( path_file_angles )
-    if nb_lines == false
+    nb_lines_angles = utils.getNbLines( path_file_angles )
+    if nb_lines_angles == false
         return false, false
     end
-    nb_lines2 = utils.getNbLines( path_file_len )
-    if nb_lines2 == false
+    nb_lines_lengths = utils.getNbLines( path_file_len )
+    if nb_lines_lengths == false
         return false, false
+    end
+    nb_step=min( nb_lines_angles, nb_lines_lengths )
+    if nb_lines_angles != nb_lines_lengths
+        print("Missmatch between number of lengths and angles, using the minimum to proceed.\n")
     end
     #-------------------------------------------------
 
     #-------------------------------------------------
-    lengths=zeros(Real,nb_lines,3)
-    angles=zeros(Real,nb_lines,3)
+    lengths = zeros(Real, nb_step , 3 )
+    angles  = zeros(Real, nb_step , 3 )
     #-------------------------------------------------
 
     #-------------------------------------------------
     tau=180/pi
     handle_in_len = open( path_file_len )
     handle_in_ang = open( path_file_angles )
-    for line=1:nb_lines
+    for line=1:nb_step
         key_len = split( readline( handle_in_len ) )
         key_ang = split( readline( handle_in_ang ) )
         for i=1:3
@@ -326,6 +335,35 @@ function readPressure( path_file::T1 ) where { T1 <: AbstractString }
     close(handle_in)
 
     return pressure
+end
+
+function computeABCfromXYZ( lengths::Vector{T1}, angles::Vector{T2} ) where { T1 <: Real, T2 <: Real }
+    K1 = ( cos( angles[1] ) - cos( angles[2] )*cos( angles[3] ) )/sin( angles[3] )
+    K1_2 = K1*K1
+    K2 = sqrt( 1 + 2*cos( angles[1] )*cos( angles[2] )*cos( angles[3] ) - cos( angles[1] )^2 - cos( angles[2] )^2 - cos( angles[3] )^2 )/sin( angles[3] )
+    c = sqrt( lengths[3]/K2 )
+    b = sqrt( ( lengths[2] - c*c*K1_2 )/( sin(angles[3])^2 ) )
+    a = sqrt( lengths[1]^2 - b*b*cos(angles[3])*cos(angles[3]) - c*c*sin(angles[2]*angles[2]) )
+    return [a,b,c]
+end
+function computeABCfromXYZ( lengths::Array{T1,2}, angles::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
+    nb_step=size(lengths)[1]
+    params = zeros( nb_step )
+    for step=1:nb_step
+        params[step,:] = computeABCfromXYZ( lengths[step,:], angles[step,:] )
+    end
+    return params
+end
+function readCells( path_len::T1, path_angles::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
+    lengths, angles = readCellParams( path_len, path_angles )
+    nb_step=size(lengths)[1]
+    cells = Vector{ Cell_param }(undef,nb_step)
+    for step=1:nb_step
+        params_lengths=computeABCfromXYZ( lengths[step,:], angles[step,:] )
+        cells[step] = Cell_param( params_lengths, angles )
+    end
+
+    return cells
 end
 
 end
