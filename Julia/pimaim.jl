@@ -202,6 +202,56 @@ function readPosCarTraj( path_file::T1, species::Vector{T2}, nb_species::Vector{
 
     return traj
 end
+function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T3}, cells::Vector{T4} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int, T4 <: cell_mod.Cell_param }
+
+    #---------------------------------------------------------------------
+    nb_lines = utils.getNbLines( path_file )
+    if nb_lines == false
+        return false
+    end
+    #---------------------------------------------------------------------
+
+    #---------------------------------------------------------------------
+    nb_atoms = sum(nb_species)
+    names_=atom_mod.buildNames( species, nb_species )
+    if nb_lines % nb_atoms != 0
+        print("Problem within file: ",path_file," :\n")
+        print("Number of lines is not a multiple of the number of atoms given.\n")
+        return false
+    end
+    nb_step = Int(nb_lines/nb_atoms)
+    traj = Vector{AtomList}( undef, nb_step )
+    #---------------------------------------------------------------------
+
+    #---------------------------------------------------------------------
+    handle_in = open( path_file )
+    for step=1:nb_step
+        box_len=zeros(Real,3)
+        traj[step] = atom_mod.AtomList(nb_atoms)
+        matrix2 = copy( cell_mod.params2Matrix( cells[step] ).matrix )
+        for i=1:3
+            box_len[i] = LinearAlgebra.norm( matrix2[:,i] )*conversion.ang2Bohr
+        end
+        for atom=1:nb_atoms
+            temp = zeros(Real,3)
+            keys = split( readline( handle_in ) )
+            for i=1:3
+                temp[i] = parse(Float64,keys[i])/box_len[i]
+            end
+            for i=1:3
+                for j=1:3
+                    traj[step].positions[atom,i] += temp[j]*matrix2[i,j]
+                end
+            end
+            traj[step].names[atom] = names_[atom]
+            traj[step].index[atom] = atom
+        end
+    end
+    #---------------------------------------------------------------------
+    close( handle_in )
+
+    return traj
+end
 function getSpeciesAndNumber( path_file::T1 ) where { T1 <: AbstractString }
     if ! isfile( path_file )
         return false, false
@@ -227,7 +277,7 @@ function getSpeciesAndNumber( path_file::T1 ) where { T1 <: AbstractString }
     close( handle_in )
     return species, species_nb
 end
-function readCellOriginParams( path_file_len::T1, path_file_angles::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
+function readCellParams( path_file_len::T1, path_file_angles::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
 
     #-------------------------------------------------
     nb_lines_angles = utils.getNbLines( path_file_angles )
@@ -260,7 +310,10 @@ function readCellOriginParams( path_file_len::T1, path_file_angles::T2 ) where {
             lengths[line,i] = parse( Float64, key_len[1+i] )*conversion.bohr2Ang
             angles[line,i]  = parse( Float64, key_ang[1+i] )*tau
         end
-        angles[line,:]=circshift(angles[line,:],-1)
+        stock=angles[line,1]
+        angles[line,1]=angles[line,3]
+        angles[line,3]=stock
+        #angles[line,:]=circshift(angles[line,:],1)
     end
     close( handle_in_len )
     close( handle_in_ang )
