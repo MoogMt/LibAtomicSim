@@ -337,33 +337,4 @@ function readPressure( path_file::T1 ) where { T1 <: AbstractString }
     return pressure
 end
 
-function computeABCfromXYZ( lengths::Vector{T1}, angles::Vector{T2} ) where { T1 <: Real, T2 <: Real }
-    K1 = ( cos( angles[1] ) - cos( angles[2] )*cos( angles[3] ) )/sin( angles[3] )
-    K1_2 = K1*K1
-    K2 = sqrt( 1 + 2*cos( angles[1] )*cos( angles[2] )*cos( angles[3] ) - cos( angles[1] )^2 - cos( angles[2] )^2 - cos( angles[3] )^2 )/sin( angles[3] )
-    c = sqrt( lengths[3]/K2 )
-    b = sqrt( ( lengths[2] - c*c*K1_2 )/( sin(angles[3])^2 ) )
-    a = sqrt( lengths[1]^2 - b*b*cos(angles[3])*cos(angles[3]) - c*c*sin(angles[2]*angles[2]) )
-    return [a,b,c]
-end
-function computeABCfromXYZ( lengths::Array{T1,2}, angles::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
-    nb_step=size(lengths)[1]
-    params = zeros( nb_step )
-    for step=1:nb_step
-        params[step,:] = computeABCfromXYZ( lengths[step,:], angles[step,:] )
-    end
-    return params
-end
-function readCells( path_len::T1, path_angles::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
-    lengths, angles = readCellParams( path_len, path_angles )
-    nb_step=size(lengths)[1]
-    cells = Vector{ Cell_param }(undef,nb_step)
-    for step=1:nb_step
-        params_lengths=computeABCfromXYZ( lengths[step,:], angles[step,:] )
-        cells[step] = Cell_param( params_lengths, angles )
-    end
-
-    return cells
-end
-
 end
