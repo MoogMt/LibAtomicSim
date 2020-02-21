@@ -154,6 +154,15 @@ function getVolume( cell_param::T1) where { T1 <: Cell_param }
 end
 #-------------------------------------------------------------------------------
 
+function makeCellParams( lengths::Array{T1,2}, angles::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
+    nb_step = size(lengths)[1]
+    cells = Vector{Cell_param}(undef, nb_step )
+    for step=1:nb_step
+        cells[step] = Cell_param( lengths[step,:], angles[step,:] )
+    end
+    return cells
+end
+
 #-------------------------------------------------------------------------------
 function wrap( position::T1, length::T2 ) where { T1 <: Real, T2 <: Real}
     sign=-1
