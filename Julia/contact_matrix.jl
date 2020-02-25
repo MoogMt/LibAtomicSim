@@ -36,81 +36,78 @@ function buildMatrix( atoms::T1 , cell::T2, cut_off::T3 ) where { T1 <: atom_mod
 end
 #-------------------------------------------------------------------------------
 
-# Getting bonds
 #-------------------------------------------------------------------------------
-function printBonds( atoms::T1, cell::T2, index::T3 , cut_off::T4 ) where { T1 <: atom_mod.AtomList, T2 <: cell_mod.Cell_param , T3 <: Int , T4 <: Real }
-    nb_atoms=size(atoms.names)[1]
-    for i=1:nb_atoms
-        dist=cell_mod.distance(atoms,cell,index,i)
-        if dist < cut_off
-            print("Bond with ", i, "\n");
-        end
-    end
-    return
-end
-#-------------------------------------------------------------------------------
-
-#-------------------------------------------------------------------------------
-function readMatrix( input::T1 , nb_atoms::T2) where { T1 <: IO, T2 <: Int }
+function readStepMatrix( handle_in::T1 , nb_atoms::T2) where { T1 <: IO, T2 <: Int }
     matrix=zeros(nb_atoms,nb_atoms)
     for i=1:nb_atoms
-        line=split(readline(input))
+        keywords = split( readline( handle_in ) )
         for j=1:nb_atoms
-            matrix[i,j] = parse( Float64, line[j] )
+            matrix[i,j] = parse( Float64, keywords[j] )
         end
     end
-    if split(readline(input))[1] == "END"
-        return matrix
-    else
-        print("Problem while reading file")
-        return
-    end
+    return matrix
 end
-function readMatrix( file::T1 ) where { T1 <: AbstractString }
-    file=open(file)
-    nb_steps=Int(split(readline(file))[1])
-    close(file)
-    return nb_steps
-end
-function readMatrix( file::T1, step::T2 ) where { T1<: AbstractString, T2<: Int }
-    file=open(file)
-    line=split(readline(file))
-
-    nb_steps=parse(Int,line[1]);
-    nb_atoms=parse(Int,line[2]);
-    if nb_steps < step
+function readMatrix( file::T1, target_step::T2 ) where { T1 <: AbstractString, T2 <: Int }
+    handle_in = open( file )
+    # Getting info
+    keywords = split( readline( file ) )
+    nb_step  = parse(Int, keywords[1] )
+    nb_atoms = parse(Int, keywords[2] )
+    if step > nb_step
+        print("The trajectory is only ", nb_step, " long, you're asking for step ", target_step,".\n")
+        print("Stopping now!\n")
         return false
     end
-    for i=1:step
-        for j=1:nb_atoms
-            line=readline(file)
+    # Reading
+    matrix=zeros(nb_atoms,nb_atoms)
+    for step=1:nb_step
+        if step == target_step
+            matrix[ :, : ]  = readStepMatrix( handle_in, nb_atoms )
+        else
+            readStepMatrix( handle_in, nb_atoms )
         end
     end
-    matrix=zeros(nb_atoms,nb_atoms)
-    for i=1:nb_atoms
-        line=split(readline(file))
-        for j=1:nb_atoms
-            matrix[i,j]=parse(Float64,line[j])
-        end
+    close(file)
+    return matrix
+end
+function readMatrix( file::T1 ) where { T1<: AbstractString }
+    handle_in = open( file )
+    # Getting info
+    keywords = split( readline( file ) )
+    nb_step  = parse(Int, keywords[1] )
+    nb_atoms = parse(Int, keywords[2] )
+    # Reading
+    matrix=zeros(nb_step,nb_atoms,nb_atoms)
+    for step=1:nb_step
+        matrix[ step, :, : ]  = readStepMatrix( handle_in, nb_atoms )
     end
     close(file)
     return matrix
 end
 #-------------------------------------------------------------------------------
 
+# Writting
 #-------------------------------------------------------------------------------
 function writeStepMatrix( handle_out::T1, matrix::Array{T2,2} ) where { T1 <: IO , T2 <: Real }
     nb_atoms=size(matrix)[1]
     for atom1=1:nb_atoms
         for atom2=1:nb_atoms
-            write( handle_out, string( matrix[atom1,atom2], " " ) )
+            write( handle_out, string( matrix[ atom1, atom2 ], " " ) )
         end
         write( handle_out , "\n")
     end
-    return
+    return true
 end
 function writeMatrix( file_out::T1, matrix::Array{T2,3} ) where { T1 <: AbstractString, T2 <: Real }
-
+    handle_out = open( file_out, "w" )
+    nb_step = size( matrix )[1]
+    nb_atoms = size( matrix )[2]
+    Base.write( handle_out, string( nb_step, " ", nb_atoms, "\n" ) )
+    for step=1:nb_atoms
+        writeStepMatrix( handle_out, matrix[step,:,:] )
+    end
+    close( handle_out )
+    return true
 end
 #-------------------------------------------------------------------------------
 
