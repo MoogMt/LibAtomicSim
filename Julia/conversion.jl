@@ -39,5 +39,8 @@ a3tocm3=10^(-24)
 amu2gram = 1.660539040*10^(-24)
 gram2Amu = 1/amu2gram
 
+# Angles
+degr2rad = pi/180
+rad2degr = 180/pi
 
 end
