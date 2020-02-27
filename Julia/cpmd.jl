@@ -766,6 +766,7 @@ function readFtraj( file_path::T1 ) where { T1 <: AbstractString }
     #-----------------------------------------------------
     file_in = open( file_path )
     for step=1:nb_step
+        print("Reading FTRAJECTORY ",round(step/nb_step*100,digits=3),"%\n")
         for atom=1:nb_atoms
             keywords=split( readline( file_in ) )
             if keywords[1] != "<<<<<<"
@@ -1166,7 +1167,7 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_positions_suffix::T2, 
     #------------------------------------------------
 
     #------------------------------------------------
-    if writeRelaunchPositions( folder_in_target, traj[1], file_out_positions_suffix ) && writeRelaunchVelocities( folder_in_target, velocities, file_out_velocities )
+    if writeRelaunchPositions( folder_in_target, traj[nb_step_traj], file_out_positions_suffix ) && writeRelaunchVelocities( folder_in_target, velocities, file_out_velocities )
         return true
     end
 end
@@ -1206,19 +1207,24 @@ function relaunchRunTrajec( folder_in_target::T1, file_out_path::T2 ) where { T1
     # Looping over atoms species
     while true
         keywords  = utils.getLineElements( file_in )
+        print("keys1:",keywords,"\n")
         # Skip blank lines
         while size(keywords)[1] == 0
             keywords  = utils.getLineElements( file_in )
+            print("keys_check:",keywords,"\n")
         end
         if keywords[1] == "&END" || keywords[1] == "VELOCITIES"
             break
         end
         # Copy PP line
         utils.copyLine2file( keywords, file_out )
+        print("keys:",keywords,"\n")
         # Copy basis PP line
         utils.copyLine2file( utils.getLineElements( file_in ), file_out )
+        print("keys2:",keywords,"\n")
         # Getting Nb of atoms of species
         keywords =  utils.getLineElements( file_in )
+        print("test:",keywords,"\n")
         nb_atoms = parse( Int, keywords[1] )
         # Writing nb atoms line to file
         utils.copyLine2file( keywords, file_out )
@@ -1246,13 +1252,15 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_path::T2 ) where { T1 
 
     # Getting positions and velocities
     #------------------------------------------------------------
+    print("READING positions\n")
     positions, velocities, forces = readFtraj( string( folder_in_target, "FTRAJECTORY" ) )
     if positions == false
         return false
     end
+    print("READ positions\n")
     forces = []
     nb_step = size( positions )[1]
-    positions  = positions[nb_step,:,:]
+    positions  = positions[nb_step,:,:]*conversion.bohr2Ang
     velocities = velocities[nb_step,:,:]
     #------------------------------------------------------------
 
@@ -1266,26 +1274,32 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_path::T2 ) where { T1 
     # Looping over atoms species
     while true
         keywords  = utils.getLineElements( file_in )
+        print("keys1:",keywords,"\n")
         # Skip blank lines
         while size(keywords)[1] == 0
             keywords  = utils.getLineElements( file_in )
+            print("keys_check:",keywords,"\n")
         end
         if keywords[1] == "&END" || keywords[1] == "VELOCITIES"
             break
         end
         # Copy PP line
         utils.copyLine2file( keywords, file_out )
+        print("keys:",keywords,"\n")
         # Copy basis PP line
         utils.copyLine2file( utils.getLineElements( file_in ), file_out )
+        print("keys2:",keywords,"\n")
         # Getting Nb of atoms of species
         keywords =  utils.getLineElements( file_in )
+        print("test:",keywords,"\n")
         nb_atoms = parse( Int, keywords[1] )
         # Writing nb atoms line to file
+        print("test3:",keywords,"\n")
         utils.copyLine2file( keywords, file_out )
         # Writting actual positions for specie
         writePositions( file_out, positions )
         # Ignore the atoms positions
-        utils.skipLines( file_out, nb_atoms )
+        utils.skipLines( file_in, nb_atoms )
     end
     write( file_out, string("\n") )
     writeVelocities( file_out, velocities )
