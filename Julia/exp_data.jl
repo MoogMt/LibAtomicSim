@@ -57,7 +57,6 @@ function vdosFromPosition( file_traj::T1 , max_lag_frac::T2 , dt::T3 ) where { T
         end
         # Conversion to cm-1
         for i=1:size(freq)[1]
-            print("test: ",i," freq: ",freq[i],"\n")
             freq[i]=freq[i]*conversion.tHz2cm
         end
 
