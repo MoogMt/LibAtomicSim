@@ -766,7 +766,6 @@ function readFtraj( file_path::T1 ) where { T1 <: AbstractString }
     #-----------------------------------------------------
     file_in = open( file_path )
     for step=1:nb_step
-        print("Reading FTRAJECTORY ",round(step/nb_step*100,digits=3),"%\n")
         for atom=1:nb_atoms
             keywords=split( readline( file_in ) )
             if keywords[1] != "<<<<<<"
@@ -1207,31 +1206,26 @@ function relaunchRunTrajec( folder_in_target::T1, file_out_path::T2 ) where { T1
     # Looping over atoms species
     while true
         keywords  = utils.getLineElements( file_in )
-        print("keys1:",keywords,"\n")
         # Skip blank lines
         while size(keywords)[1] == 0
             keywords  = utils.getLineElements( file_in )
-            print("keys_check:",keywords,"\n")
         end
         if keywords[1] == "&END" || keywords[1] == "VELOCITIES"
             break
         end
         # Copy PP line
         utils.copyLine2file( keywords, file_out )
-        print("keys:",keywords,"\n")
         # Copy basis PP line
         utils.copyLine2file( utils.getLineElements( file_in ), file_out )
-        print("keys2:",keywords,"\n")
         # Getting Nb of atoms of species
         keywords =  utils.getLineElements( file_in )
-        print("test:",keywords,"\n")
         nb_atoms = parse( Int, keywords[1] )
         # Writing nb atoms line to file
         utils.copyLine2file( keywords, file_out )
         # Writting actual positions for specie
         writePositions( file_out, traj.positions )
         # Ignore the atoms positions
-        utils.skipLines( file_out, nb_atoms)
+        utils.skipLines( file_in, nb_atoms)
     end
     write( file_out, string("\n") )
     writeVelocities( file_out, velocities )
@@ -1252,16 +1246,13 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_path::T2 ) where { T1 
 
     # Getting positions and velocities
     #------------------------------------------------------------
-    print("READING positions\n")
-    positions, velocities, forces = readFtraj( string( folder_in_target, "FTRAJECTORY" ) )
+    positions, velocities, forces = readFtraj( string( folder_in_target, "FTRAJECTORY_db" ) )
     if positions == false
         return false
     end
     print("READ positions\n")
     forces = []
     nb_step = size( positions )[1]
-    positions  = positions[nb_step,:,:]*conversion.bohr2Ang
-    velocities = velocities[nb_step,:,:]
     #------------------------------------------------------------
 
     # Copy parameters of input
@@ -1274,35 +1265,29 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_path::T2 ) where { T1 
     # Looping over atoms species
     while true
         keywords  = utils.getLineElements( file_in )
-        print("keys1:",keywords,"\n")
         # Skip blank lines
         while size(keywords)[1] == 0
             keywords  = utils.getLineElements( file_in )
-            print("keys_check:",keywords,"\n")
         end
         if keywords[1] == "&END" || keywords[1] == "VELOCITIES"
             break
         end
         # Copy PP line
         utils.copyLine2file( keywords, file_out )
-        print("keys:",keywords,"\n")
         # Copy basis PP line
         utils.copyLine2file( utils.getLineElements( file_in ), file_out )
-        print("keys2:",keywords,"\n")
         # Getting Nb of atoms of species
         keywords =  utils.getLineElements( file_in )
-        print("test:",keywords,"\n")
         nb_atoms = parse( Int, keywords[1] )
         # Writing nb atoms line to file
-        print("test3:",keywords,"\n")
         utils.copyLine2file( keywords, file_out )
         # Writting actual positions for specie
-        writePositions( file_out, positions )
+        writePositions( file_out, positions[nb_step,:,:]*conversion.bohr2Ang )
         # Ignore the atoms positions
         utils.skipLines( file_in, nb_atoms )
     end
     write( file_out, string("\n") )
-    writeVelocities( file_out, velocities )
+    writeVelocities( file_out, velocities[nb_step,:,:] )
     write( file_out, string("&END") )
     close( file_in  )
     close( file_out )
