@@ -7,8 +7,11 @@ using pdb
 using fftw
 using correlation
 using conversion
-# Vibration Density of States
 
+# TODO:
+# Recheck everything for consistency
+
+# Vibration Density of States
 #==============================================================================#
 # file_traj: path to the TRAJEC.xyz file
 # max_lag_frac: max fraction of total time to be used for correlation function (0<x<0.5)
@@ -16,9 +19,8 @@ using conversion
 function vdosFromPosition( file_traj::T1 , max_lag_frac::T2 , dt::T3 ) where { T1 <: AbstractString, T2 <: Real, T3 <: Real }
 
         # Reading Trajectory
-        traj,test=readFastFile(file_traj)
-
-        if ! test
+        traj = filexyz.readFileAtomList(file_traj)
+        if traj == false
             return zeros(1,1), zeros(1,1), test
         end
 
@@ -77,9 +79,8 @@ end
 function vdosFromPosition( file_traj::T1 , max_lag_frac::T2 , dt::T3, nb_windows::T4 ) where { T1 <: AbstractString, T2 <: Real, T3 <: Real, T4 <: Int }
 
         # Reading Trajectory
-        traj,test=readFastFile(file_traj)
-
-        if ! test
+        traj = filexyz.readFileAtomList(file_traj)
+        if traj == false
             return zeros(1,1), zeros(1,1), test
         end
 
@@ -147,8 +148,8 @@ end
 function computeGr( file_in::T1, a::T2, rmin::T3, rmax::T4, dr::T5 ) where { T1 <: AbstractString, T2 <: Real, T3 <: Real, T4 <: Real, T5 <: Real }
 
     # Reading trajectory
-    traj, test = filexyz.readFastFile(file_in)
-    if ! test
+    traj = filexyz.readFileAtomList(file_in)
+    if traj == false
         return zeros(1,1), test
     end
 
