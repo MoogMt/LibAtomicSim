@@ -6,6 +6,18 @@ using filexyz
 using press_stress
 using atom_mod
 
+# NB  Much left to do:
+# We need to do a proper input structure for the CPMD input reading/writting
+# so that we can check consistency.
+# The restart writting is not general enough and requires an FTRAJEC
+# FTRAJEC are very very painful to read for long trajectory for some reason they
+# seem to pause for very long times, likely when encoutering an >>>>>
+# and therefore we might want to make a clean up function for that...
+# Also we should be careful with the conversion from a.u. to angstrom for the
+# positions in the FTRAJ file;
+
+# In any case, many (many) more stuff to do in the future
+
 export readInputTimestep, readIntputStrideStress, readIntputStrideTraj
 export readEnergiesFile, readStress, readTraj
 export getNbStepEnergies, getNbStepStress, getNbStepAtomsFtraj
@@ -1250,7 +1262,6 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_path::T2 ) where { T1 
     if positions == false
         return false
     end
-    print("READ positions\n")
     forces = []
     nb_step = size( positions )[1]
     #------------------------------------------------------------
@@ -1261,6 +1272,7 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_path::T2 ) where { T1 
     copyInputParams( file_in, file_out )
     #----------------------------------------
     # Copying &ATOMS line
+    atom_done=1
     write(file_out,"&ATOMS\n")
     # Looping over atoms species
     while true
@@ -1278,13 +1290,14 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_path::T2 ) where { T1 
         utils.copyLine2file( utils.getLineElements( file_in ), file_out )
         # Getting Nb of atoms of species
         keywords =  utils.getLineElements( file_in )
-        nb_atoms = parse( Int, keywords[1] )
+        nb_specie = parse( Int, keywords[1] )
         # Writing nb atoms line to file
         utils.copyLine2file( keywords, file_out )
         # Writting actual positions for specie
-        writePositions( file_out, positions[nb_step,:,:]*conversion.bohr2Ang )
+        writePositions( file_out, positions[nb_step,atom_done:atom_done+nb_specie-1,:]*conversion.bohr2Ang )
+        atom_done += nb_specie
         # Ignore the atoms positions
-        utils.skipLines( file_in, nb_atoms )
+        utils.skipLines( file_in, nb_specie )
     end
     write( file_out, string("\n") )
     writeVelocities( file_out, velocities[nb_step,:,:] )
