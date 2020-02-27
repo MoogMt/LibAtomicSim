@@ -46,7 +46,7 @@ end
 
 function autocorrNorm( signal::Vector{T1}, max_lag::T2 ) where { T1 <: Real, T2 <: Int }
     autocor_signal = autocorr(signal,max_lag)
-    autocor_signal/=autocor_signal[1]
+    autocor_signal /= autocor_signal[1]
     return autocor_signal
 end
 

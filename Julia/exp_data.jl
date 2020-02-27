@@ -28,7 +28,7 @@ function vdosFromPosition( file_traj::T1 , max_lag_frac::T2 , dt::T3 ) where { T
         dx=1
         velocity=cell_mod.velocityFromPosition(traj,dt,dx)
 
-        nb_atoms=size(velocity)[2]
+        nb_atoms=size(traj[1].names)[1]
         nb_step=size(velocity)[1]
 
         # Compute scalar product
@@ -44,16 +44,22 @@ function vdosFromPosition( file_traj::T1 , max_lag_frac::T2 , dt::T3 ) where { T
         max_lag=Int(trunc(nb_step*max_lag_frac))
 
         # Average correlation
-        freq=zeros(max_lag)
-        vdos=zeros(max_lag)
+        freq=zeros(trunc(Int,max_lag/2))
+        vdos=zeros(trunc(Int,max_lag/2))
         for atom=1:nb_atoms
-            freq,vdos_loc=fftw.doFourierTransformShift( correlation.autocorrNorm( velo_scal[:,atom] , max_lag ), dt )
-            vdos += vdos_loc
+            freq, vdos_loc = fftw.doFourierTransformShift( correlation.autocorrNorm( velo_scal[:,atom] , max_lag ), dt )
+            for i=1:size(vdos_loc)[1]
+                vdos[i] += vdos_loc[i]
+            end
         end
-        vdos /= nb_atoms
-
+        for i=1:size(vdos)[1]
+            vdos[i] = vdos[i]/nb_atoms
+        end
         # Conversion to cm-1
-        freq=freq.*conversion.tHz2cm
+        for i=1:size(freq)[1]
+            print("test: ",i," freq: ",freq[i],"\n")
+            freq[i]=freq[i]*conversion.tHz2cm
+        end
 
     return freq, vdos
 end
@@ -62,7 +68,7 @@ function vdosFromPosition( file_traj::T1 , file_out::T2 , max_lag_frac::T3 , dt:
 
     freq, vdos = vdosFromPosition( file_traj , max_lag_frac , dt )
     if freq == false
-        return zeros(1,1),zeros(1,1),false
+        return false, false
     end
 
     # Writting data to file
@@ -113,8 +119,10 @@ function vdosFromPosition( file_traj::T1 , max_lag_frac::T2 , dt::T3, nb_windows
         vdos=zeros(Int(trunc(max_lag*max_lag_frac))-1)
         for window=1:nb_windows
             for atom=1:nb_atoms
-                freq,vdos_loc=fftw.doFourierTransformShift( correlation.autocorrNorm( velo_scal[:,atom,window] , max_lag ), dt )
-                vdos += vdos_loc
+                freq, vdos_loc = fftw.doFourierTransformShift( correlation.autocorrNorm( velo_scal[:,atom,window] , max_lag ), dt )
+                for i=1:size(vdos)[1]
+                    vdos[i] += vdos_loc[i]
+                end
             end
             vdos /= nb_atoms
         end
@@ -162,7 +170,7 @@ function computeGr( file_in::T1, a::T2, rmin::T3, rmax::T4, dr::T5 ) where { T1 
     # Getting nb atoms and steps
     nb_atoms=size(traj[1].names)[1]
     nb_step=size(traj)[1]
-    nb_box=Int((rmax-rmin)/dr)
+    nb_box=round(Int,(rmax-rmin)/dr)+1
     gr=zeros(nb_box)
 
     # Computing g_r
