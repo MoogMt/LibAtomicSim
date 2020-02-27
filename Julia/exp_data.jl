@@ -21,7 +21,7 @@ function vdosFromPosition( file_traj::T1 , max_lag_frac::T2 , dt::T3 ) where { T
         # Reading Trajectory
         traj = filexyz.readFileAtomList(file_traj)
         if traj == false
-            return zeros(1,1), zeros(1,1), test
+            return false, false
         end
 
         # Computing velocities
@@ -55,13 +55,13 @@ function vdosFromPosition( file_traj::T1 , max_lag_frac::T2 , dt::T3 ) where { T
         # Conversion to cm-1
         freq=freq.*conversion.tHz2cm
 
-    return freq, vdos, test
+    return freq, vdos
 end
 # Same thing but write the results in file_out
 function vdosFromPosition( file_traj::T1 , file_out::T2 , max_lag_frac::T3 , dt::T4 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Real, T4 <: Real }
 
-    freq,vdos,test=vdosFromPosition( file_traj , max_lag_frac , dt )
-    if ! test
+    freq, vdos = vdosFromPosition( file_traj , max_lag_frac , dt )
+    if freq == false
         return zeros(1,1),zeros(1,1),false
     end
 
@@ -72,7 +72,7 @@ function vdosFromPosition( file_traj::T1 , file_out::T2 , max_lag_frac::T3 , dt:
     end
     close(file_o)
 
-    return freq, vdos, test
+    return freq, vdos
 end
 # Same thing but divides trajectory in nb_windows time windows
 # and averages the resulting VDOS for smoother result
@@ -81,7 +81,7 @@ function vdosFromPosition( file_traj::T1 , max_lag_frac::T2 , dt::T3, nb_windows
         # Reading Trajectory
         traj = filexyz.readFileAtomList(file_traj)
         if traj == false
-            return zeros(1,1), zeros(1,1), test
+            return false, false
         end
 
         # Computing velocities
@@ -122,14 +122,14 @@ function vdosFromPosition( file_traj::T1 , max_lag_frac::T2 , dt::T3, nb_windows
         # Conversion to cm-1
         freq=freq.*conversion.tHz2cm
 
-    return freq, vdos, test
+    return freq, vdos
 end
 # Same thing but write the results in file_out
 function vdosFromPosition( file_traj::T1 , file_out::T2 , max_lag_frac::T3 , dt::T4, nb_windows::T5 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Real, T4 <: Real, T5 <: Int }
 
-    freq,vdos,test=vdosFromPosition( file_traj , max_lag_frac , dt, nb_windows )
-    if ! test
-        return zeros(1,1),zeros(1,1),false
+    freq, vdos = vdosFromPosition( file_traj , max_lag_frac , dt, nb_windows )
+    if freq == false
+        return false, false
     end
 
     # Writting data to file
@@ -139,7 +139,7 @@ function vdosFromPosition( file_traj::T1 , file_out::T2 , max_lag_frac::T3 , dt:
     end
     close(file_o)
 
-    return freq, vdos, test
+    return freq, vdos
 end
 #==============================================================================#
 
@@ -150,7 +150,7 @@ function computeGr( file_in::T1, a::T2, rmin::T3, rmax::T4, dr::T5 ) where { T1 
     # Reading trajectory
     traj = filexyz.readFileAtomList(file_in)
     if traj == false
-        return zeros(1,1), test
+        return false
     end
 
     #Building cell
@@ -182,14 +182,14 @@ function computeGr( file_in::T1, a::T2, rmin::T3, rmax::T4, dr::T5 ) where { T1 
         gr[i] = gr[i]*V/(nb_step*nb_atoms*(nb_atoms-1)/2)/(4*pi*dr*(i*dr+rmin)^2)
     end
 
-    return gr,test
+    return gr
 end
 function computeGr( file_in::T1, file_out::T2, V::T3, rmin::T4, rmax::T5, dr::T6 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
 
-    gr,test=computeGr(file_in,V,rmin,rmax,dr)
+    gr = computeGr(file_in,V,rmin,rmax,dr)
 
-    if ! test
-        return zeros(1,1),false
+    if gr == false
+        return false
     end
 
     file_o=open(file_out,"w")
@@ -198,7 +198,7 @@ function computeGr( file_in::T1, file_out::T2, V::T3, rmin::T4, rmax::T5, dr::T6
     end
     close(file_o)
 
-    return gr, test
+    return gr
 end
 #==============================================================================#
 
