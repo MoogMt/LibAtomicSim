@@ -34,6 +34,7 @@ ang2meters = 1/meters2Ang
 
 # Volume
 a3tocm3=10^(-24)
+a3tom3=10^(-30)
 
 # Mass
 amu2gram = 1.660539040*10^(-24)

@@ -483,7 +483,7 @@ function getNbStepStress( file_path::T1 ) where { T1 <: AbstractString }
     # Returns number of blocks
     return Int(nb_line/stress_block_size)
 end
-function readStress( file_path::T1 ) where { T1 <: AbstractString, T2 <: Int }
+function readStress( file_path::T1 ) where { T1 <: AbstractString }
 
     # Checking file exists
     nb_step = getNbStepStress( file_path )
