@@ -819,12 +819,13 @@ function readFtraj( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T
         if (step-1) % stride_ == 0
             for atom=1:nb_atoms
                 keywords=split( readline( file_in ) )
-                if keywords[1] != "<<<<<<"
-                    for i=1:3
-                        positions[count_step,atom,i]  = parse(Float64, keywords[ i + col_start_position ] )
-                        velocities[count_step,atom,i] = parse(Float64, keywords[ i + col_start_velocity ] )
-                        forces[count_step,atom,i]     = parse(Float64, keywords[ i + col_start_force ] )
-                    end
+                if keywords[1] == "<<<<<<"
+                    keywords=split( readline( file_in ) )
+                end
+                for i=1:3
+                    positions[count_step,atom,i]  = parse(Float64, keywords[ i + col_start_position ] )
+                    velocities[count_step,atom,i] = parse(Float64, keywords[ i + col_start_velocity ] )
+                    forces[count_step,atom,i]     = parse(Float64, keywords[ i + col_start_force ] )
                 end
             end
             count_step += 1
@@ -866,12 +867,13 @@ function readFtraj( file_path::T1, stride_::T2, nb_ignored::T3 ) where { T1 <: A
         if (step-1) % stride_ == 0
             for atom=1:nb_atoms
                 keywords=split( readline( file_in ) )
-                if keywords[1] != "<<<<<<"
-                    for i=1:3
-                        positions[count_step,atom,i]  = parse(Float64, keywords[ i + col_start_position ] )
-                        velocities[count_step,atom,i] = parse(Float64, keywords[ i + col_start_velocity ] )
-                        forces[count_step,atom,i]     = parse(Float64, keywords[ i + col_start_force ] )
-                    end
+                if keywords[1] == "<<<<<<"
+                    keywords=split( readline( file_in ) )
+                end
+                for i=1:3
+                    positions[count_step,atom,i]  = parse(Float64, keywords[ i + col_start_position ] )
+                    velocities[count_step,atom,i] = parse(Float64, keywords[ i + col_start_velocity ] )
+                    forces[count_step,atom,i]     = parse(Float64, keywords[ i + col_start_force ] )
                 end
             end
             count_step += 1
@@ -919,12 +921,13 @@ function readFtraj( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T4 ) whe
         if (step-1) % stride_ == 0
             for atom=1:nb_atoms
                 keywords=split( readline( file_in ) )
-                if keywords[1] != "<<<<<<"
-                    for i=1:3
-                        positions[count_step,atom,i]  = parse(Float64, keywords[ i + col_start_position ] )
-                        velocities[count_step,atom,i] = parse(Float64, keywords[ i + col_start_velocity ] )
-                        forces[count_step,atom,i]     = parse(Float64, keywords[ i + col_start_force ] )
-                    end
+                if keywords[1] == "<<<<<<"
+                    keywords=split( readline( file_in ) )
+                end
+                for i=1:3
+                    positions[count_step,atom,i]  = parse(Float64, keywords[ i + col_start_position ] )
+                    velocities[count_step,atom,i] = parse(Float64, keywords[ i + col_start_velocity ] )
+                    forces[count_step,atom,i]     = parse(Float64, keywords[ i + col_start_force ] )
                 end
             end
             if count_step >= nb_max
