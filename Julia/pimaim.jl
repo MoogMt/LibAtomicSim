@@ -105,6 +105,29 @@ function readPositions( path_file::T1, nb_atoms::T2 ) where { T1 <: AbstractStri
 
     return positions
 end
+function readPositionsUpToCrash( path_file::T1, nb_atoms::T2 ) where { T1 <: AbstractString, T2 <: Int }
+
+    nb_lines = utils.getNbLines( path_file )
+    if nb_lines == false
+        return false
+    end
+
+    nb_step = Int( trunc( nb_lines/nb_atoms ) )
+    positions=zeros(Real,nb_step,nb_atoms,3)
+
+    handle_in = open( path_file )
+    for step=1:nb_step
+        for atom=1:nb_atoms
+            keys = split( readline( handle_in ) )
+            for i=1:3
+                positions[step,atom,i] = parse( Float64, keys[i] )*conversion.bohr2Ang
+            end
+        end
+    end
+    close( handle_in )
+
+    return positions
+end
 function readPosCar( path_file::T1 ) where { T1 <: AbstractString }
 
     #---------------------------------------------------------------------
@@ -220,6 +243,57 @@ function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T
         return false
     end
     nb_step = Int(nb_lines/nb_atoms)
+    traj = Vector{AtomList}( undef, nb_step )
+    #---------------------------------------------------------------------
+
+    #---------------------------------------------------------------------
+    handle_in = open( path_file )
+    for step=1:nb_step
+        box_len=zeros(Real,3)
+        traj[step] = atom_mod.AtomList(nb_atoms)
+        matrix2 = copy( cell_mod.params2Matrix( cells[step] ).matrix )
+        for i=1:3
+            box_len[i] = LinearAlgebra.norm( matrix2[:,i] )*conversion.ang2Bohr
+        end
+        for atom=1:nb_atoms
+            temp = zeros(Real,3)
+            keys = split( readline( handle_in ) )
+            for i=1:3
+                temp[i] = parse(Float64,keys[i])/box_len[i]
+            end
+            for i=1:3
+                for j=1:3
+                    traj[step].positions[atom,i] += temp[j]*matrix2[i,j]
+                end
+            end
+            traj[step].names[atom] = names_[atom]
+            traj[step].index[atom] = atom
+        end
+    end
+    #---------------------------------------------------------------------
+    close( handle_in )
+
+    return traj
+end
+function readPositionsUpToCrash( path_file::T1, species::Vector{T2}, nb_species::Vector{T3}, cells::Vector{T4} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int, T4 <: cell_mod.Cell_param }
+
+    #---------------------------------------------------------------------
+    nb_lines = utils.getNbLines( path_file )
+    if nb_lines == false
+        return false
+    end
+    #---------------------------------------------------------------------
+
+    #---------------------------------------------------------------------
+    nb_atoms = sum(nb_species)
+    names_=atom_mod.buildNames( species, nb_species )
+    nb_step = Int( trunc( nb_lines/nb_atoms ) )-1
+    if nb_step < 1
+        return false
+    end
+    if size(cells)[1] < nb_step
+        nb_step = size(cells)[1]
+    end
     traj = Vector{AtomList}( undef, nb_step )
     #---------------------------------------------------------------------
 
