@@ -211,6 +211,7 @@ end
 
 # Structure Factor
 #==============================================================================#
+# Do not trust this ( MM 03/2020 )
 function computeFQ( gr::Vector{T1}, rmin::T2, rmax::T3, dr::T4, rho::T5 ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 <: Real, T5 <: Real }
     nb_box=1000
     nb_box_int=Int(trunc((rmax-rmin)/dr))
@@ -314,10 +315,27 @@ function computeMSD( positions::Array{T1,2}, barycenter_global::Array{T2,2} ) wh
     for step=1:nb_step
         dist=0
         for i=1:3
-            dist_loc=(positions[step,i]-positions[1,i])-barycenter_global[step]
+            dist_loc=( positions[step,i] - barycenter_global[ step, i ] ) - ( positions[ 1, i ] - barycenter_global[ 1, i ] )
             dist += dist_loc*dist_loc
         end
         msd[step] = dist
+    end
+    return msd
+end
+function computeMSD( positions::Array{T1,3}, barycenter_global::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
+    nb_step  = size( positions )[1]
+    nb_atoms = size( positions )[2]
+    msd = zeros( nb_step )
+    for step=1:nb_step
+        for atom=1:nb_atoms
+            dist=0
+            for i=1:3
+                dist_loc = ( positions[ step, atom, i] - barycenter_global[ step, i ] ) - ( positions[ 1, atom, i ] - barycenter_global[ 1, i ] )
+                dist += dist_loc*dist_loc
+            end
+            msd[step] += dist
+        end
+        msd[step] /= nb_atoms
     end
     return msd
 end
