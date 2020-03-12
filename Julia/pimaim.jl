@@ -377,6 +377,7 @@ function readCellParams( path_file_len::T1, path_file_angles::T2 ) where { T1 <:
     tau=180/pi
     handle_in_len = open( path_file_len )
     handle_in_ang = open( path_file_angles )
+    cells = Vector{ cell_mod.Cell_param }( undef, nb_step )
     for line=1:nb_step
         key_len = split( readline( handle_in_len ) )
         key_ang = split( readline( handle_in_ang ) )
@@ -387,13 +388,14 @@ function readCellParams( path_file_len::T1, path_file_angles::T2 ) where { T1 <:
         stock=angles[line,1]
         angles[line,1]=angles[line,3]
         angles[line,3]=stock
+        cells[ line ] = cell_mod.Cell_param( lengths[line,:], angles[line,:] )
         #angles[line,:]=circshift(angles[line,:],1)
     end
     close( handle_in_len )
     close( handle_in_ang )
     #-------------------------------------------------
 
-    return lengths, angles
+    return cells
 end
 function traj2pdb( input_path::T1, position_path::T2, cell_angles_path::T3, cell_length_path::T4, out_path::T5 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString, T4 <: AbstractString, T5 <: AbstractString }
     species, species_nb = pimaim.getSpeciesAndNumber( input_path )
@@ -462,6 +464,47 @@ function readPressure( path_file::T1 ) where { T1 <: AbstractString }
     close(handle_in)
 
     return pressure
+end
+function readFullOutput( path_file::T1 ) where { T1 <: AbstractString }
+    nb_lines = utils.getNbLines( path_file)
+    if nb_lines == false
+        return false
+    end
+    if nb_lines % 7 != 0
+        print("Issue with fulloutput.dat at ", path_file,"!\n")
+        return false
+    end
+    nb_step = Int( nb_lines/7 )
+    handle_in = open( path_file )
+    data = zeros(nb_step,6)
+    for step=1:nb_step
+        for i=1:6
+            test=readline( handle_in )
+        end
+        keys = readline( handle_in )
+        for i=1:6
+            data[ step, i ] = parse( Float64, split(keys)[i+1] )
+        end
+    end
+    close(handle_in)
+    return data
+end
+function writeFullData( handle_out::T1, data::Array{T2,2} ) where { T1 <: IO, T2 <: Real }
+    nb_step = size( data )[1]
+    n_dim = size( data )[2]
+    for step=1:nb_step
+        for i=1:n_dim
+            Base.write( handle_out, string( data[step,i], " " ) )
+        end
+        Base.write( handle_out, string( "\n" ) )
+    end
+    return true
+end
+function writeFullData( file_out::T1, data::Array{T1,2} ) where { T1 <: AbstractString, T2 <: Real }
+    handle_out = open( file_out, "w"  )
+    test=writeFullData( handle_out, data )
+    close( handle_out )
+    return test
 end
 
 end
