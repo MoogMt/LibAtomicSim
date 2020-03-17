@@ -77,17 +77,19 @@ function readStructureAtomList( file_path::T1 ) where { T1 <: AbstractString }
     handle_in = open( file_path )
 
     #----------------------------------------------------
-    cell = cell_mod.Cell_param()
+    lengths = zeros( Real, 3 )
+    angles = zeros( Real, 3 )
     keyword=split( readline( handle_in ) )
     if keyword[1] == "CRYST1"
         for i=1:3
-            cell.length[i] = parse( Float64, keyword[i+1] )
-            cell.angles[i] = parse( Float64, keyword[i+4] )
+            length[i] = parse( Float64, keyword[i+1] )
+            angles[i] = parse( Float64, keyword[i+4] )
         end
     else
         print("Problem with .pdb file at: ",file_path,"\n")
         return false
     end
+    cell = cell_mod.Cell_param( lengths, angles)
     #----------------------------------------------------
 
     #----------------------------------------------------
@@ -232,19 +234,20 @@ function readTrajAtomList( file_path::T1 ) where { T1 <: AbstractString }
         traj[step] = atom_mod.AtomList(nb_atoms)
         count_ = 1
         while ! check
-            keyword = readline( handle_in )
-            if keyword[1] != "CRYST1"
+            keyword = split(readline( handle_in ))
+            if keyword[1] == "CRYST1"
+                lengths = zeros(Real, 3)
+                angles = zeros(Real,3)
                 for i=1:3
-                    cells[step].length[i] = parse( Float64, split(keyword)[i+1] )
-                    cell[step].angles[i] = parse( Float64, split(keyword)[i+4] )
+                    lengths[i] = parse( Float64, keyword[i+1] )
+                    angles[i] = parse( Float64, keyword[i+4] )
                 end
+                cells[step] = cell_mod.Cell_param( lengths, angles)
             elseif keyword[1] == "ATOM"
-                traj[step].atom_index[count_] = parse( Int, keyword[2] )
-                traj[step].atom_names[count_] = keyword[3]
-                traj[step].mol_names[count_] =  keyword[4]
-                traj[step].mol_index[count_] = parse( Int, keyword[6] )
+                traj[step].index[count_] = parse( Int, keyword[2] )
+                traj[step].names[count_] = keyword[3]
                 for i=1:3
-                    traj[step].positions[count_,i] = parse( Float64, keyword[6+i] )
+                    traj[step].positions[count_,i] = parse( Float64, keyword[5+i] )
                 end
                 count_ += 1
             elseif keyword[1] == "END"

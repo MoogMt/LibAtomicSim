@@ -149,9 +149,12 @@ function readPosCar( path_file::T1 ) where { T1 <: AbstractString }
     end
     cell = cell_mod.Cell_matrix(matrix)
     #---------------------------------------------------------------------
-    matrix2=copy(matrix)
+    matrix2  = copy( matrix )
     for i=1:3
         matrix2[i,:] /= LinearAlgebra.norm(matrix2[i,:])
+    end
+    if matrix2[2,1] == 0
+        matrix2 = transpose( matrix2 )
     end
     #---------------------------------------------------------------------
     species=split( readline( handle_in ) )
