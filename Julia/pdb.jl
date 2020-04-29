@@ -68,33 +68,34 @@ function getNbAtoms( file_path::T1 ) where { T1 <: AbstractString }
 end
 #----------------------------------------------------
 # Reads a .pdb file containing a single structure
-function readStructureAtomList( file_path::T1 ) where { T1 <: AbstractString }
+function readAtomList( file_path::T1 ) where { T1 <: AbstractString }
 
-    #-----------------------------
-    nb_atoms=getNbAtoms(file_path)
-    #-----------------------------
+    nb_atoms = getNbAtoms(file_path)
+    if nb_atoms == false
+        return false, false
+    end
 
     handle_in = open( file_path )
 
-    #----------------------------------------------------
+    # Cell
+    #------------------------------
     lengths = zeros( Real, 3 )
     angles = zeros( Real, 3 )
     keyword=split( readline( handle_in ) )
     if keyword[1] == "CRYST1"
         for i=1:3
-            length[i] = parse( Float64, keyword[i+1] )
+            lengths[i] = parse( Float64, keyword[i+1] )
             angles[i] = parse( Float64, keyword[i+4] )
         end
     else
         print("Problem with .pdb file at: ",file_path,"\n")
-        return false
+        return false, false
     end
-    cell = cell_mod.Cell_param( lengths, angles)
-    #----------------------------------------------------
+    cell = cell_mod.Cell_param( lengths, angles )
+    #------------------------------
 
-    #----------------------------------------------------
-    # Reading informations about cell and number of atoms
-    #----------------------------------------------------
+    # Atoms
+    #------------------------------
     atoms = atom_mod.AtomList( nb_atoms )
     for atom=1:nb_atoms
         keyword = split( readline( handle_in ) )
@@ -109,18 +110,19 @@ function readStructureAtomList( file_path::T1 ) where { T1 <: AbstractString }
             return false
         end
     end
-    #----------------------------------------------------
+    #------------------------------
 
     close( handle_in )
 
     return atoms, cell
 end
 # Reads a .pdb file containing a single structure
-function readStructureAtomMolList( file_path::T1 ) where { T1 <: AbstractString }
+function readAtomMolList( file_path::T1 ) where { T1 <: AbstractString }
 
-    #-----------------------------
     nb_atoms=getNbAtoms(file_path)
-    #-----------------------------
+    if nb_atoms == false
+        return false, false
+    end
 
     handle_in = open( file_path )
 
@@ -164,7 +166,7 @@ function readStructureAtomMolList( file_path::T1 ) where { T1 <: AbstractString 
     return atoms, cell
 end
 #----------------------------------------------------
-function readTrajNVAtomList( file_path::T1 ) where { T1 <: AbstractString }
+function readTrajAtomListFixedCell( file_path::T1 ) where { T1 <: AbstractString }
 
     nb_step = getNbSteps( file_path )
     nb_atoms = getNbAtoms( file_path )
@@ -399,7 +401,7 @@ function writePdb( file::T1, atoms::T2, cell::T3 ) where { T1 <: AbstractString 
         atom=string(atom,atoms.index[i])
         # If atom name is 1 length, start on 13, otherwise 14
         # atom names are left justified here
-        if length(atoms.names[i])==1
+        if length(atoms.names[i]) == 1
             atom=utils.spaces(atom,13-length(atom))
         else
             atom=utils.spaces(atom,14-length(atom))

@@ -3,7 +3,7 @@ module conversion
 # Pressure
 aU2Pascal = 2.9421912*10^(13)
 pascal2AU = 1/aU2Pascal
-gpa2au = 6.798*10^(-5)
+gpa2au = 3.399*10^(-5)
 au2Gpa = 1/gpa2au
 kbar2Gpa = 0.1
 GPa2kbar = 10

@@ -283,4 +283,8 @@ function traceLine( atom1::T1, atom2::T2, nb_points::T3, volume::T4, atoms::T5 ,
     return distances, data
 end
 
+function centerOnPosition( target_position::Vector{T1}, volume::T2 ) where { T1 <: Real, T2 <: Volume }
+    
+end
+
 end
