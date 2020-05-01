@@ -109,18 +109,19 @@ function writeErrors( file_out::T1, positions::Array{T2,2}, distances_matrix::Ar
     close(handle_out)
     return true
 end
-function writePlotter( file_out::T1, structure_names::Vector{T2}, positions::Array{T3,2}, columns::Vector{T4}, offset::Vector{T5} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Real, T4 <: Int, T5 <: Real }
-    nb_point = size(positions)[2]
+function writePlotter( file_out::T1, map_file::T2, structure_names::Vector{T3}, positions::Array{T4,2}, columns::Vector{T5}, offset::Vector{T6} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString, T4 <: Real, T5 <: Int, T6 <: Real }
+    nb_point = size(positions)[1]
     handle_out = open( file_out, "w" )
-    Base.write( handle_out, string( "set term qt 0 font \"Arial 12,12\"" ) )
+    Base.write( handle_out, string( "set term qt 0 font \"Arial 12,12\" \n" ) )
     for i=1:nb_point
         str = string( "set label \"", structure_names[i] ,"\" at " )
         str = string( str, positions[ i, columns[1] ] + offset[1], "," )
         str = string( str, positions[ i, columns[2] ] + offset[2], "\n" )
+        Base.write( handle_out, str)
     end
-    str = string( str, "plot \"", file_out, "\" u ", columns[1], ":", columns[2], " ps 1 pt 7 title \"\"\n" )
-    str = string( str, "set xlabel \"dx\"\n" )
-    str = string( str, "set ylabel \"dy\"\n" )
+    Base.write( handle_out, string( "plot \"", file_out, "\" u ", columns[1], ":", columns[2], " ps 1 pt 7 title \"\" \n" ) )
+    Base.write( handle_out, string( "set xlabel \"dx\"\n" ) )
+    Base.write( handle_out, string( "set ylabel \"dy\"\n" ) )
     close( handle_out )
     return true
 end
