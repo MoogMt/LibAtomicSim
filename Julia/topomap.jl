@@ -43,6 +43,29 @@ function computeCost( distance_matrix::Array{T1,2}, positions::Array{T2}, cost_c
     end
     return cost
 end
+function computeErrors( positions::Array{T1,2}, distances_matrix::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
+    nb_points = size(positions)[1]
+    max_err  = 0
+    mean_err = 0
+    count_ = 0
+    for structure=1:nb_points-1
+        for structure2=structure+1:nb_points
+            distance=0
+            for i=1:n_dimension
+                dist = positions[ structure, i ] - positions[ structure2, i ]
+                distance += dist*dist
+            end
+            distance=sqrt(distance)
+            err = abs( distance - distances_matrix[ structure, structure2 ] )
+            mean_err += err
+            count_ += 1
+            if err > max_err
+                max_err = err
+            end
+        end
+    end
+    return mean_err/count_, max_err
+end
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
@@ -53,7 +76,7 @@ function monteCarloProject( n_dim::T1, n_iterations::T2, cost_coeff::T3, move_co
     # Compute initial cost
     cost = computeCost( distance_matrix, point_pos , cost_coeff )
     for iteration=1:n_iterations
-        print("MonteCarlo Projection - Progress: ",iteration/n_iterations*100,"%\n")
+        print("MonteCarlo Projection - Progress: ", round(iteration/n_iterations*100,digits=3),"%\n")
         # Choose a random point
         random_point = Int( trunc( rand()*nb_structure+1 ) )
         # Move
@@ -96,14 +119,15 @@ function writeErrors( file_out::T1, positions::Array{T2,2}, distances_matrix::Ar
     handle_out = open( file_out, "w")
     nb_structure = size(positions)[1]
     n_dimension = size(positions)[2]
-    for structure=1:nb_structure
+    for structure=1:nb_structure-1
         for structure2=structure+1:nb_structure
             distance=0
             for i=1:n_dimension
-                distance += (positions[structure,i]-positions[structure2,i])*(positions[structure,i]-positions[structure2,i])
+                dist = positions[ structure, i ] - positions[ structure2, i ]
+                distance += dist*dist
             end
             distance=sqrt(distance)
-            write( handle_out, string( distances_matrix[structure,structure2], " ", distance, "\n" ) )
+            write( handle_out, string( distances_matrix[ structure, structure2 ], " ", distance, "\n" ) )
         end
     end
     close(handle_out)
@@ -119,7 +143,7 @@ function writePlotter( file_out::T1, map_file::T2, structure_names::Vector{T3}, 
         str = string( str, positions[ i, columns[2] ] + offset[2], "\n" )
         Base.write( handle_out, str)
     end
-    Base.write( handle_out, string( "plot \"", file_out, "\" u ", columns[1], ":", columns[2], " ps 1 pt 7 title \"\" \n" ) )
+    Base.write( handle_out, string( "plot \"", map_file, "\" u ", columns[1], ":", columns[2], " ps 1 pt 7 title \"\" \n" ) )
     Base.write( handle_out, string( "set xlabel \"dx\"\n" ) )
     Base.write( handle_out, string( "set ylabel \"dy\"\n" ) )
     close( handle_out )
