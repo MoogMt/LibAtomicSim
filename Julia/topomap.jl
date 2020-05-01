@@ -3,22 +3,6 @@ module topomap
 using utils
 
 #-------------------------------------------------------------------------------
-function computeCost( distance_matrix::Array{T1,2}, positions::Array{T2}, cost_coeff::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Real }
-    n_structures=size(distance_matrix)[1]
-    cost=0.
-    n_dim=size(positions)[2]
-    for i=1:n_structures-1
-        for j=i+1:n_structures
-            dist = 0
-            for k=1:n_dim
-                dist += ( positions[i,k] - positions[j,k] )*( positions[i,k] - positions[j,k] )
-            end
-            dist=sqrt(dist)
-            cost += 0.5*cost_coeff*( dist - distance_matrix[i,j] )*( dist - distance_matrix[i,j] )
-        end
-    end
-    return cost
-end
 function readFrameToFrameMatrix( file_path::T1 ) where { T1 <: AbstractString }
     if ! isfile(file_path)
         print("File: ", file_path, " not found!\n")
@@ -40,6 +24,28 @@ function readFrameToFrameMatrix( file_path::T1 ) where { T1 <: AbstractString }
     close(handle_in)
     return distance_matrix, dist_max, nb_structure
 end
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+function computeCost( distance_matrix::Array{T1,2}, positions::Array{T2}, cost_coeff::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Real }
+    n_structures=size(distance_matrix)[1]
+    cost=0.
+    n_dim=size(positions)[2]
+    for i=1:n_structures-1
+        for j=i+1:n_structures
+            dist = 0
+            for k=1:n_dim
+                dist += ( positions[i,k] - positions[j,k] )*( positions[i,k] - positions[j,k] )
+            end
+            dist=sqrt(dist)
+            cost += 0.5*cost_coeff*( dist - distance_matrix[i,j] )*( dist - distance_matrix[i,j] )
+        end
+    end
+    return cost
+end
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
 function monteCarloProject( n_dim::T1, n_iterations::T2, cost_coeff::T3, move_coef::T4, thermalEnergy::T5, distance_matrix::Array{T6,2} ) where { T1 <: Int,  T2 <: Int, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
     nb_structure=size(distance_matrix)[1]
     # Randomly put points on the plan
@@ -70,6 +76,9 @@ function monteCarloProject( n_dim::T1, n_iterations::T2, cost_coeff::T3, move_co
     end
     return  point_pos, cost
 end
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
 function writeMap( file_out::T1, positions::Array{T2,2} ) where { T1 <: AbstractString, T2 <: Real }
     handle_out = open(file_out,"w")
     nb_structure=size(positions)[1]
@@ -100,6 +109,21 @@ function writeErrors( file_out::T1, positions::Array{T2,2}, distances_matrix::Ar
         end
     end
     close(handle_out)
+    return true
+end
+function writePlotter( file_out::T1, structure_names::T2, positions::Array{T3,2}, columns::Vector{T4}, offset::Vector{T5} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Real, T4 <: Int, T5 <: Real }
+    nb_point = size(positions)[2]
+    handle_out = open( file_out, "w" )
+    Base.write( handle_out, string( "set term qt 0 font \"Arial 12,12\"" ) )
+    for i=1:nb_point
+        str = string( "set label \"",structure_names[i],"\" at " )
+        str = string( str, positions[ i, columns[1] ] + offset[1], "," )
+        str = string( str, positions[ i, columns[2] ] + offset[2], "\n" )
+    end
+    str = string( str, "plot \"", file_out, "\" u ",columns[1],":"columns[2]," ps 1 pt 7 title \"\"\n" )
+    str = string( str, "set xlabel \"dx\"\n" )
+    str = string( str, "set ylabel \"dy\"\n")
+    close( handle_out )
     return true
 end
 #-------------------------------------------------------------------------------
