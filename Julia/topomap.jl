@@ -44,7 +44,8 @@ function computeCost( distance_matrix::Array{T1,2}, positions::Array{T2}, cost_c
     return cost
 end
 function computeErrors( positions::Array{T1,2}, distances_matrix::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
-    nb_points = size(positions)[1]
+    nb_points   = size(positions)[1]
+    n_dimension = size(positions)[2]
     max_err  = 0
     mean_err = 0
     count_ = 0
