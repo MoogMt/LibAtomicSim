@@ -1,8 +1,7 @@
 module pimaim
 
-using LinearAlgebra
-
 using conversion
+using LinearAlgebra
 using atom_mod
 using cell_mod
 using filexyz
@@ -38,8 +37,6 @@ function getSpeciesAndNumber( path_file::T1 ) where { T1 <: AbstractString }
     return species, species_nb
 end
 #-------------------------------------------------------------------------------
-
-#------------------------------------------------------------------------------
 function readPositions( path_file::T1, nb_atoms::T2 ) where { T1 <: AbstractString, T2 <: Int }
 
     nb_lines = utils.getNbLines( path_file )
@@ -194,7 +191,10 @@ function readPosCarTraj( path_file::T1, species::Vector{T2}, nb_species::Vector{
 end
 function readTrajPosCar( input_path::T1, poscar_path::T2, cell_length_path::T3, cell_angles_path::T4 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString, T4 <: AbstractString }
     species, species_nb = pimaim.getSpeciesAndNumber( input_path )
-    traj = readPosCarTraj( position_path, species, species_nb )
+    if species == false || species_nb == false
+        return false, false
+    end
+    traj = readPosCarTraj( poscar_path, species, species_nb )
     if traj == false
         return false, false
     end
@@ -347,8 +347,8 @@ function readRestart( restart_path::T1, runtime_path::T2 ) where { T1 <: Abstrac
     handle_in = open( restart_path )
     check_position  = split( readline( handle_in ) )[1]
     check_velocity  = split( readline( handle_in ) )[1]
+    check_forces    = split( readline( handle_in ) )[1]
     check_polarity  = split( readline( handle_in ) )[1]
-    check_polarity2 = split( readline( handle_in ) )[1]
     #-----------------------------------------------------------------------
 
     #-----------------------------------------------------------------------
@@ -380,6 +380,50 @@ function readRestart( restart_path::T1, runtime_path::T2 ) where { T1 <: Abstrac
     #-----------------------------------------------------------------------
 
     #-----------------------------------------------------------------------
+    forces = false
+    if check_forces == "T"
+        forces = zeros(Real, nb_atoms, 3)
+        for atom=1:nb_atoms
+            keyword = split( readline( handle_in ) )
+            for i=1:3
+                forces[ atom, i ] = parse(Float64, keyword[i] )
+            end
+        end
+    end
+    #-----------------------------------------------------------------------
+
+    #-----------------------------------------------------------------------
+    nb_runs = parse(Int64, split( readline( handle_in ) )[1])
+    runs_nb_step = zeros( nb_runs )
+    for i=1:nb_runs
+        runs_nb_step[i] = parse(Int64, split( readline(handle_in) )[1] )
+    end
+    #-----------------------------------------------------------------------
+
+    #-----------------------------------------------------------------------
+    polarization = zeros( 30 )
+    for i=1:30
+        polarization[i] = parse(Float64, split( readline(handle_in) )[1] )
+    end
+    #-----------------------------------------------------------------------
+
+    #-----------------------------------------------------------------------
+    quad = zeros( 2, 2 )
+    for i=1:2
+        keys = split( readline( handle_in ) )
+        for j=1:2
+            quad[i,j] = parse(Float64, keys[j] )
+        end
+    end
+    #-----------------------------------------------------------------------
+
+    #-----------------------------------------------------------------------
+    for i=1:3
+        readline( handle_in )
+    end
+    #-----------------------------------------------------------------------
+
+    #-----------------------------------------------------------------------
     cell_matrix = zeros(Real,3,3)
     for i=1:3
         keyword = split( readline(handle_in) )
@@ -400,7 +444,7 @@ function readRestart( restart_path::T1, runtime_path::T2 ) where { T1 <: Abstrac
     cell = cell_mod.Cell_matrix(cell_matrix)
     #-----------------------------------------------------------------------
 
-    return atoms, velocity, cell
+    return atoms, velocity, forces, polarization, quad, cell, runs_nb_step
 end
 #------------------------------------------------------------------------------
 
@@ -450,14 +494,6 @@ function readCellParams( path_file_len::T1, path_file_angles::T2 ) where { T1 <:
     #-------------------------------------------------
 
     return cells
-end
-#------------------------------------------------------------------------------
-
-#------------------------------------------------------------------------------
-function positions2pdb( input_path::T1, poscar_path::T2, cell_length_path::T3, cell_angles_path::T4, out_path::T5 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString, T4 <: AbstractString, T5 <: AbstractString }
-    traj, cells = readTrajPosCar( input_path, poscar_path, cell_length_path, cell_angles_path )
-    pdb.writePdb( out_path , traj, cells )
-    return true
 end
 #------------------------------------------------------------------------------
 
@@ -546,6 +582,48 @@ function readFullOutput( path_file::T1 ) where { T1 <: AbstractString }
     close(handle_in)
     return data
 end
+function readf3( path_file::T1 ) where { T1 <: AbstractString }
+    handle_in = open( path_file )
+    nb_step = 0
+    while ! eof( handle_in )
+        readline( handle_in )
+        nb_step += 1
+    end
+    seekstart( handle_in )
+    col_nb = 9
+    readline( handle_in )
+    nb_step = nb_step-1
+    ring_data = zeros( nb_step, col_nb )
+    for step = 1:nb_step
+        keys = split( readline( handle_in ) )
+        for col=1:col_nb
+            ring_data[ step, col ] = parse(Float64, keys[col] )
+        end
+    end
+    close( handle_in )
+    return ring_data
+end
+#------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
+function extractTemperature( data::Array{T1,2} ) where { T1 <: Real }
+    return data[:,6]
+end
+function extractPressure( data::Array{T1,2} ) where { T1 <: Real }
+    return data[:,5]
+end
+function extractVolume( data::Array{T1,2} ) where { T1 <: Real }
+    return data[:,4]
+end
+function extractTotalEnergy( data::Array{T1,2} ) where { T1 <: Real }
+    return data[:,3]
+end
+function extractKineticEnergy( data::Array{T1,2} ) where { T1 <: Real }
+    return data[:,2]
+end
+function extractPotentialEnergy( data::Array{T1,2} ) where { T1 <: Real }
+    return data[:,1]
+end
 #------------------------------------------------------------------------------
 
 #------------------------------------------------------------------------------
@@ -631,6 +709,21 @@ function writeCrystalCell( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: Ab
         write( handle_in, string( lengths[i], "\n")  )
     end
     close(handle_in)
+    return true
+end
+function writeAcellTxt( path_file::T1, cells::Vector{T2} ) where { T1 <: AbstractString, T2 <: cell_mod.Cell_param }
+    handle_out=open( path_file, "w" )
+    nb_step = size(cells)[1]
+    for step = 1:nb_step
+        cell_matrix = cell_mod.params2Matrix(cells[step]).matrix
+        for i=1:3
+            for j=1:3
+                write( handle_out, string( round(cell_matrix[i,j],digits=3), " " ) )
+            end
+            write( handle_out, "\n" )
+        end
+    end
+    close(handle_out)
     return true
 end
 #------------------------------------------------------------------------------

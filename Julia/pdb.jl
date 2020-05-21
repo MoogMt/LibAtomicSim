@@ -274,7 +274,7 @@ function addJustifyLeft( max_column::T1, string_target::T2, string_toadd::T3 ) w
     return string( string_target, string_toadd)
 end
 function writeCRYST1(  handle_out::IO, lengths::Vector{Real}, angles::Vector{Real},
-    round_length::Int=3,
+    round_length::Int=2,
     round_angles::Int=2,
     space_group::AbstractString="P 1",
     z_number::Int=1,
