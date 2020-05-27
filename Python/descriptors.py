@@ -29,9 +29,15 @@ def createDescriptorsSingleSOAP(data, species, sigma_SOAP, cutoff_SOAP, nmax_SOA
     soap = SOAP( species=species, sigma=sigma_SOAP, periodic=periodic, rcut=cutoff_SOAP, nmax=nmax_SOAP, lmax=lmax_SOAP, sparse=sparse_SOAP )
     return soap.create( data )
 
-def createDescriptorsAllSOAP(data, species, sigma_SOAP, cutoff_SOAP, nmax_SOAP, lmax_SOAP, periodic,
-                          sparse_SOAP=default_sparse_SOAP
-                          ):
+def createDescriptorsAllSOAP( data, 
+                              species, 
+                              sigma_SOAP, 
+                              cutoff_SOAP, 
+                              nmax_SOAP, 
+                              lmax_SOAP, 
+                              periodic,
+                              sparse_SOAP=default_sparse_SOAP
+                            ):
 
     # Initialize SOAP
     soap = SOAP( species=species, sigma=sigma_SOAP, periodic=periodic, rcut=cutoff_SOAP, nmax=nmax_SOAP, lmax=lmax_SOAP, sparse=sparse_SOAP )

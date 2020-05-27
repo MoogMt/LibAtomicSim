@@ -53,3 +53,39 @@ def extractMSD(data):
 
 def extractSCFcomputationTime(data):
     return data[:,cpmd_scf_comptime-1]
+
+
+def getNbStepAtomLinesFtraj( file_input ):
+    nb_atoms=0
+    nb_lines=0
+    with open( file_input ) as handle_in:
+        for line in handle_in:
+            keys = line.rsplit()
+            if keys[0] != "<<<<<<" :
+                if keys[0] == "1" :
+                    nb_atoms+=1
+                nb_lines+=1
+    return int(nb_lines/nb_atoms), nb_atoms, nb_lines
+
+def readFtraj( file_input, correctness ):
+    nb_step, nb_atoms, nb_lines = getNbStepAtomLinesFtraj( file_input )
+    if nb_lines % nb_atoms != 0 and not correctness:
+        return False
+    positions  = np.zeros(( nb_step, nb_atoms, 3 ))
+    velocities = np.zeros(( nb_step, nb_atoms, 3 ))
+    forces     = np.zeros(( nb_step, nb_atoms, 3 ))        
+    handle_in = open( file_input )
+    for step in range(nb_step):
+        for atom in range(nb_atoms):
+            all_line = handle_in.readline()
+            line = all_line.rsplit()
+            if line[0] != "<<<<<<" :
+                for i in range(3):
+                    positions[ step, atom, i ]  = line[ i + 1 ]
+                    velocities[ step, atom, i ] = line[ i + 4 ]
+                    forces[ step, atom, i ]     = line[ i + 7 ]
+    handle_in.close()
+    return positions, velocities, forces
+
+
+
