@@ -56,7 +56,7 @@ test = Atoms( numbers=atoms_species,
                         )
 
 
-desc = descriptors.Descriptor("soap cutoff=3.5 l_max=4 n_max=4 atom_sigma=0.05 n_Z=2 Z={6 8} ")
+desc = descriptors.Descriptor("soap cutoff=4.5 l_max=4 n_max=4 atom_sigma=0.5 n_Z=2 Z={6 8} n_species=2 species_Z={6 8}")
 
 data_desc = desc.calc(test)
 
@@ -65,9 +65,12 @@ data = data_desc["data"]
 plt.plot(data[0,:])
 plt.plot(data[1,:])
 plt.plot(data[2,:])
+plt.show()
+
 plt.plot(data[3,:])
 plt.plot(data[4,:])
 plt.plot(data[5,:])
+plt.show()
 
 data.shape
 
