@@ -9,6 +9,13 @@ using pdb
 using periodicTable
 using utils
 
+# CONTAINS
+# - Readers:
+# getSpeciesAndNumber( path_file::AbstractString ) : Reads runtime.inpt and extracts species and their number of atoms
+# readPositions( path_file::AbstractString, nb_atoms::Int ) : Old - to be deleted
+# readPositionsUpToCrash( path_file::AbstractString, nb_atoms ) : Old to be deleted
+# readPositions( path_file::AbstractString, species::Vector(String), nb_species::Vector{Int}, cells::Vector{Cell_params} )
+
 # Reads runtime.inpt to get the species and number of species
 #-------------------------------------------------------------------------------
 function getSpeciesAndNumber( path_file::T1 ) where { T1 <: AbstractString }
@@ -209,6 +216,7 @@ function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T
     #---------------------------------------------------------------------
     nb_lines = utils.getNbLines( path_file )
     if nb_lines == false
+        # utils.getNbLines will have return the error message
         return false
     end
     #---------------------------------------------------------------------
