@@ -67,7 +67,7 @@ end
 mutable struct Cell_matrix
     matrix::Array{Real,2}
     function Cell_matrix()
-        new(Array{Real}(3,3));
+        new(Array{Real}(undef,3,3));
     end
     function Cell_matrix( matrix::Array{T1}) where { T1 <: Real }
         if size(matrix)[1]==3 && size(matrix)[2]==3
@@ -113,6 +113,14 @@ function cellMatrix2Params( cell_matrix::Array{T1,2} )  where { T1 <: Real }
 end
 function cellMatrix2Params( cell_matrix::T1 )  where { T1 <: Cell_matrix }
     return cellMatrix2Params( cell_matrix.matrix )
+end
+function cellMatrix2Params( cell_matrices::Vector{T1} ) where { T1 <: Cell_matrix }
+    nb_step = size( cell_matrices )[1]
+    cells_params = Vector{ Cell_param }(undef, nb_step )
+    for step=1:nb_step
+        cells_params[step] = cellMatrix2Params( cell_matrices[step] )
+    end
+    return cells_params
 end
 function cellVector2Matrix( vectors::T1 ) where { T1 <: Cell_vec }
     matrix=Cell_matrix()

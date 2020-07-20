@@ -17,6 +17,7 @@ using utils
 # readPositions( path_file::AbstractString, species::Vector(String), nb_species::Vector{Int}, cells::Vector{Cell_params} )
 
 # Reads runtime.inpt to get the species and number of species
+# Runtime extractions
 #-------------------------------------------------------------------------------
 function getSpeciesAndNumber( path_file::T1 ) where { T1 <: AbstractString }
     if ! isfile( path_file )
@@ -44,58 +45,10 @@ function getSpeciesAndNumber( path_file::T1 ) where { T1 <: AbstractString }
     return species, species_nb
 end
 #-------------------------------------------------------------------------------
-function readPositions( path_file::T1, nb_atoms::T2 ) where { T1 <: AbstractString, T2 <: Int }
 
-    nb_lines = utils.getNbLines( path_file )
-    if nb_lines == false
-        return false
-    end
-
-    if nb_lines % nb_atoms != 0
-        print("The number of lines is not a multiple of the number of atoms, either the number of atoms is wrong or the file is corrupted.\n")
-        print("File: ",path_file,"\n")
-        return false
-    end
-
-    nb_step = Int(nb_lines/nb_atoms)
-    positions=zeros(Real,nb_step,nb_atoms,3)
-
-    handle_in = open( path_file )
-    for step=1:nb_step
-        for atom=1:nb_atoms
-            keys = split( readline( handle_in ) )
-            for i=1:3
-                positions[step,atom,i] = parse( Float64, keys[i] )*conversion.bohr2Ang
-            end
-        end
-    end
-    close( handle_in )
-
-    return positions
-end
-function readPositionsUpToCrash( path_file::T1, nb_atoms::T2 ) where { T1 <: AbstractString, T2 <: Int }
-
-    nb_lines = utils.getNbLines( path_file )
-    if nb_lines == false
-        return false
-    end
-
-    nb_step = Int( trunc( nb_lines/nb_atoms ) )
-    positions=zeros(Real,nb_step,nb_atoms,3)
-
-    handle_in = open( path_file )
-    for step=1:nb_step
-        for atom=1:nb_atoms
-            keys = split( readline( handle_in ) )
-            for i=1:3
-                positions[step,atom,i] = parse( Float64, keys[i] )*conversion.bohr2Ang
-            end
-        end
-    end
-    close( handle_in )
-
-    return positions
-end
+# Reading positions
+#-----------------------------------------------------------------------------
+# POSCAR
 function readPosCar( path_file::T1 ) where { T1 <: AbstractString }
 
     #---------------------------------------------------------------------
@@ -157,6 +110,7 @@ function readPosCar( path_file::T1 ) where { T1 <: AbstractString }
 
     return atoms, cell
 end
+# poscart.out
 function readPosCarTraj( path_file::T1, species::Vector{T2}, nb_species::Vector{T3} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int }
 
     #---------------------------------------------------------------------
@@ -196,6 +150,50 @@ function readPosCarTraj( path_file::T1, species::Vector{T2}, nb_species::Vector{
 
     return traj
 end
+function readPosCarTraj( path_file::T1, species::Vector{T2}, nb_species::Vector{T3}, cells::Vector{T4} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int, T4 <: cell_mod.Cell_matrix }
+
+    #---------------------------------------------------------------------
+    nb_lines = utils.getNbLines( path_file )
+    if nb_lines == false
+        return false
+    end
+    #---------------------------------------------------------------------
+
+    #---------------------------------------------------------------------
+    nb_atoms = sum(nb_species)
+    names_=atom_mod.buildNames( species, nb_species )
+    if nb_lines % nb_atoms != 0
+        print("Problem within file: ",path_file," :\n")
+        print("Number of lines is not a multiple of the number of atoms given.\n")
+        return false
+    end
+    nb_step = Int(nb_lines/nb_atoms)
+    traj = Vector{AtomList}( undef, nb_step )
+    #---------------------------------------------------------------------
+
+    #---------------------------------------------------------------------
+    handle_in = open( path_file )
+    for step=1:nb_step
+        traj[step] = atom_mod.AtomList(nb_atoms)
+        matrix = cells[step].matrix
+        inv_matrix = inv( matrix )
+        matrix2 = cell_mod.params2Matrix( cell_mod.cellMatrix2Params( matrix ) ).matrix
+        for atom=1:nb_atoms
+            keys = split( readline( handle_in ) )
+            for i=1:3
+                traj[step].positions[atom,i] = parse( Float64, keys[i] )*conversion.bohr2Ang
+            end
+            positions_temp = matrix2*inv_matrix*traj[step].positions[atom,:]
+            traj[step].positions[atom,:] = positions_temp
+            traj[step].names[atom] = names_[atom]
+            traj[step].index[atom] = atom
+        end
+    end
+    #---------------------------------------------------------------------
+    close( handle_in )
+
+    return traj
+end
 function readTrajPosCar( input_path::T1, poscar_path::T2, cell_length_path::T3, cell_angles_path::T4 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString, T4 <: AbstractString }
     species, species_nb = pimaim.getSpeciesAndNumber( input_path )
     if species == false || species_nb == false
@@ -211,7 +209,23 @@ function readTrajPosCar( input_path::T1, poscar_path::T2, cell_length_path::T3, 
     end
     return traj, cells
 end
-function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T3}, cells::Vector{T4} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int, T4 <: cell_mod.Cell_param }
+function readTrajPosCar( input_path::T1, poscar_path::T2, cell_box_path::T3 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString }
+    species, species_nb = pimaim.getSpeciesAndNumber( input_path )
+    if species == false || species_nb == false
+        return false, false
+    end
+    cells = pimaim.readCellBox( cell_box_path )
+    if cells == false
+        return false, false
+    end
+    traj = readPosCarTraj( poscar_path, species, species_nb, cells )
+    if traj == false
+        return false, false
+    end
+    return traj, cell_mod.cellMatrix2Params( cells )
+end
+# positions.out
+function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T3}, cells::Vector{T4} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int, T4 <: cell_mod.Cell_matrix }
 
     #---------------------------------------------------------------------
     nb_lines = utils.getNbLines( path_file )
@@ -238,10 +252,11 @@ function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T
     for step=1:nb_step
         box_len=zeros(Real,3)
         traj[step] = atom_mod.AtomList(nb_atoms)
-        matrix2 = copy( cell_mod.params2Matrix( cells[step] ).matrix )
+        matrix2 = copy( cells[step].matrix )
         for i=1:3
             box_len[i] = LinearAlgebra.norm( matrix2[:,i] )*conversion.ang2Bohr
         end
+        cells[step].matrix = cell_mod.params2Matrix( cell_mod.cellMatrix2Params( cells[step] ) ).matrix
         for atom=1:nb_atoms
             temp = zeros(Real,3)
             keys = split( readline( handle_in ) )
@@ -250,7 +265,7 @@ function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T
             end
             for i=1:3
                 for j=1:3
-                    traj[step].positions[atom,i] += temp[j]*matrix2[i,j]
+                    traj[step].positions[atom,i] += temp[j]*cells[step].matrix[i,j]
                 end
             end
             traj[step].names[atom] = names_[atom]
@@ -313,6 +328,8 @@ function readPositionsUpToCrash( path_file::T1, species::Vector{T2}, nb_species:
 
     return traj
 end
+# *.xv
+#-----------------------------------------------------------------------------
 function readXV( path_file::T1 ) where { T1 <: AbstractString }
     matrix=zeros(Real,3,3)
     handle_in = open( path_file )
@@ -336,6 +353,7 @@ function readXV( path_file::T1 ) where { T1 <: AbstractString }
     close( handle_in )
     return atoms, cell
 end
+#  restart.dat
 function readRestart( restart_path::T1, runtime_path::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
 
     #-----------------------------------------------------------------------
@@ -456,7 +474,9 @@ function readRestart( restart_path::T1, runtime_path::T2 ) where { T1 <: Abstrac
 end
 #------------------------------------------------------------------------------
 
+# Reading Cell informations
 #------------------------------------------------------------------------------
+# celllens.out, cellangles.out -> Cell_param
 function readCellParams( path_file_len::T1, path_file_angles::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
 
     #-------------------------------------------------
@@ -500,6 +520,47 @@ function readCellParams( path_file_len::T1, path_file_angles::T2 ) where { T1 <:
     close( handle_in_len )
     close( handle_in_ang )
     #-------------------------------------------------
+
+    return cells
+end
+# cellbox.out -> Cell_matrix
+function readCellBox( path_file::T1 ) where { T1 <: AbstractString }
+    nb_lines = utils.getNbLines( path_file )
+
+    if nb_lines == 0
+        print("File ",path_file," is empty...\n")
+        return false
+    end
+
+    nb_line_per_box = 4
+    if nb_lines == false
+        return false
+    end
+    if nb_lines % nb_line_per_box != 0
+        print("File: ",path_file," does not have the correct number of lines.\n")
+        return false
+    end
+    nb_step = Int( nb_lines/nb_line_per_box )
+
+    cells = Vector{ cell_mod.Cell_matrix }(undef, nb_step )
+    handle_in = open( path_file )
+    for step = 1:nb_step
+        # Reading cell reduced matrix
+        cells[step] = cell_mod.Cell_matrix()
+        for i=1:3
+            keys = split( readline( handle_in ) )
+            for j=1:3
+                cells[step].matrix[i,j] = parse( Float64, keys[j] )
+            end
+        end
+        # Reading cell lengths
+        keys = split( readline( handle_in ) )
+        for i=1:3
+            length = parse( Float64, keys[i] )
+            cells[step].matrix[:,i] *= length*conversion.bohr2Ang
+        end
+    end
+    close( handle_in )
 
     return cells
 end
@@ -566,6 +627,7 @@ function readPressure( path_file::T1 ) where { T1 <: AbstractString }
 
     return pressure
 end
+# fulloutput.dat
 function readFullOutput( path_file::T1 ) where { T1 <: AbstractString }
     nb_lines = utils.getNbLines( path_file)
     if nb_lines == false
@@ -590,6 +652,7 @@ function readFullOutput( path_file::T1 ) where { T1 <: AbstractString }
     close(handle_in)
     return data
 end
+# f3.dat
 function readf3( path_file::T1 ) where { T1 <: AbstractString }
     handle_in = open( path_file )
     nb_step = 0
@@ -613,6 +676,7 @@ function readf3( path_file::T1 ) where { T1 <: AbstractString }
 end
 #------------------------------------------------------------------------------
 
+# Extract from fulloutput.dat data
 #------------------------------------------------------------------------------
 function extractTemperature( data::Array{T1,2} ) where { T1 <: Real }
     return data[:,6]
@@ -730,6 +794,35 @@ function writeAcellTxt( path_file::T1, cells::Vector{T2} ) where { T1 <: Abstrac
             end
             write( handle_out, "\n" )
         end
+    end
+    close(handle_out)
+    return true
+end
+function writeAcellTxt( path_file::T1, cells::Vector{T2} ) where { T1 <: AbstractString, T2 <: cell_mod.Cell_matrix }
+    handle_out=open( path_file, "w" )
+    nb_step = size(cells)[1]
+    for step = 1:nb_step
+        for i=1:3
+            for j=1:3
+                write( handle_out, string( round(cells[step].matrix[i,j],digits=3), " " ) )
+            end
+            write( handle_out, "\n" )
+        end
+    end
+    close(handle_out)
+    return true
+end
+function writeCell( path_file::T1, cells::Vector{T2}, timestep::T3 ) where { T1 <: AbstractString, T2 <: cell_mod.Cell_matrix, T3 <: Real }
+    nb_step=size(cells)[1]
+    handle_out = open( path_file, "w" )
+    for step=1:nb_step
+        write( handle_out, string( step, " ", step*timestep, " " ) )
+        for i=1:3
+            for j=1:3
+                write( handle_out, string( cells[step].matrix[i,j], " " ) )
+            end
+        end
+        write( handle_out, string( " ", det(cells[step].matrix), "\n" ) )
     end
     close(handle_out)
     return true
