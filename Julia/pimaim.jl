@@ -627,6 +627,36 @@ function readPressure( path_file::T1 ) where { T1 <: AbstractString }
 
     return pressure
 end
+function readTemperature( path_file::T1 ) where { T1 <: AbstractString }
+    nb_lines = utils.getNbLines( path_file )
+    if nb_lines == 0 || nb_lines == false
+        return false
+    end
+
+    temperature = zeros(Real, nb_lines)
+    handle_in = open( path_file )
+    for step=1:nb_lines
+        temperature[step] = parse(Float64, split( readline(handle_in) )[2] )
+    end
+    close( handle_in )
+    return temperature
+end
+function readVolume( path_file::T1 ) where { T1 <: AbstractString }
+
+    nb_lines = utils.getNbLines( path_file )
+    if nb_lines == 0 || nb_lines == false
+        return false
+    end
+
+    volume = zeros(Real, nb_lines)
+    handle_in = open( path_file )
+    for step=1:nb_lines
+        volume[step] = parse(Float64, split( readline(handle_in) )[2] )
+    end
+    close( handle_in )
+    return volume
+end
+
 # fulloutput.dat
 function readFullOutput( path_file::T1 ) where { T1 <: AbstractString }
     nb_lines = utils.getNbLines( path_file)
