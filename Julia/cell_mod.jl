@@ -100,6 +100,20 @@ mutable struct Cell
         matrix[3,3] = c
         new( [a,b,c], [90,90,90], matrix )
     end
+    function Cell( a::T1, b::T2, c::T3, alpha::T4, beta::T5, gamma::T6 ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
+        alpha2 = alpha*pi/180
+        beta2 = beta*pi/180
+        gamma2 = gamma*pi/180
+        matrix = zeros(3,3)
+        matrix[1,1] = a
+        matrix[1,2] = b*cos( gamma2 )
+        matrix[1,3] = c*cos( beta2 )
+        matrix[2,2] = b*sin( gamma2 )
+        matrix[2,3] = c*( cos( alpha2 ) - cos( beta2 )*cos( gamma2 ) )/sin( gamma2 )
+        volume=sqrt( 1 + 2*cos(alpha2)*cos(beta2)*cos(gamma2) -cos(alpha2)^2 -cos(beta2)^2 -cos(gamma2)^2 )
+        matrix[3,3] = c*volume/sin( gamma2 )
+        new( [a,b,c], [alpha,beta,gamma], matrix )
+    end
 end
 #------------------------------
 
