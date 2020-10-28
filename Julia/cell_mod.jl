@@ -86,6 +86,21 @@ mutable struct Cell_matrix
         end
     end
 end
+mutable struct Cell
+    lengths::Vector{Real}
+    angles::Vector{Real}
+    matrix::Array{Real,2}
+    function Cell()
+        new( zeros(3), zeros(3), zeros(3,3) )
+    end
+    function Cell( a::T1, b::T2, c::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Real }
+        matrix=zeros(3,3)
+        matrix[1,1] = a
+        matrix[2,2] = b
+        matrix[3,3] = c
+        new( [a,b,c], [90,90,90], matrix )
+    end
+end
 #------------------------------
 
 #------------------------------
@@ -147,6 +162,14 @@ function params2Matrix( cell_params::T1 ) where { T1 <: Cell_param }
     volume=sqrt( 1 + 2*cos(angles[1])*cos(angles[2])*cos(angles[3]) -cos(angles[1])^2 -cos(angles[2])^2 -cos(angles[3])^2 )
     matrix[3,3] = lengths[3]*volume/sin( angles[3] )
     return Cell_matrix( matrix )
+end
+function params2Matrix( cells_params::Vector{T1} ) where { T1 <: Cell_param }
+    nb_step = size(cells_params)[1]
+    cells_ = Vector{ Cell_matrix }( undef, nb_step )
+    for step=1:nb_step
+        cells_[step] = params2Matrix( cells_params[step] )
+    end
+    return cells_
 end
 #---------------------------------------------------------------------------\
 
