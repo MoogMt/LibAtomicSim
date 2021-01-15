@@ -120,7 +120,6 @@ end
 #------------------------------
 # General type and conversions
 #--------------------------------------------
-Cell=Union{Cell_param, Cell_vec, Cell_matrix}
 #---------------------------------------------
 
 # Conversions

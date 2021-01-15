@@ -17,6 +17,8 @@ hartree2SI = 4.35974417e-18;
 sI2hartree = 1/hartree2SI
 ry2eV = 13.605693009
 eV2Ry = 1/ry2eV
+kelvin2hartree = 0.0000032
+hartree2kelvin = 1/kelvin2hartree
 
 # Frequency
 hatime2fs = 2.4188843265857*0.01
