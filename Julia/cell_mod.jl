@@ -1,6 +1,5 @@
-module cell_mod
 
-export Cell_param, Cell_vec, Cell_matrix
+export Cell_param, Cell_matrix
 export Cell
 export vec2matrix, wrap, dist1D, distance, compressParams, compressAtoms
 export velocityFromPosition
@@ -13,16 +12,27 @@ using geom
 using graph
 #----------------------------
 
-#-------------
-# Structures
 #-----------------------------
+# Cell_param : describes the cell, using lengths and angles
 mutable struct Cell_param
-    length::Vector{Real}
-    angles::Vector{Real}
+
+    # Variables
+    #-------------------------
+    length::Vector{Real} # Lengths of the cell (angstroms)
+    angles::Vector{Real} # Angles of the cell (degrees)
+    #-------------------------
+
+    # Constructors
+    #--------------------------------------------------
+    # Creates a default_cell params (default lengths=1A, default angles=90°)
     function Cell_param()
-        new(zeros(Real,3),zeros(Real,3));
+        # Construct Object
+        new( ones(Real,3), ones(Real,3)*90.0 );
     end
-    function Cell_param( params::Vector{T1} ) where { T1 <: Real }
+    # Create a orthorombic cell, based on lengths parameters
+    function Cell_param( lengths::Vector{T1} ) where { T1 <: Real }
+        # Arguments:
+        # lengths: lengths of the
         new(params,ones(Real,3)*90)
     end
     function Cell_param( a::T1, b::T2, c::T3 ) where { T1 <: Real, T2<: Real, T3 <: Real }
@@ -34,76 +44,51 @@ mutable struct Cell_param
     function Cell_param( lengths::Vector{T1}, angles::Vector{T2} ) where { T1 <: Real, T2 <: Real }
         new( lengths, angles )
     end
+    #--------------------------------------------------
 end
-# Probably will be deleted soon as it is useless
-mutable struct Cell_vec
-    v1::Vector{Real}
-    v2::Vector{Real}
-    v3::Vector{Real}
-    function Cell_vec( )
-        new([],[],[]);
-    end
-    function Cell_vec( v1::Vector{T1} ) where { T1 <: Real }
-        if size(v1)[1] == 3
-            v2    = zeros(3)
-            v3    = zeros(3)
-            v2[2] = v1[1]
-            v3[3] = v1[1]
-            new( v1, v2, v3)
-        else
-            print("Error building vector !\n")
-            new( [], [], [] )
-        end
-    end
-    function Cell_vec( v1::Vector{T1}, v2::Vector{T2}, v3::Vector{T3} ) where { T1 <: Real, T2 <: Real, T3 <: Real }
-        if size(v1)[1] == 3 && size(v2)[1] == 3 && size(v3)[1] == 3
-            new( v1, v2, v3 )
-        else
-            print("Error building vector !\n")
-            new( [], [], [] )
-        end
-    end
-end
-mutable struct Cell_matrix
-    matrix::Array{Real,2}
-    function Cell_matrix()
-        new(Array{Real}(undef,3,3));
-    end
-    function Cell_matrix( matrix::Array{T1}) where { T1 <: Real }
-        if size(matrix)[1]==3 && size(matrix)[2]==3
-            new( matrix )
-        end
-    end
-    function Cell_matrix( a::T1, b::T1, c::T1 ) where { T1 <: Real }
-        new( [ [ a, 0, 0 ], [ 0, b, 0 ] , [ 0, 0, c ] ] )
-    end
-    function Cell_matrix( v1::Vector{T1}, v2::Vector{T2}, v3::Vector{T3} ) where { T1 <: Real, T2 <: Real, T3 <: Real }
-        if size(v1)[1] == 3 && size(v2)[1] == 3 && size(v3)[1] == 3
-            new( [ v1, v2, v3 ] )
-        else
-            print("Error building matrix!\n")
-            new( Array{Real}( 3, 3 ) )
-        end
-    end
-end
+# Cell : contains cell information both in parameters and matrix form
 mutable struct Cell
-    lengths::Vector{Real}
-    angles::Vector{Real}
-    matrix::Array{Real,2}
+
+    # Object variables
+    #-------------------------------
+    lengths::Vector{Real} # Contains the lengths of the cell (a,b,c) in angstroms
+    angles::Vector{Real}  # Angles of the cell (alpha,beta,gamma) in degrees
+    matrix::Array{Real,2} # Cell matrix
+    #-------------------------------
+
+    # Constructor functions
+    #-----------------------------------------------------
+    # Create a default cell (lengths=1,angles=90)
     function Cell()
-        new( zeros(3), zeros(3), zeros(3,3) )
+        # Create Object
+        new( ones(Real,3), ones(3)*90.0, Matrix{Real}(I,3,3)*1.0 )
     end
+    # Create an orthorombic cell using provided lengths
     function Cell( a::T1, b::T2, c::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Real }
+
+        # Create matrix
+        #------------------------
         matrix=zeros(3,3)
         matrix[1,1] = a
         matrix[2,2] = b
         matrix[3,3] = c
-        new( [a,b,c], [90,90,90], matrix )
+        #------------------------
+
+        # Create Object
+        new( [a,b,c], ones(3)*90.0, matrix )
     end
+    # Create lengths using provided lengths and angles (in degrees)
     function Cell( a::T1, b::T2, c::T3, alpha::T4, beta::T5, gamma::T6 ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
+
+        # Converts angles in radians
+        #----------------------------
         alpha2 = alpha*pi/180
         beta2 = beta*pi/180
         gamma2 = gamma*pi/180
+        #------------------------------
+
+        # Creating the cell matrix
+        #----------------------------------
         matrix = zeros(3,3)
         matrix[1,1] = a
         matrix[1,2] = b*cos( gamma2 )
@@ -112,15 +97,14 @@ mutable struct Cell
         matrix[2,3] = c*( cos( alpha2 ) - cos( beta2 )*cos( gamma2 ) )/sin( gamma2 )
         volume=sqrt( 1 + 2*cos(alpha2)*cos(beta2)*cos(gamma2) -cos(alpha2)^2 -cos(beta2)^2 -cos(gamma2)^2 )
         matrix[3,3] = c*volume/sin( gamma2 )
+        #------------------------------------
+
+        # Create matrix
         new( [a,b,c], [alpha,beta,gamma], matrix )
     end
+    #----------------------------------------------------------
 end
-#------------------------------
-
-#------------------------------
-# General type and conversions
-#--------------------------------------------
-#---------------------------------------------
+#--------------------------------------------------------------
 
 # Conversions
 #-------------------------------------------------------------------------------
@@ -150,19 +134,7 @@ function cellMatrix2Params( cell_matrices::Vector{T1} ) where { T1 <: Cell_matri
     end
     return cells_params
 end
-function cellVector2Matrix( vectors::T1 ) where { T1 <: Cell_vec }
-    matrix=Cell_matrix()
-    for i=1:3
-        matrix.matrix[i,1] = vectors.v1[i]
-    end
-    for i=1:3
-        matrix.matrix[i,2] = vectors.v2[i]
-    end
-    for i=1:3
-        matrix.matrix[i,3] = vectors.v3[i]
-    end
-    return matrix
-end
+
 function params2Matrix( cell_params::T1 ) where { T1 <: Cell_param }
     matrix=zeros(3,3)
     lengths=copy( cell_params.length)
