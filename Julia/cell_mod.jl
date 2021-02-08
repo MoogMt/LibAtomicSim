@@ -299,13 +299,15 @@ function getVolume( cell_param::T1 ) where { T1 <: Cell_param }
 end
 #-------------------------------------------------------------------------------
 
-# Wrapp functions (put the atoms back into the cell)
+# Wrap functions (put the atoms back into the cell)
 #-------------------------------------------------------------------------------
-# Wrap a scalar position
+# Wrap a scalar position, within a box defined by a given length
 function wrap( position::T1, length::T2 ) where { T1 <: Real, T2 <: Real}
     # Argument
-    # - position: the position to wrap, scalar
+    # - position: the position to wrap, ( real scalar, strictly positive )
     # - length:   the maximum allowed length for that position
+    # Output:
+    # - position (transformed): the position wrapped ( real scalar, strictly positive)
 
     # Wrap the position
     #-------------------------------------------
@@ -322,16 +324,17 @@ function wrap( position::T1, length::T2 ) where { T1 <: Real, T2 <: Real}
     # Return the wrapped position
     return position
 end
-# Wrap atoms using a cell matrix
-function wrap( atoms::T1, cell::T2 ) where { T1 <: atom_mod.AtomList, T2 <: Cell_matrix }
+# Wrap atoms into a cell using a cell matrix for the cell
+function wrap( atoms::T1, cell::Array{T2,2} ) where { T1 <: atom_mod.AtomList, T2 <: Real }
     # Arguments:
-    # - atoms:
-    # -  cell:
+    # - atoms: atomic positions, in the format of AtomList
+    # -  cell: cell matrix describing the cell to wrap the atom in
+    # Output:
+    # - atoms (transformed): atomic positions wrapped, in the format of AtomList
 
     # Getting Scaled positions
     atoms.positions = getTransformedPosition( atoms.positions, LinearAlgebra.inv( cell.matrix ) )
 
-    #---------------
     # Compute atoms
     #---------------------------------
     nb_atoms=size(atoms.names)[1]
@@ -350,45 +353,138 @@ function wrap( atoms::T1, cell::T2 ) where { T1 <: atom_mod.AtomList, T2 <: Cell
     # Descaling
     atoms.positions = getTransformedPosition( atoms.positions, cell.matrix )
 
-    #
+    # Returning the new positions as an AtomList
     return atoms
 end
+# Wrap atoms into a given cell using cell_param object for the cell
 function wrap( atoms::T1, cell::T2 ) where { T1 <: atom_mod.AtomList, T2 <: Cell_param }
+    # Arguments
+    # - atoms: atomic positions in AtomList format
+    # - cell : cell information
+    # Output:
+    # - atoms (transformed): atomic positions, wrapped in the cell, AtomList format
+
+    # Loop over all the atoms contained in the frame
     for i=1:size(atoms.positions)[1]
         for j=1:3
             atoms.positions[i,j] = wrap( atoms.positions[i,j],cell.length[j])
         end
     end
+
+    # Returning frame
     return atoms
 end
+# Wrap atoms in a set of atomic frames (AtomList format) into a given cell, using Cell_param vector for the cells
 function wrap( traj::Vector{T1}, cell::T2 ) where { T1 <: atom_mod.AtomList, T2 <: Cell_param }
-    nb_step=size(traj)[1]
-    for step =1:nb_step
-        traj[step] = wrap( traj[step], cell )
+    # Arguments:
+    # - traj : set of AtomList frames, includes atomic positions for each frame.
+    # - cell : information regarding the cell
+    # Output:
+    # - traj (transformed): set of AtomList frames, positions wrapped in the cell
+
+    # Get the number of frames
+    nb_frames=size(traj)[1]
+
+    # Loop over the frames
+    for frame =1:nb_frame
+        # Wrapping each frame
+        traj[frame] = wrap( traj[frame], cell )
     end
+
+    # Return the wrapped set
     return traj
 end
+# Wrap atoms in an AtomMolList frame into a given cell, using Cell_param vector for the cell
 function wrap( molecules::T1, cell::T2 ) where { T1 <: atom_mod.AtomMolList, T2 <: Cell_param }
-    for i=1:size(molecules.positions)[1]
+    # Arguments:
+    # - molecules: AtomMolList frame containing atomic positions
+    # - cell: Cell_param describing the cell
+    # Output:
+    # - molecules (transformed): Same frame but with wrapped atomic positions
+
+    # Loop over frames
+    for atom=1:size(molecules.positions)[1]
         for j=1:3
-            molecules.positions[i,j] = wrap( molecules.positions[i,j],cell.length[j])
+            molecules.positions[i,j] = wrap( molecules.positions[atom,j], cell.length[j] )
         end
     end
+
+    # Return the same set, but with position wrapped
     return molecules
 end
+# Wrap atomic positions in a given cell, using an array for the positions the Cell_param structure for the cell
 function wrap( positions::Array{T1,2}, cell::T2 ) where { T1 <: Real, T2 <: Cell_param }
-    for j=1:size(positions)[1]
+    # Arguments
+    # - positions : array containing atomic positions
+    # - cell      : Cell_param describing the cell
+    # Output
+    # - positions (transformed): array containing the atomic positions (wrapped)
+
+    # Loop over atoms
+    for atom=1:size(positions)[1]
+        # Loop over dimension
         for i=1:3
-            positions[j,i] = wrap( positions[j,i],cell.length[i] )
+            # Wrapping in each dimension
+            positions[atom,i] = wrap( positions[atom,i],cell.length[i] )
         end
     end
+
+    # Returning the wrapped positions
     return positions
 end
+# Wrapping atomic position of a single atom (as a vector), in a cell gfiven by a Cell_param Object
 function wrap( positions::Vector{T1}, cell::T2 ) where { T1 <: Real, T2 <: Cell_param }
+    # Argument:
+    # - positions : the atomic position of the atom (vector of real numbers)
+    # - cell : cell described by a Cell_param
+
+    # Loop over dimensions
     for i=1:3
+        # Wrapping over dimensions
         positions[i] = wrap( positions[i],cell.length[i] )
     end
+
+    # Return the atomic position
     return positions
+end
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+function unWrapOrtho!( positions::Array{T1,2}, origin::T2, target::T3, cell::T4  ) where { T1 <: Real, T2 <: Int, T3 <: Int, T4 <: Cell_param }
+    for i=1:3
+        dist=(positions[origin,i]-positions[target,i])
+        if dist > cell.length[i]*0.5
+            positions[target,i] += cell.length[i]
+        elseif dist < -cell.length[i]*0.5
+            positions[target,i] -= cell.length[i]
+        end
+    end
+    return
+end
+function unWrapOrtho!( structure::T1, origin::T2, target::T3, cell::T4  ) where { T1 <: atom_mod.AtomList, T2 <: Int, T3 <: Int, T4 <: Cell_param }
+    for i=1:3
+        dist=(structure.positions[origin,i]-structure.positions[target,i])
+        if dist > cell.length[i]*0.5
+            structure.positions[target,i] += cell.length[i]
+        elseif dist < -cell.length[i]*0.5
+            structure.positions[target,i] -= cell.length[i]
+        end
+    end
+    return
+end
+# Unwraps a target molecule, even if infinite, unwraping atoms only once, exploring the molecule as a tree
+# Useful for visualization
+# Recursive, so use wisely
+function unWrapOrthoOnce( visited::Vector{T1}, matrix::Array{T2,2}, adjacency_table::Vector{T3}, positions::Array{T4,2} , cell::T5, target::T6, index_atoms::Vector{T7}) where { T1 <: Int, T2 <: Real, T3 <: Any, T4 <: Real, T5 <: Cell_param, T6 <: Int, T7 <: Int }
+    visited[target]=1
+    nb_neighbor=size(adjacency_table[target])[1]
+    for neigh=1:nb_neighbor
+        if visited[adjacency_table[target][neigh]] == 0
+            unWrapOrtho!( positions, index_atoms[target], index_atoms[ adjacency_table[target][neigh] ], cell )
+            unWrapOrthoOnce(visited,matrix,adjacency_table,positions,cell,adjacency_table[target][neigh],index_atoms)
+        end
+    end
+    return
 end
 #-------------------------------------------------------------------------------
 
@@ -426,9 +522,6 @@ function getTransformedPosition( target_matrix::Array{T1,2}, cell_matrix::Array{
     end
     return matrix_transformed
 end
-#-------------------------------------------------------------------------------
-
-#-------------------------------------------------------------------------------
 function getScaledPosition( vector::Vector{T1}, cell_matrix::Array{T2,2} ) where { T1 <: Real , T2 <: Real }
     cell_mat_inverse=invertCell(cell_matrix)
     return getTransformedPosition(vector,cell_mat_inverse)
@@ -447,6 +540,25 @@ function getScalePosition( target_matrix::Array{T1,2}, cell_matrix::Array{T2,2} 
 end
 function getScalePosition( target_matrix::Array{T1,2}, cell_matrix::T2 ) where { T1 <: Real, T2 <: Cell_matrix }
     return getScalePosition(target_matrix,cell_matrix.matrix)
+end
+function reduced2Cartesian( positions_reduced::Vector{T1}, cell_matrix::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
+    new_positions=zeros(Real,3)
+    for i=1:3 # x,y,z
+        for j=1:3 # 1,2,3
+            new_positions[i] += positions_reduced[j]*cell_matrix[i,j]
+        end
+    end
+    return new_positions
+end
+function reduced2Cartesian( positions_reduced::Array{T1,2}, cell_matrix::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
+    nb_atoms=size(positions_reduced)[1]
+    for atom = 1:nb_atoms
+        positions_reduced[atom,:] = reduced2Cartesian( positions_reduced[atom,:], cell_matrix )
+    end
+    return positions_reduced
+end
+function reduced2Cartesian( positions_reduced::Array{T1,2}, cell_matrix::T2 ) where { T1 <: Real, T2 <: Cell_matrix }
+    return reduced2Cartesian( positions_reduced, cell_matrix.matrix)
 end
 #-------------------------------------------------------------------------------
 
@@ -547,7 +659,6 @@ function distance( atoms::T1, cell::T2, index1::T3, index2::T3, wrap::T4 ) where
 end
 #---------------------------------------------------------------------------
 
-#----------
 # Compress
 #---------------------------------------------------------------------------
 function compressParams( cell::T1, fracs::Vector{T2} ) where { T1 <: Cell_param, T2 <: Real }
@@ -556,11 +667,10 @@ function compressParams( cell::T1, fracs::Vector{T2} ) where { T1 <: Cell_param,
     end
     return cell
 end
-#---------------------------------------------------------------------------
 function compressAtoms( atoms::T1 , cell::T2, fracs::Vector{T3} ) where { T1 <: atom_mod.AtomList, T2 <: Cell_param, T3 <: Real }
     for i=1:size(atoms.names)[1]
-        for j=1:3
             atoms.positions[i,j] *= fracs[j]
+            for j=1:3
         end
     end
     return atoms
@@ -584,45 +694,7 @@ function velocityFromPosition( traj::Vector{T1}, dt::T2, dx::T3 ) where { T1 <: 
 end
 #---------------------------------------------------------------------------
 
-# Unwrap atoms target with regard to atom origin, using the cell information about the PBC
-# The modifications are effected on the position Array and nothing is returned
 #---------------------------------------------------------------------------
-function unWrapOrtho!( positions::Array{T1,2}, origin::T2, target::T3, cell::T4  ) where { T1 <: Real, T2 <: Int, T3 <: Int, T4 <: Cell_param }
-    for i=1:3
-        dist=(positions[origin,i]-positions[target,i])
-        if dist > cell.length[i]*0.5
-            positions[target,i] += cell.length[i]
-        elseif dist < -cell.length[i]*0.5
-            positions[target,i] -= cell.length[i]
-        end
-    end
-    return
-end
-function unWrapOrtho!( structure::T1, origin::T2, target::T3, cell::T4  ) where { T1 <: atom_mod.AtomList, T2 <: Int, T3 <: Int, T4 <: Cell_param }
-    for i=1:3
-        dist=(structure.positions[origin,i]-structure.positions[target,i])
-        if dist > cell.length[i]*0.5
-            structure.positions[target,i] += cell.length[i]
-        elseif dist < -cell.length[i]*0.5
-            structure.positions[target,i] -= cell.length[i]
-        end
-    end
-    return
-end
-# Unwraps a target molecule, even if infinite, unwraping atoms only once, exploring the molecule as a tree
-# Useful for visualization
-# Recursive, so use wisely
-function unWrapOrthoOnce( visited::Vector{T1}, matrix::Array{T2,2}, adjacency_table::Vector{T3}, positions::Array{T4,2} , cell::T5, target::T6, index_atoms::Vector{T7}) where { T1 <: Int, T2 <: Real, T3 <: Any, T4 <: Real, T5 <: Cell_param, T6 <: Int, T7 <: Int }
-    visited[target]=1
-    nb_neighbor=size(adjacency_table[target])[1]
-    for neigh=1:nb_neighbor
-        if visited[adjacency_table[target][neigh]] == 0
-            unWrapOrtho!( positions, index_atoms[target], index_atoms[ adjacency_table[target][neigh] ], cell )
-            unWrapOrthoOnce(visited,matrix,adjacency_table,positions,cell,adjacency_table[target][neigh],index_atoms)
-        end
-    end
-    return
-end
 # Return two bools:
 # - Is the molecule an infinite chain?
 # - Was the chain exploration went ok?
@@ -700,28 +772,7 @@ function findUnlinked( matrix::Array{T1,2},  positions::Array{T2,2} , cell::T3, 
 end
 #---------------------------------------------------------------------------
 
-#---------------------------------------------------------------------------
-function reduced2Cartesian( positions_reduced::Vector{T1}, cell_matrix::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
-    new_positions=zeros(Real,3)
-    for i=1:3 # x,y,z
-        for j=1:3 # 1,2,3
-            new_positions[i] += positions_reduced[j]*cell_matrix[i,j]
-        end
-    end
-    return new_positions
-end
-function reduced2Cartesian( positions_reduced::Array{T1,2}, cell_matrix::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
-    nb_atoms=size(positions_reduced)[1]
-    for atom = 1:nb_atoms
-        positions_reduced[atom,:] = reduced2Cartesian( positions_reduced[atom,:], cell_matrix )
-    end
-    return positions_reduced
-end
-function reduced2Cartesian( positions_reduced::Array{T1,2}, cell_matrix::T2 ) where { T1 <: Real, T2 <: Cell_matrix }
-    return reduced2Cartesian( positions_reduced, cell_matrix.matrix)
-end
-#---------------------------------------------------------------------------
-
+# I have no clue 
 #-------------------------------------------------------------------------------
 function computeMoveVector( index::Vector{T1}, cell_matrix::Array{T2,2} ) where { T1 <: Int, T2 <: Real }
     moveVector = zeros(Real,3)
@@ -732,6 +783,10 @@ function computeMoveVector( index::Vector{T1}, cell_matrix::Array{T2,2} ) where 
     end
     return moveVector
 end
+#---------------------------------------------------------------------------
+
+# Supercell functions
+#---------------------------------------------------------------------------
 function growCell( cell::Array{T1,2}, n_grow::Vector{T2} ) where { T1 <: Real, T2 <: Int }
     cell2 = copy(cell)
     for i=1:3
@@ -789,6 +844,7 @@ function makeSuperCell!( traj::Vector{T1}, cell::Array{T2,2}, n_grow::Vector{T3}
 end
 #-------------------------------------------------------------------------------
 
+# Transforming cell from unorthorombic to orthorombic using a cut
 #-------------------------------------------------------------------------------
 function toOrthoByCut( cell::T1 ) where { T1 <: cell_mod.Cell_matrix }
     lengths = zeros( Real, 3 )
