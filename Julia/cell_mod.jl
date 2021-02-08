@@ -1,5 +1,6 @@
+module cell_mod
 
-export Cell_param, Cell_matrix
+export Cell_param, Cell
 export Cell
 export vec2matrix, wrap, dist1D, distance, compressParams, compressAtoms
 export velocityFromPosition
@@ -26,23 +27,76 @@ mutable struct Cell_param
     #--------------------------------------------------
     # Creates a default_cell params (default lengths=1A, default angles=90°)
     function Cell_param()
+        # Output:
+        # Cell_param that describes the cell
+
         # Construct Object
         new( ones(Real,3), ones(Real,3)*90.0 );
     end
-    # Create a orthorombic cell, based on lengths parameters
+    # Create a orthorombic cell, based on lengths parameters given as a vector
     function Cell_param( lengths::Vector{T1} ) where { T1 <: Real }
         # Arguments:
-        # lengths: lengths of the
-        new(params,ones(Real,3)*90)
+        # - lengths: lengths of the cell in angstroms
+        # Output:
+        # - Cell_param object that describes the cell
+
+        # Creating Object
+        new( lengths, ones(Real,3)*90.0 )
     end
-    function Cell_param( a::T1, b::T2, c::T3 ) where { T1 <: Real, T2<: Real, T3 <: Real }
-        new([a,b,c],[90.,90.,90.])
+    # Create an orthorombic cell, based on lengths given as scalars
+    function Cell_param( a::T1, b::T2, c::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Real }
+        # Arguments
+        # - a,b,c: lengths of the cell (in angstroms)
+        # Output:
+        # - Cell_param object that describes the cell
+
+        # Construct Cell_params
+        new( [a,b,c], ones(3)*90.0 )
     end
+    # Construct object using all parameters given as scalars
     function Cell_param( a::T1, b::T2, c::T3, alpha::T4, beta::T5, gamma::T6 ) where { T1 <: Real, T2<: Real, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
-        new([a,b,c],[alpha,beta,gamma])
+        # Arguments
+        # - a,b,c: lengths of the cell (in angstroms)
+        # - alpha,beta, gamma: angles of the cells (in degrees)
+        # Output
+        # - Cell_param object that describes the cell
+
+        # Constructing Object
+        new( [a,b,c], [alpha,beta,gamma] )
     end
+    # Construct Cell_params using all parameters given as vectors
     function Cell_param( lengths::Vector{T1}, angles::Vector{T2} ) where { T1 <: Real, T2 <: Real }
+        # Arguments:
+        # - lengths: vector contaning lengths (a,b,c) of the cell in angstroms
+        # - angles: vector containg angles (alpha,beta,gamma) of the cell in degrees
+        # Output
+        # - a cell_param object describing the cell
+
+        # Constructing Object
         new( lengths, angles )
+    end
+    # Construct a Cell_params trajectory from a set of matrix contaning lengths (angstroms) and angles (degrees) of the cells
+    function Cell_param( lengths::Array{T1,2}, angles::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
+        # Arguments:
+        # - lengths: vector containing the lengths of the cell (angstroms)
+        # - angles: vector containing the angles of the cell (degrees)
+        # Output:
+        # - cell_params: vector containing cell_params for each step, describing the cell at time t
+
+        # Get the number of step of the trajectory
+        nb_step = size(lengths)[1]
+
+        # Initialize output
+        cells_params = Vector{ Cell_param }(undef, nb_step )
+
+        # Loop over time
+        for step=1:nb_step
+            # Construct the cell parameters at time t
+            cells_params[step] = Cell_param( lengths[step,:], angles[step,:] )
+        end
+
+        # Construct object
+        return cells_params
     end
     #--------------------------------------------------
 end
@@ -65,6 +119,8 @@ mutable struct Cell
     end
     # Create an orthorombic cell using provided lengths
     function Cell( a::T1, b::T2, c::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Real }
+        # Arguments:
+        # a,b,c: lengths of the cell in angstroms
 
         # Create matrix
         #------------------------
@@ -79,6 +135,9 @@ mutable struct Cell
     end
     # Create lengths using provided lengths and angles (in degrees)
     function Cell( a::T1, b::T2, c::T3, alpha::T4, beta::T5, gamma::T6 ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
+        # Arguments:
+        # - a,b,c: lengths of the cell in angstroms
+        # - alpha,beta,gamma: angles of the cell in degrees
 
         # Converts angles in radians
         #----------------------------
@@ -102,13 +161,22 @@ mutable struct Cell
         # Create matrix
         new( [a,b,c], [alpha,beta,gamma], matrix )
     end
+    # NB: We probably need to add more functions, because the set that is
+    # here is relatively limiting
     #----------------------------------------------------------
 end
 #--------------------------------------------------------------
 
-# Conversions
+# Matrix <-> Parameters conversion
 #-------------------------------------------------------------------------------
-function cellMatrix2Params( cell_matrix::Array{T1,2} )  where { T1 <: Real }
+# Converts a matrix into cell parameters (does not convert lengths)
+function matrix2Params( cell_matrix::Array{T1,2} )  where { T1 <: Real }
+    # Arguments:
+    # cell-matrix: the cell matrix given as a ... matrix
+    # Output: A Cell_Param object that corresponds to the cell describes by the matrix
+
+    # Computing lengths (no conversion is attempted here)
+    #---------------------------------------------------------------------
     length = zeros( Real, 3 )
     for col=1:3
         for line=1:3
@@ -116,29 +184,59 @@ function cellMatrix2Params( cell_matrix::Array{T1,2} )  where { T1 <: Real }
         end
         length[col] = sqrt( length[col] )
     end
+    #---------------------------------------------------------------------
+
+    # Computing angles, converting to degrees
+    #---------------------------------------------------------------------
     tau=180/pi
-    angles = zeros( Real, 3 )
-    angles[1] = acos(sum( cell_matrix[:,2].*cell_matrix[:,3] )/(length[2]*length[3]))*tau
-    angles[2] = acos(sum( cell_matrix[:,1].*cell_matrix[:,3] )/(length[1]*length[3]))*tau
-    angles[3] = acos(sum( cell_matrix[:,1].*cell_matrix[:,2] )/(length[1]*length[2]))*tau
+    angles = zeros(Real, 3 )
+    angles[1] = acos( sum( cell_matrix[:,2].*cell_matrix[:,3] )/(length[2]*length[3]) )*tau
+    angles[2] = acos( sum( cell_matrix[:,1].*cell_matrix[:,3] )/(length[1]*length[3]) )*tau
+    angles[3] = acos( sum( cell_matrix[:,1].*cell_matrix[:,2] )/(length[1]*length[2]) )*tau
+    #---------------------------------------------------------------------
+
+    # Returns a cell parameter object
     return Cell_param( length, angles )
 end
-function cellMatrix2Params( cell_matrix::T1 )  where { T1 <: Cell_matrix }
-    return cellMatrix2Params( cell_matrix.matrix )
-end
-function cellMatrix2Params( cell_matrices::Vector{T1} ) where { T1 <: Cell_matrix }
-    nb_step = size( cell_matrices )[1]
+# Converts a cell trajectory in matrix form into a vector of cell params
+# NB: We may want to create an additionnal object if not here, then in traj, to
+# avoid dealing with an array of structure and have a structure of array instead
+function matrix2Params( cell_matrices::Array{T1,3} ) where { T1 <: Real }
+    # Arguments:
+    # - cell_matrices: cell matrix in tensor form, time is assumed to be the third component of the matrix
+    # Output:
+    # - cell_params: Vector of Cell_param object that describes
+
+    # Compute number of step
+    nb_step = size( cell_matrices )[3]
+
+    # Initialize output
     cells_params = Vector{ Cell_param }(undef, nb_step )
+
+    # Loop over time
     for step=1:nb_step
-        cells_params[step] = cellMatrix2Params( cell_matrices[step] )
+        cells_params[step] = matrix2Params( cell_matrices[:,:,step] )
     end
+
+    # Return object
     return cells_params
 end
-
+# Converts cell parameters into a cell matrix
 function params2Matrix( cell_params::T1 ) where { T1 <: Cell_param }
+    # Argument:
+    # - cell_params: Cell_Param (see above), contains cell parameters (a,b,c),(alpha,beta,gamma)
+    # Output:
+    # - matrix: cell_matrix, contains all information about the cell in matrix form
+
+    # Initialize output
     matrix=zeros(3,3)
+
+    # Makes a copy of the parameters
     lengths=copy( cell_params.length)
-    angles=copy(cell_params.angles)*pi/180
+    angles=copy(cell_params.angles)*pi/180 # Converts angles from degrees to radians
+
+    # Compute matrix parameters
+    #-----------------------------------------------------
     matrix[1,1] = lengths[1]
     matrix[1,2] = lengths[2]*cos( angles[3] )
     matrix[1,3] = lengths[3]*cos( angles[2] )
@@ -146,41 +244,72 @@ function params2Matrix( cell_params::T1 ) where { T1 <: Cell_param }
     matrix[2,3] = lengths[3]*( cos( angles[1] ) - cos( angles[2] )*cos( angles[3] ) )/sin( angles[3] )
     volume=sqrt( 1 + 2*cos(angles[1])*cos(angles[2])*cos(angles[3]) -cos(angles[1])^2 -cos(angles[2])^2 -cos(angles[3])^2 )
     matrix[3,3] = lengths[3]*volume/sin( angles[3] )
-    return Cell_matrix( matrix )
+    #-----------------------------------------------------
+
+    # Return matrix
+    return matrix
 end
+# Converts a trajectory of cell from a cell_params into a tensor form with time on the third dimension
 function params2Matrix( cells_params::Vector{T1} ) where { T1 <: Cell_param }
+    # Argument:
+    # - cells_params: Vector of Cell_Param containing the trajectory of the cell in parameters form
+    # Output:
+    # - Tensor contaning the cell trajectory as cell matrices, with time on the third dimension of the tensor
+
+    # Get number of step of trajectory
     nb_step = size(cells_params)[1]
-    cells_ = Vector{ Cell_matrix }( undef, nb_step )
+
+    # Initialize output
+    cells_ = zeros(Real, 3, 3, nb_step )
+
+    # Loop over time
+    #----------------------------
     for step=1:nb_step
-        cells_[step] = params2Matrix( cells_params[step] )
+        # Conversion
+        cells_[:,:,step] = params2Matrix( cells_params[step] )
     end
+    #----------------------------
+
+    # Return tensor
     return cells_
 end
 #---------------------------------------------------------------------------\
 
+# Computation of the volume of the cell
 #-------------------------------------------------------------------------------
-function getVolume( cell_matrix::Array{T1,2}) where { T1 <: Real }
+# Computes the volume using the cell matrix describing the cell
+function getVolume( cell_matrix::Array{T1,2} ) where { T1 <: Real }
+    # Argument:
+    # - cell_matrix: cell matrix describing the target cell
+    # Output:
+    # - Volume of the cell (Real Scalar, strictly positive)
+
+    # Computes and returns the volume
     return LinearAlgebra.det(cell_matrix)
 end
-function getVolume( cell_matrix::T1) where { T1 <: Cell_matrix }
-    return LinearAlgebra.det(cell_matrix.matrix)
-end
-function getVolume( cell_param::T1) where { T1 <: Cell_param }
-    return LinearAlgebra.det(params2Matrix(cell_param))
+# Computes the volume using the cell parameters
+function getVolume( cell_param::T1 ) where { T1 <: Cell_param }
+    # Argument
+    # - cell_param: Cell_param object that contains the information about the cell
+    # Output:
+    # Volume of the cell (Real scalar, strictly positive)
+
+    # Computes and return the volume of the cell
+    return LinearAlgebra.det( params2Matrix( cell_param ) )
 end
 #-------------------------------------------------------------------------------
 
-function makeCellParams( lengths::Array{T1,2}, angles::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
-    nb_step = size(lengths)[1]
-    cells = Vector{Cell_param}(undef, nb_step )
-    for step=1:nb_step
-        cells[step] = Cell_param( lengths[step,:], angles[step,:] )
-    end
-    return cells
-end
-
+# Wrapp functions (put the atoms back into the cell)
 #-------------------------------------------------------------------------------
+# Wrap a scalar position
 function wrap( position::T1, length::T2 ) where { T1 <: Real, T2 <: Real}
+    # Argument
+    # - position: the position to wrap, scalar
+    # - length:   the maximum allowed length for that position
+
+    # Wrap the position
+    #-------------------------------------------
+    # Determine
     sign=-1
     if position < 0
         sign=1
@@ -188,12 +317,19 @@ function wrap( position::T1, length::T2 ) where { T1 <: Real, T2 <: Real}
     while position < 0 || position > length
         position = position + sign*length
     end
+    #-------------------------------------------
+
+    # Return the wrapped position
     return position
 end
+# Wrap atoms using a cell matrix
 function wrap( atoms::T1, cell::T2 ) where { T1 <: atom_mod.AtomList, T2 <: Cell_matrix }
+    # Arguments:
+    # - atoms:
+    # -  cell:
 
     # Getting Scaled positions
-    atoms.positions = getTransformedPosition( atoms.positions, LinearAlgebra.inv(cell.matrix ) )
+    atoms.positions = getTransformedPosition( atoms.positions, LinearAlgebra.inv( cell.matrix ) )
 
     #---------------
     # Compute atoms
@@ -214,6 +350,7 @@ function wrap( atoms::T1, cell::T2 ) where { T1 <: atom_mod.AtomList, T2 <: Cell
     # Descaling
     atoms.positions = getTransformedPosition( atoms.positions, cell.matrix )
 
+    #
     return atoms
 end
 function wrap( atoms::T1, cell::T2 ) where { T1 <: atom_mod.AtomList, T2 <: Cell_param }
@@ -430,8 +567,7 @@ function compressAtoms( atoms::T1 , cell::T2, fracs::Vector{T3} ) where { T1 <: 
 end
 #---------------------------------------------------------------------------
 
-# Computes the velocities in a traj by finite elemnet method from
-# the positions (least worst option)
+# Computes the velocities in a traj by finite element method from the positions (least worst option)
 #---------------------------------------------------------------------------
 function velocityFromPosition( traj::Vector{T1}, dt::T2, dx::T3 ) where { T1 <: atom_mod.AtomList, T2 <: Real, T3 <: Real }
     nb_atoms=size(traj[1].names)[1]
@@ -448,8 +584,7 @@ function velocityFromPosition( traj::Vector{T1}, dt::T2, dx::T3 ) where { T1 <: 
 end
 #---------------------------------------------------------------------------
 
-# Unwrap atoms target with regard to atom origin, using the cell information
-# about the PBC
+# Unwrap atoms target with regard to atom origin, using the cell information about the PBC
 # The modifications are effected on the position Array and nothing is returned
 #---------------------------------------------------------------------------
 function unWrapOrtho!( positions::Array{T1,2}, origin::T2, target::T3, cell::T4  ) where { T1 <: Real, T2 <: Int, T3 <: Int, T4 <: Cell_param }
@@ -463,12 +598,6 @@ function unWrapOrtho!( positions::Array{T1,2}, origin::T2, target::T3, cell::T4 
     end
     return
 end
-#---------------------------------------------------------------------------
-
-# Unwrap atoms target with regard to atom origin, using the cell information
-# about the PBC
-# The modifications are effected on the position structure AtomList and nothing is returned
-#---------------------------------------------------------------------------
 function unWrapOrtho!( structure::T1, origin::T2, target::T3, cell::T4  ) where { T1 <: atom_mod.AtomList, T2 <: Int, T3 <: Int, T4 <: Cell_param }
     for i=1:3
         dist=(structure.positions[origin,i]-structure.positions[target,i])
@@ -480,12 +609,9 @@ function unWrapOrtho!( structure::T1, origin::T2, target::T3, cell::T4  ) where 
     end
     return
 end
-#---------------------------------------------------------------------------
-
-#---------------------------------------------------------------------------------------------------------
 # Unwraps a target molecule, even if infinite, unwraping atoms only once, exploring the molecule as a tree
 # Useful for visualization
-# Recursive.
+# Recursive, so use wisely
 function unWrapOrthoOnce( visited::Vector{T1}, matrix::Array{T2,2}, adjacency_table::Vector{T3}, positions::Array{T4,2} , cell::T5, target::T6, index_atoms::Vector{T7}) where { T1 <: Int, T2 <: Real, T3 <: Any, T4 <: Real, T5 <: Cell_param, T6 <: Int, T7 <: Int }
     visited[target]=1
     nb_neighbor=size(adjacency_table[target])[1]
@@ -497,11 +623,6 @@ function unWrapOrthoOnce( visited::Vector{T1}, matrix::Array{T2,2}, adjacency_ta
     end
     return
 end
-#---------------------------------------------------------------------------
-
-
-
-#---------------------------------------------------------------------------
 # Return two bools:
 # - Is the molecule an infinite chain?
 # - Was the chain exploration went ok?
@@ -669,7 +790,7 @@ end
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-function nonOrtho2OrthoByCut( cell::T1 ) where { T1 <: cell_mod.Cell_matrix }
+function toOrthoByCut( cell::T1 ) where { T1 <: cell_mod.Cell_matrix }
     lengths = zeros( Real, 3 )
     lengths[1] = LinearAlgebra.norm( cell.matrix[:,1] )
     for i=2:3
@@ -678,17 +799,6 @@ function nonOrtho2OrthoByCut( cell::T1 ) where { T1 <: cell_mod.Cell_matrix }
         end
     end
     return cell_mod.Cell_param( lengths )
-end
-#-------------------------------------------------------------------------------
-
-#-------------------------------------------------------------------------------
-function makeCells( lengths::Array{T1,2}, angles::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
-    nb_step = size(lengths)[1]
-    cells=Vector{ Cell_param }(undef, nb_step )
-    for step=1:nb_step
-        cells[step] = Cell_param( lengths[step,:], angles[step,:] )
-    end
-    return cells
 end
 #-------------------------------------------------------------------------------
 
