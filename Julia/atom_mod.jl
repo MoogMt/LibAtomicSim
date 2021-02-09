@@ -396,62 +396,141 @@ function getNbStep( traj::Vector{T1} ) where { T1 <: AtomMolList }
 end
 #-------------------------------------------------------------------------------
 
-
+# Get information about the chemical species and type
 #-------------------------------------------------------------------------------
+# Get all indexes for a given specie
 function getTypeIndex( types_names::Vector{T1}, name::T2 ) where { T1 <: AbstractString , T2 <: AbstractString }
+    # Argument
+    # - type_names: types of all the atoms in the structure
+    # - name: type of atoms one wants the indexes of
+    # Output
+    # - index_types: list of index of atoms of type "name"
+
+    # Initialize output
     index_types=zeros(Int,0)
+
+    # Get the number of atoms in the list
     nb_atoms=size(types_names)[1]
+
+    # Loop over atoms
     for atom=1:nb_atoms
+        # If the atom if of the right type, add the index to the list
         if types_names[atom] == name
-            push!(index_types,atom)
+            push!( index_types, atom )
         end
     end
+
+    # Get all indexes of the atoms
     return index_types
 end
+# Get all the species names within the AtomList frame
 function getSpecies( atoms::T1 ) where { T1 <: AtomList }
+    # Argument
+    # - atoms: AtomList describing the structure
+    # Output
+    # - a list of all the species present in the AtomList
+
+    # Initialize output
     species = Vector{AbstractString}(undef,0)
+
+    # Get number of atoms
     nb_atoms = getNbAtoms( atoms )
+
+    # If the number atom is null...
     if nb_atoms == 0
+        # Returns empty list
         return []
     else
+        # Add the type of the first atom to the list
         push!( species, atoms.names[1] )
-        for atom = 1:nb_atoms
+
+        # Loop over the atoms
+        for atom=2:nb_atoms
+
+            # Check that the type already exists
             add = true
+
+            # Loop over the species
             for specie in species
+                # If type already exists in the list
                 if atoms.names[atom] == specie
+                    # Break and moves to the next atom
                     add = false
                     break
                 end
             end
+
+            # If the type was not found, adding it to the list
             if add
                 push!( species, atoms.names[atom] )
             end
         end
+
+        # Return the list of chemical species
         return species
     end
 end
+# Get all the species names within a vector of AtomList frame
+# NB delete redundancy
 function getSpecies( traj::Vector{T1} ) where { T1 <: AtomList }
+    # Argument
+    # - traj: vector of AtomList
+    # Output
+    # - vector of the names of all types of atom in the traj
+
+    # Get the number of steps of the traj
     nb_step = getNbStep( traj )
+
+    # Initialize output
     species = Vector{AbstractString}(undef,0)
+
+    # Loop over steps
     for step = 1:nb_step
-        push!(species, getSpecies( traj[step] ) )
+        # add all the species from each step (this means there will be redundancy...)
+        push!( species, getSpecies( traj[step] ) )
     end
+
+    # Return a vector with all species names in the traj
     return species
 end
+# Get the number of species in the AtomList
 function getNbSpecies( atoms::T1 ) where { T1 <: AtomList }
+    # Argument
+    # - atoms: AtomList frame describing the structure
+    # Output
+    # - The number of species (int)
+
+    # Get the number of atoms of AtomList
     nb_atoms = getNbAtoms( atoms )
+
+    # If no atoms, there is 0 species
     if nb_atoms == 0
         return 0
     else
-        return size(getSpecies( atoms ))[1]
+        # Compute and get the number of species
+        return size( getSpecies( atoms ) )[1]
     end
 end
+# Get the number of species in vector of AtomList
 function getNbSpecies( traj::Vector{T1} ) where { T1 <: AtomList }
+    # Argument
+    # - traj: vector of AtomList that contains the trajectory (atomic positions, etc...)
+    # Output
+    # - Number of species for each step (int)
+
+    # Get the number of step in the trajectory
     nb_step = getNbStep( traj )
+
+    # Initialize output
     species_nb = zeros( Int, nb_step )
+
+    # Loop over steps
     for step = 1:nb_step
+        # Get number of species for each step
         species_nb[ step ] = getNbSpecies( traj[step] )
     end
+
+    # Return vector of number of species (int)
     return species_nb
 end
 function getStartSpecie( atoms::T1, specie::T2 ) where { T1 <: AtomList, T2 <: AbstractString }
@@ -538,8 +617,14 @@ function getNbElementSpecie( traj::Vector{T1}, specie::T2 ) where { T1 <: AtomLi
 end
 #-------------------------------------------------------------------------------
 
+# Computes velocities by finite different
 #-------------------------------------------------------------------------------
 function computeVelocities( traj::Vector{T1}, target_step::T2, dt::T3 ) where { T1 <: AtomList, T2 <: Int, T3 <: Real }
+    # Argument
+    # - traj:
+    # - target_step:
+    # - dt:
+
     return ( traj[target_step].positions - traj[target_step-1].positions )/dt
 end
 #-------------------------------------------------------------------------------
