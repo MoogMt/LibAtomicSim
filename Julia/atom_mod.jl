@@ -374,17 +374,28 @@ function getNbMolecules( traj::Vector{T1} ) where { T1 <: AtomMolList }
     # Return the number of molecules (maximum index of molecules)
     return getNbMolecules( traj[1] )
 end
+# Get the number of steps in the trajectory made up of a vector of AtomList
+function getNbStep( traj::Vector{T1} ) where { T1 <: AtomList }
+    # Argument
+    # - traj: vector of AtomList
+    # Output
+    # number of steps of the vector
+
+    # Return the size of the trajectory
+    return size( traj )[1]
+end
+# Get the number of steps in the trajectory made up of a vector of AtomMolList
+function getNbStep( traj::Vector{T1} ) where { T1 <: AtomMolList }
+    # Argument
+    # - traj: vector of AtomMolList
+    # Output
+    # number of steps of the vector
+
+    # Return the size of the trajectory
+    return size( traj )[1]
+end
 #-------------------------------------------------------------------------------
 
-#
-#-------------------------------------------------------------------------------
-function getNbStep( traj::Vector{T1} ) where { T1 <: AtomList }
-    return size(traj)[1]
-end
-function getNbStep( traj::Vector{T1} ) where { T1 <: AtomMolList }
-    return size(traj)[1]
-end
-#-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
 function getTypeIndex( types_names::Vector{T1}, name::T2 ) where { T1 <: AbstractString , T2 <: AbstractString }
@@ -533,6 +544,7 @@ function computeVelocities( traj::Vector{T1}, target_step::T2, dt::T3 ) where { 
 end
 #-------------------------------------------------------------------------------
 
+#-------------------------------------------------------------------------------
 function buildNames( species::Vector{T1}, nb_species::Vector{T2} ) where { T1 <: AbstractString, T2 <: Int }
     nb_atoms=sum(nb_species)
     nb_species_=size(nb_species)[1]
@@ -545,7 +557,9 @@ function buildNames( species::Vector{T1}, nb_species::Vector{T2} ) where { T1 <:
     end
     return names
 end
+#-------------------------------------------------------------------------------
 
+#-------------------------------------------------------------------------------
 function makeTrajAtomList( positions::Array{T1,3}, names::Vector{T2}, index::Array{T3} ) where { T1 <: Real, T2 <: AbstractString, T3 <: Int }
     nb_step = size(positions)[1]
     nb_atoms = size(positions)[2]
@@ -555,5 +569,6 @@ function makeTrajAtomList( positions::Array{T1,3}, names::Vector{T2}, index::Arr
     end
     return traj
 end
+#-------------------------------------------------------------------------------
 
 end
