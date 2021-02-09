@@ -2,7 +2,7 @@ module cell_mod
 
 export Cell_param, Cell
 export Cell
-export vec2matrix, wrap, dist1D, distance, compressParams, compressAtoms
+export wrap, dist1D, distance
 export velocityFromPosition
 
 # Import all import module
@@ -971,19 +971,22 @@ end
 # NB: Not sure it works, and will create serious issues for molecular systems
 # in already reduced states
 #---------------------------------------------------------------------------
+# Compress the cell using cell_param by a given factor
+# - works for orthorombic cell
 function compressParams( cell::T1, fracs::Vector{T2} ) where { T1 <: Cell_param, T2 <: Real }
+    # Arguments
+    # - cell: Cell_param describing the original cell
+    # - fracs: vector of size 3 containing the factor by which to multiply the lengths of the cell (real,>0)
+    # Output
+    # - cell: cell_param containing the information of the new cell
+
+    # Compression of the cell by reducing its lengths
     for i=1:3
         cell.lengths[i] *= fracs[i]
     end
+
+    # Returns the new, compressed, cell
     return cell
-end
-function compressAtoms( atoms::T1 , cell::T2, fracs::Vector{T3} ) where { T1 <: atom_mod.AtomList, T2 <: Cell_param, T3 <: Real }
-    for i=1:size(atoms.names)[1]
-            atoms.positions[i,j] *= fracs[j]
-            for j=1:3
-        end
-    end
-    return atoms
 end
 #---------------------------------------------------------------------------
 
@@ -992,6 +995,7 @@ end
 # Context: used to determine whether molecules where looping over themselves
 # through the PBC in some cases where they form through polymerization.
 #TODO: Check that they actually work
+#TODO: Check which of these is actually useful and which isn't
 #---------------------------------------------------------------------------
 # Determine whether the molecule to which the target atom belong is infinite (self-looping) - graph exploration method
 # - Recursive, careful with it
@@ -1060,48 +1064,91 @@ function isInfiniteChain( visited::Vector{T1}, matrix::Array{T2,2}, adjacency_ta
 end
 # Check if molecule is infinite by unwraping once all atoms following a graph exploration method
 function checkInfiniteChain( matrix::Array{T1,2},  positions::Array{T2,2} , cell::T3, molecule_indexs::Vector{T4}, cut_off::T5 ) where { T1 <: Real, T2 <: Real, T3 <: Cell_param, T4 <: Int, T5 <: Real }
-    adjacent_molecule = graph.getAllAdjacentVertex(matrix)
+    # Arguments:
+    # - matrix: adjacency matrix, 1=atoms i,j are bonded, 0 = atoms i,j are not bonded
+    # - positions: Array contaning the positions of the atoms (nb_atoms,3)
+    # - cell :  Cell_param containing all info on the cell
+    # - molecule_indexs: index of all atoms in the molecules
+    # - cut_off : cut-off used to determine bonding in the adjacency matrix
+    # Output
+    # - Is the molecule infinite? (Bool)
+
+    # Compute neighbors of all atoms
+    adjacent_molecule = graph.getAllAdjacentVertex( matrix )
+
+    # Compute the size of the molecule
     size_molecule = size( matrix )[1]
+
+    # Creat a vector to bookkeep which atoms were visited
     visited=zeros(Int,size_molecule)
+
+    # Unwrapping all atoms but only once
     cell_mod.unWrapOrthoOnce( visited, matrix , adjacent_molecule, positions, cell, 1, molecule_indexs )
+
+    # Loop over atoms of the molecule
     for atom=1:size_molecule
+        # Loop over neighbors
         for adj=1:size(adjacent_molecule[atom])[1]
+            # Checking bonds correspondance
             if norm( positions[ molecule_indexs[atom], :] - positions[ molecule_indexs[adjacent_molecule[atom][adj]], :] ) > cut_off
+                # If some atoms are no longer bonded, then we have an infinite chain
                 return true
             end
         end
     end
+
     # If we get there, the molecule isn't infinite
     return false
 end
-# Find the atoms that are bonded but whose bonds are cut by the one unwrap policty
+# Find the atoms that are bonded but whose bonds are cut by the one unwrap policty within a single molecule
 function findUnlinked( matrix::Array{T1,2},  positions::Array{T2,2} , cell::T3, molecule_indexs::Vector{T4}, cut_off::T5  ) where { T1 <: Real, T2 <: Real, T3 <: Cell_param, T4 <: Int, T5 <: Real }
+    # Arguments
+    # - matrix: adjacency matrix of the molecule, if (i,j) = 1 atoms i,j are bonded, if 0 they are not
+    # - positions: real array (nb_atoms,3) contains the positions of atoms
+    # - cell: Cell_param describing the cell
+    # - molecule_indexs: bookeep the indexes of the atoms of the molecule
+    # - cut_off: cut-off used to create the adjacency matrix of the molecule (real scalar > 0 )
+    # Output
+    # - list: Array (nb_pair,2) that contains all pairs of atoms that are unlinked by unwrapping
+
+    # Init list of unlinked atoms
     list=Array{Int}(undef,0,2)
+
+    # Get the size of the molecule
     size_molecule=size(matrix)[1]
+
+    # Loop over atoms in the molecule
     for atom=1:size_molecule
+        # Second loop over atoms of the molecule
         for atom2=atom+1:size_molecule
-            # matrix[i,j] correspond to the actual bond, norm(positions(i,:)-positions(j,:)) corresponds to the positions in unwrapped
-            # so if one is 1 and the other not, we have an infinity loop
+            # Checking that atoms that should be bonded are bonded
+            # matrix[atom1,atom2] : the truth value
+            # norm(...) : whether atoms are bonded post unwrapping
             if matrix[atom,atom2] == 1 && norm(positions[atom,:]-positions[atom2,:]) > cut_off
+                # If there is no unbonded atoms
                 if size(list)[1] == 0
+                    # Adding atoms that are problematic to the list
                     list = vcat( list, [ molecule_indexs[atom] molecule_indexs[atom2] ] )
                 else
-                    check = true
                     # Checking that we haven't already added the pair
+                    check = true
+                    # Loop over all atoms in the list
                     for i=1:size(list)[1]
                         if list[i,:] == [ molecule_indexs[atom], molecule_indexs[atom2] ]
                             check = false
                         end
                     end
-                    # If ok we add
+                    # If the atoms are not in the list...
                     if check
+                        # We add the atom to the list
                         list = vcat( list, [ molecule_indexs[atom] molecule_indexs[atom2] ] )
                     end
                 end
             end
         end
     end
-    # If we get thee, the molecule isn't infinite
+
+    # Returns the list of unlinked atoms if any
     return list
 end
 #---------------------------------------------------------------------------
@@ -1110,82 +1157,139 @@ end
 #-------------------------------------------------------------------------------
 # Computes how atoms of a unit cell must move when growing for a supercell
 function computeMoveVector( index::Vector{T1}, cell_matrix::Array{T2,2} ) where { T1 <: Int, T2 <: Real }
+    # Arguments
+    # - index: direction of the growth of the original size (vector, size 3, int)
+    # - cell_matrix: cell matrix, 3x3 real matrix describing the cell
+    # Output
+    # - moveVector: A vector by which to move all atoms of a cell to create a supercell
+
+    # Initialize output
     moveVector = zeros(Real,3)
+
+    # Loop over dimension
     for i=1:3
+        # Second loop over dimension
         for j=1:3
+            # Compute the move
             moveVector[i] += index[i]*cell_matrix[i,j]
         end
     end
+
+    # Return the move vector
     return moveVector
 end
+# Growing the cell into a supercell using n_grow indexes, cell described by cell matrix
 function growCell( cell::Array{T1,2}, n_grow::Vector{T2} ) where { T1 <: Real, T2 <: Int }
+    # Argument
+    # - cell : cell matrix of the original cell
+    # - n_grow: index by which to grow the cell in all direction (vector, 3, int)
+    # Output
+    # - cell2: cell matrix of the new cell
+
+    # Initialize the output cell by copying the original
     cell2 = copy(cell)
+
+    # Constructing new cell
     for i=1:3
         cell2[:,i] = cell[:,i]*n_grow[i]
     end
-    return Cell_matrix(cell2)
+
+    # Returns the modified cell
+    return Cell_matrix( cell2 )
 end
-function growCell( cell::T1 , n_grow::Vector{T2} ) where { T1 <: Cell_matrix, T2 <: Int }
-    return growCell( cell.matrix, n_grow )
-end
+# Growing the cell into a supercell using n_grow indexes, cell described by cell_param
 function growCell( cell::T1, n_grow::Vector{T2} ) where { T1 <: Cell_param, T2 <: Int }
+    # Arguments
+    # - cell: Cell_param of the original cell
+    # - n_grow: indexes used to grow the cell in all 3 dimensions
+    # Output
+    # - cell matrix modified for the supercell
+
+    # Computes the cell matrix,
+    # Compute and returns the supercell
     return growCell( params2Matrix(cell), n_grow )
 end
+# Making a supercell using the n_grow indexes to decide in which direction to grow
 function makeSuperCell( atoms::T1, cell_matrix::Array{T2,2}, n_grow::Vector{T3} ) where { T1 <: AtomList, T2 <: Real, T3 <: Int }
+    # Get number of atoms in the original cell
     nb_atoms_base = size(atoms.names)[1]
+
+    # Compute the number off atoms in the final cell
     nb_atoms_new = nb_atoms_base
     for i=1:3
         nb_atoms_new *= n_grow[i]
     end
+
+    # Initialize final AtomList size
     new_atoms = AtomList( nb_atoms_new )
-    count_ = 1
+
+    # Loop over x direction
     for dirx=0:n_grow[1]-1
+        # Loop over y direction
         for diry=0:n_grow[2]-1
+            # Loop over z direction
             for dirz=0:n_grow[3]-1
-                move_box=[dirx,diry,dirz]
-                # OLD IMPLEMENTATION
+
+                # Compute the direction in the x,y,z direction
+                move_box = [dirx,diry,dirz]
+
+                # Compute the move vector for all atoms of the original cell
                 moveVector = zeros(Real,3)
                 for xyz=1:3
                     for v123=1:3
                         moveVector[xyz] += move_box[v123]*cell_matrix[xyz,v123]
                     end
                 end
+
+                # Move all atoms by the move vector to populate the larger cell
                 for atom = 1:nb_atoms_base
                     new_atoms.positions[count_,:] = atoms.positions[atom,:] .+ moveVector[:]
                     new_atoms.names[count_] = atoms.names[atom]
                     new_atoms.index[count_] = 1
-                    count_ += 1
                 end
+
             end
         end
     end
+
+    # Creating the supercell
     super_cell = growCell( cell_matrix, n_grow )
+
+    # Sort Atoms by Z
     atom_mod.sortAtomsByZ!(new_atoms)
+
+    # Changes the indexes to default
     for i=1:nb_atoms_new
         new_atoms.index[i] = i
     end
+
     return new_atoms, cell_mod.cellMatrix2Params( super_cell )
-end
-function makeSuperCell!( traj::Vector{T1}, cell::Array{T2,2}, n_grow::Vector{T3}  ) where { T1 <: atom_mod.AtomList, T2 <: Real, T3 <: Int }
-    nb_step = size(traj)
-    for i=1:nb_step
-        traj[step] = duplicateAtoms( traj[step], cell, n_grow )
-    end
-    return traj
 end
 #-------------------------------------------------------------------------------
 
 # Transforming cell from unorthorombic to orthorombic using a cut
 # NB: Does not work for all structures, be extremely cautious with the results
 #-------------------------------------------------------------------------------
-function toOrthoByCut( cell::T1 ) where { T1 <: cell_mod.Cell_matrix }
+function toOrthoByCut( cell_matrix::Array{T1,2} ) where { T1 <: Real }
+    # Argument
+    # - cell_matrix : original cell matrix
+    # Output
+    # - Cell_param that describes the newly created orthorombic cell
+
+    # Initialize lengths of cell
     lengths = zeros( Real, 3 )
-    lengths[1] = LinearAlgebra.norm( cell.matrix[:,1] )
+
+    # Aligne direction 1 along the x axis
+    lengths[1] = LinearAlgebra.norm( cell_matrix[:,1] )
+
+    # Loop to compute the lengths in the other directions
     for i=2:3
         for j=1:3
             lengths[j] += cell.matrix[i,j]
         end
     end
+
+    # Returns the new cell (Cell_param)
     return cell_mod.Cell_param( lengths )
 end
 #-------------------------------------------------------------------------------
