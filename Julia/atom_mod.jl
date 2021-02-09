@@ -1,154 +1,382 @@
 module atom_mod
 
 export AtomList, AtomMolList
-export switchAtoms!
-export getNbAtoms, getNbStep, getNbMol
+export switchAtoms!, moveAtom! sortAtomsByZ!
+export getNbAtoms, getNbStep, getNbMol, moveAtom
 
 using utils
 using periodicTable
 
+# Structures
 #-------------------------------------------------------------------------------
+# AtomList: Contains all atoms with positions, names and index
 mutable struct AtomList
-    names::Vector{AbstractString}
-    index::Vector{Int}
-    positions::Array{Real,2}
+
+    # Variables
+    #-------------------------------
+    names::Vector{AbstractString} # Names of the atoms (chemical species)
+    index::Vector{Int}            # Index of atoms (labels)
+    positions::Array{Real,2}      # Positions of the atoms
+    #-------------------------------
+
+    # Constructors
+    #----------------------------------------------------------------------------
+    # Creates a default AtomList
+    function AtomList()
+        # Arguments
+        # None
+        # Output
+        # - Creates a default AtomList
+
+        # Create the new AtomList with nothing in it
+        new( Array{AbstractString,1}(undef,0) , zeros(0), zeros(0,3) )
+    end
+    # Creates a default AtomList with a preset number of atoms
     function AtomList( nb_atoms::T1 ) where { T1 <: Int }
+        # Arguments:
+        # - nb_atoms : number of atoms in the AtomList
+        # Output:
+        # Creates an AtomList with nb_atoms, all with default values
+
+        # Creates the AtomList
         new( Array{AbstractString,1}(undef,nb_atoms) , zeros(nb_atoms), zeros(nb_atoms,3) )
     end
+    # Creates an AtomList with all data given
     function AtomList( names::Vector{T1}, index::Vector{T2}, positions::Array{T3,2} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real }
+        # Arguments
+        # - names: names of the atoms (vector of string)
+        # - index: indexes of the atoms (vector of int)
+        # - positions: array with the positions of the atoms (nb_atoms,3)
+        # Output
+        # - Creates an AtomList
+
+        # Create the AtomList
         new( names, index, positions )
     end
+    #----------------------------------------------------------------------------
 end
+# AtomMolList: Contains all atoms with positions, names and index + name and index of the molecule they belong to
+# Mostly useful for classical simulations (GROMACS,LAMMPS)
 mutable struct AtomMolList
-    atom_names::Vector{AbstractString}
-    atom_index::Vector{Int}
-    mol_names::Vector{AbstractString}
-    mol_index::Vector{Int}
-    positions::Array{Real,2}
-    function AtomMolList( nb_atoms::T1 ) where { T1 <: Int }
-        new( Vector{AbstractString}( undef,nb_atoms ),Vector{Int}(undef, nb_atoms ) ,Vector{AbstractString}(undef, nb_atoms ), Vector{Int}(undef,nb_atoms), Array{Real}(undef,nb_atoms,3))
+
+    # Variables
+    #---------------------------------------------------
+    atom_names::Vector{AbstractString} # Atoms names
+    atom_index::Vector{Int}            # Atom indexes
+    mol_names::Vector{AbstractString}  # Names of the molecule the atom is in
+    mol_index::Vector{Int}             # Indexes of the molecule the atom belong to
+    positions::Array{Real,2}           # Position of the atom
+    #---------------------------------------------------
+
+    # Constructors
+    #---------------------------------------------------
+    # Create default AtomMolList
+    function AtomMolList()
+        # Argument
+        # - None
+        # Output
+        # - A default AtomMolList object
+
+        # Creates object
+        new( Vector{AbstractString}( undef, 0 ),Vector{Int}(undef, 0 ) ,Vector{AbstractString}(undef, 0 ), Vector{Int}(undef, nb_atoms ), Array{Real}(undef, 0, 3 ) )
     end
+    # Create default AtomMolList with a given number of atoms
+    function AtomMolList( nb_atoms::T1 ) where { T1 <: Int }
+        # Argument
+        # - nb_atoms: number of atoms of the AtomMolList object
+        # Output
+        # - An AtomMolList object
+        new( Vector{AbstractString}(undef, nb_atoms ),Vector{Int}(undef, nb_atoms ) ,Vector{AbstractString}(undef, nb_atoms ), Vector{Int}(undef, nb_atoms ), Array{Real}(undef, nb_atoms, 3 ) )
+    end
+    # Create AtomMolList
+    function AtomMolList( atom_names::Vector{T1}, atom_index::Vector{T2}, mol_names::Vector{T3}, mol_index::Vector{T4}, positions::Array{T5,2} ) where { T1 <: AbstractString, T2 <: Int, T3 <: AbstractString, T4 <: Int, T5 <: Real }
+        # Argument
+        # - atom_names: names of the atoms (vector of Strings)
+        # - atom_index: indexes of the atoms (vector of int)
+        # - mol_names: names of the molecule the atoms belong to (Vector of string)
+        # - mol_index: indexes of the molecules the atoms are in (Vector of int)
+        # - positions: position of the atom (Array, real, (nb_atoms,3) )
+        # Output
+        # - An AtomMolList object
+
+        # Creates the AtomMolList object
+        new( Vector{AbstractString}(undef, nb_atoms ),Vector{Int}(undef, nb_atoms ) ,Vector{AbstractString}(undef, nb_atoms ), Vector{Int}(undef, nb_atoms ), Array{Real}(undef, nb_atoms, 3 ) )
+    end
+    #---------------------------------------------------
 end
 #-------------------------------------------------------------------------------
 
+# Functions to switch atoms
 #-------------------------------------------------------------------------------
+# Switch two atoms in an AtomList
 function switchAtoms!( atoms::T1 , index1::T2, index2::T3 ) where { T1 <: AtomList, T2 <: Int, T3 <: Int }
-    # Storing
+    # Argument
+    # - atoms: AtomList containing information about the atoms and their positions
+    # - index1, index2: index of the atoms to switch (int)
+    # Output
+    # - None
+
+    # Stores data from 1
     index_    = atoms.index[ index1 ]
     name_     = atoms.names[ index1 ]
     position_ = atoms.positions[ index1, : ]
-    # Moving 1
-    atoms.index[ index1 ]  = atoms.index[ index2 ]
-    atoms.names[ index1 ]  = atoms.names[ index2 ]
+
+    # Moving data from 2 to 1
+    atoms.index[ index1 ]        = atoms.index[ index2 ]
+    atoms.names[ index1 ]        = atoms.names[ index2 ]
     atoms.positions[ index1, : ] = atoms.positions[ index2, : ]
-    # Moving 2
+
+    # Moving data from storage to2 2
     atoms.index[index2]       = index_
     atoms.names[index2]       = name_
     atoms.positions[index2,:] = position_
+
     return
 end
-function switchAtoms!( traj::Vector{T1} , index1::T2, index2::T3, step::T4 ) where { T1 <: AtomList, T2 <: Int, T3 <: Int, T4 <: Int }
+# Switch two atoms from a traj (vector of AtomList)
+function switchAtoms!( traj::Vector{T1}, index1::T2, index2::T3, step::T4 ) where { T1 <: AtomList, T2 <: Int, T3 <: Int, T4 <: Int }
+    # Argument
+    # - traj: vector of AtomList with positions of atoms
+    # - index1, index2: index of the atoms
+    # - step: target set
+    # Output
+    # - None
+
+    # Switches the atom index1 and index2
     return SwitchAtoms!( traj[step], index1, index2 )
 end
+# Switches to atoms in an AtomMolList
 function switchAtoms!( atoms::T1 , index1::T2, index2::T3 ) where { T1 <: AtomMolList, T2 <: Int, T3 <: Int }
-    # Storing
-    a_index=atoms.atom_index[index1]
-    a_name=atoms.atom_names[index1]
-    m_index=atoms.mol_index[index1]
-    m_name=atoms.mol_names[index1]
-    positions=atoms.positions[index1,:]
-    # Moving 1
-    atoms.atom_index[index1]=atoms.atom_index[index2]
-    atoms.atom_names[index1]=atoms.atom_names[index2]
-    atoms.mol_index[index1]=atoms.mol_index[index2]
-    atoms.mol_names[index1]=atoms.mol_names[index2]
-    atoms.positions[index1,:]=atoms.positions[index2,:]
-    # Moving 2
-    atoms.atom_index[index2]=a_index
-    atoms.atom_names[index2]=a_name
-    atoms.mol_index[index2]=m_index
-    atoms.mol_names[index2]=m_name
-    atoms.positions[index2,:]=positions
+    # Argument
+    # - atoms:
+    # - index1, index2: index of atom to be switched
+    # Output
+    # - None
+
+    # Stores data from atom index 1
+    a_index   = atoms.atom_index[index1]
+    a_name    = atoms.atom_names[index1]
+    m_index   =  atoms.mol_index[index1]
+    m_name    =  atoms.mol_names[index1]
+    positions =  atoms.positions[index1,:]
+
+    # Moves data from atom index2 into atom index1
+    atoms.atom_index[index1]  = atoms.atom_index[index2]
+    atoms.atom_names[index1]  = atoms.atom_names[index2]
+    atoms.mol_index[index1]   = atoms.mol_index[index2]
+    atoms.mol_names[index1]   = atoms.mol_names[index2]
+    atoms.positions[index1,:] = atoms.positions[index2,:]
+
+    # Moves data from storage to atom index2
+    atoms.atom_index[index2]  = a_index
+    atoms.atom_names[index2]  = a_name
+    atoms.mol_index[index2]   = m_index
+    atoms.mol_names[index2]   = m_name
+    atoms.positions[index2,:] = positions
+
     return
 end
+# Switches two atoms from traj (vector of AtomMolList)
 function switchAtoms!( traj::Vector{T1}, index1::T2, index2::T3, step::T4 ) where { T1 <: AtomMolList, T2 <: Int, T3 <: Int, T4 <: Int }
+    # Argument
+    # - traj: vector of AtomMolList, contains atom positions
+    # - index1, index2 : index of the atoms to switchs
+    # - step: step at which to exchange atoms
+    # Output
+    # None
+
+    # Switches atoms index1 and index2 at step
     return switchAtoms!( traj[step], index1, index2 )
 end
 #-------------------------------------------------------------------------------
 
+# Sorting atoms by chemical species
 #-------------------------------------------------------------------------------
+# Sort atoms by their chemical species
 function sortAtomsByZ!( atoms::T1 ) where { T1 <: AtomList }
+    # Argument
+    # - atoms: AtomList containing atomic positions
+    # Output
+    # - None
+
+    # Get the number of atoms
     nb_atoms = size(atoms.names)[1]
+
+    # Loop over atoms
     for atom = 1:nb_atoms
+        # Loop over all other atoms
         for atom2 = atom+1:nb_atoms
+            # Get and compare the Z of the two atoms
             if periodicTable.names2Z( atoms.names[atom] ) < periodicTable.names2Z( atoms.names[atom2] )
+                # Switch atoms
                 switchAtoms!( atoms, atom, atom2 )
             end
         end
     end
-    return true
+
+    return
 end
+# Sort atoms by their chemical species over all steps
 function sortAtomsByZ!( traj::Vector{T1} ) where { T1 <: AtomList }
+    # Argument
+    # - traj: trajectory as list of AtomList containing the positions
+    # Output
+    # - None
+
+    # Get the number of step
     nb_step = size(traj)[1]
+
+    # Loop over steps
     for step = 1:nb_step
-        sortAtomsByZ( traj[step] )
+        # Sort for each step
+        sortAtomsByZ!( traj[step] )
     end
-    return true
+
+    return
 end
 #-------------------------------------------------------------------------------
 
+# Moving atoms around
 #-------------------------------------------------------------------------------
-function moveAtom( atoms::T1 , move::Vector{T2} ) where { T1 <: atom_mod.AtomList, T2 <: Real }
-    for i=1:size(atoms.positions)[1]
-        for j=1:3
-            atoms.positions[i,j] += move[j]
+# Moving all atoms by a given vector move
+function moveAllAtom( atoms::T1 , move::Vector{T2} ) where { T1 <: atom_mod.AtomList, T2 <: Real }
+    # Argument
+    # - atoms: AtomList, with atomic positions
+    # - move: vector by which to moive all atoms
+    # Output
+    # - atoms2, transformed: AtomList with the modified positions
+
+    # Initialize output
+    atoms2 = copy(atoms)
+
+    # Loop over atoms
+    for atom=1:size(atoms.positions)[1]
+        # Loop over dimensions
+        for i=1:3
+            atoms2.positions[atom,i] += move[i]
         end
     end
-    return atoms
+
+    # Returns the modified atomic positions
+    return atoms2
 end
-function moveAtom!( atoms::T1 , move::Vector{T2} ) where { T1 <: atom_mod.AtomList, T2 <: Real }
-    for i=1:size(atoms.positions)[1]
-        for j=1:3
-            atoms.positions[i,j] += move[j]
+# Moving all atoms by a given vector, directly on the vector
+function moveAllAtom!( atoms::T1 , move::Vector{T2} ) where { T1 <: atom_mod.AtomList, T2 <: Real }
+    # Argument
+    # - atoms: frame with atomic position described by AtomList
+    # - move: vector by which moving all atoms of the list
+    # Output
+    # None (atoms are directly modified)
+
+    # Loop over atoms
+    for atom=1:size(atoms.positions)[1]
+        # Loop over dimensions
+        for i=1:3
+            atoms.positions[atom,i] += move[i]
         end
     end
-    return atoms
+
+    return
 end
 #-------------------------------------------------------------------------------
 
+# Extract positions of an AtomList
 #-------------------------------------------------------------------------------
 function getPositionsAsArray( traj::Vector{T1} ) where { T1 <: AtomList }
+    # Argument
+    # - traj: vector of AtomList that describes the trajectory
+    # Output
+    # - positions: Array containing atomic positions real, size (nb_atoms,3)
+
+    # Get number of steps of the trajectory
     nb_step=size(traj)[1]
+
+    # Get the number of atoms in the structure
     nb_atoms=size(traj[1].names)[1]
+
+    # Initialize positions
     positions=zeros(nb_step,nb_atoms,3)
+
+    # Loop over step
     for step=1:nb_step
+        # Extracting position at each step
         positions[step,:,:] = traj[step].positions[:,:]
     end
+
+    # Returns positions
     return positions
 end
 #-------------------------------------------------------------------------------
 
+# Functions to get the number of steps/atoms from
+# - an AtomList or vector of AtomList
+# - an AtomMolList or vector of AtomMolList
 #-------------------------------------------------------------------------------
-function getNbAtoms( atoms::T1 ) where { T1 <: AtomList}
+# Extract the number of atoms from an AtomList
+function getNbAtoms( atoms::T1 ) where { T1 <: AtomList }
+    # Argument
+    # - atoms: Structure described by an AtomList
+    # Return
+    # - number of atoms in the AtomList
+
+    # Returns the number of atoms in AtomList
     return size( atoms.names )[1]
 end
+# Extract the number of atoms from a vector of AtomList
+# - assumes that this is a trajectory, not a set of structure with different number of atoms
 function getNbAtoms( traj::Vector{T1} ) where { T1 <: AtomList }
+    # Argument
+    # - traj: vector of AtomList, containing atom positions
+    # Output
+    # - number of atoms in the trajectory
+
+    # Return the number of atoms in the trajectory
     return getNbAtoms( traj[1] )
 end
+# Extract the number of atoms from an AtomMolList
 function getNbAtoms( atoms::T1 ) where { T1 <: AtomMolList }
+    # Argument
+    # - atoms: Structure described by an AtomMolList
+    # Return
+    # - number of atoms in the AtomMolList
+
+    # Returns the number of atoms in AtomMolList
     return size( atoms.atom_names )[1]
 end
-function getNbAtoms( traj::Vector{T1} ) where { T1 <: AtomMolList}
+# Extract the number of atoms from a vector of AtomMolList
+# - assumes that this is a trajectory, not a set of structure with different number of atoms
+function getNbAtoms( traj::Vector{T1} ) where { T1 <: AtomMolList }
+    # Argument
+    # - traj: vector of AtomMolList, containing atom positions
+    # Output
+    # - number of atoms in the trajectory
+
+    # Return the number of atoms in the trajectory
     return getNbAtoms( traj[1] )
 end
+# Get the maximum number of molecules in an AtomMolList
 function getNbMolecules( atoms::T1 ) where { T1 <: AtomMolList }
+    # Argument
+    # - atoms: AtomMolList containing atomic positions
+    # Output
+    # - number of molecules in the frame
+
+    # Return the number of molecules (maximum index of molecules)
     return max( atoms.mol_index )
 end
+# Get the maximum number of molecules in a vector of AtomMolList
 function getNbMolecules( traj::Vector{T1} ) where { T1 <: AtomMolList }
+    # Argument
+    # - traj: vector of AtomMolList containing atomic positions of the trajectory
+    # Output
+    # - number of molecules in the trajectory (assuming it does not change)
+
+    # Return the number of molecules (maximum index of molecules)
     return getNbMolecules( traj[1] )
 end
 #-------------------------------------------------------------------------------
 
+#
 #-------------------------------------------------------------------------------
 function getNbStep( traj::Vector{T1} ) where { T1 <: AtomList }
     return size(traj)[1]

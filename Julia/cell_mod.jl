@@ -165,6 +165,85 @@ mutable struct Cell
     # here is relatively limiting
     #----------------------------------------------------------
 end
+# CellAll : contains cell information both in parameters and matrix form, plus the inverse matrix
+mutable struct CellAll
+
+    # Object variables
+    #-------------------------------
+    lengths::Vector{Real} # Contains the lengths of the cell (a,b,c) in angstroms
+    angles::Vector{Real}  # Angles of the cell (alpha,beta,gamma) in degrees
+    matrix::Array{Real,2} # Cell matrix
+    inv_matrix::Array{Real,2} # Inverse of the cell matrix
+    #-------------------------------
+
+    # Constructor functions
+    #-----------------------------------------------------
+    # Create a default cell (lengths=1,angles=90)
+    function CellAll()
+        # Argument
+        # - None
+        # Output
+        # Creates a default CellAll
+
+        # Create Object
+        new( ones(Real,3), ones(3)*90.0, Matrix{Real}(I,3,3)*1.0, Matrix{Real}(I,3,3)*1.0 )
+    end
+    # Create an orthorombic cell using provided lengths
+    function CellAll( a::T1, b::T2, c::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Real }
+        # Arguments
+        # - a,b,c: lengths of the cell in angstroms
+        # Output
+        # - Creates the CellAll Object or false if the matrix is not invertible
+
+        # Create matrix
+        matrix=zeros(3,3)
+        matrix[1,1] = a
+        matrix[2,2] = b
+        matrix[3,3] = c
+
+        #Check that the matrix is invertible
+        if det(matrix) == 0
+            return false
+        end
+
+        # Create Object
+        new( [a,b,c], ones(3)*90.0, matrix, inv(matrix) )
+    end
+    # Create lengths using provided lengths and angles (in degrees)
+    function CellAll( a::T1, b::T2, c::T3, alpha::T4, beta::T5, gamma::T6 ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
+        # Arguments:
+        # - a,b,c: lengths of the cell in angstroms
+        # - alpha,beta,gamma: angles of the cell in degrees
+        # Output
+        # - Creates a Cell Object or false if the matrix is not invertible
+
+        # Converts angles in radians
+        alpha2 = alpha*pi/180
+        beta2 = beta*pi/180
+        gamma2 = gamma*pi/180
+
+        # Creating the cell matrix
+        matrix = zeros(3,3)
+        matrix[1,1] = a
+        matrix[1,2] = b*cos( gamma2 )
+        matrix[1,3] = c*cos( beta2 )
+        matrix[2,2] = b*sin( gamma2 )
+        matrix[2,3] = c*( cos( alpha2 ) - cos( beta2 )*cos( gamma2 ) )/sin( gamma2 )
+        volume=sqrt( 1 + 2*cos(alpha2)*cos(beta2)*cos(gamma2) -cos(alpha2)^2 -cos(beta2)^2 -cos(gamma2)^2 )
+        matrix[3,3] = c*volume/sin( gamma2 )
+
+        #Check that the matrix is invertible
+        if det(matrix) == 0
+            return false
+        end
+
+        # Create matrix
+        new( [a,b,c], [alpha,beta,gamma], matrix, inv(matrix) )
+    end
+    # NB: We probably need to add more functions, because the set that is
+    # here is relatively limiting
+    #----------------------------------------------------------
+end
 #--------------------------------------------------------------
 
 # Matrix <-> Parameters conversion
