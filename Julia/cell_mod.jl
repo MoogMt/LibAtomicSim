@@ -273,7 +273,24 @@ function params2Matrix( cells_params::Vector{T1} ) where { T1 <: Cell_param }
     # Return tensor
     return cells_
 end
-#---------------------------------------------------------------------------\
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
+function invertCell( cell_matrix::Array{T1,2} ) where { T1 <: Real }
+    if det(cell_matrix) != 0
+        return LinearAlgebra.inv(cell_matrix)
+    else
+        return false
+    end
+end
+function invertCell( cell_matrix::T1 ) where { T1 <: Cell_matrix }
+    return invertCell(cell_matrix.matrix)
+end
+function invertCell( cell_params::T1 ) where { T1 <: Cell_param }
+    return invertCell(params2Matrix(cell_matrix.matrix))
+end
+#-------------------------------------------------------------------------------
+
 
 # Computation of the volume of the cell
 #-------------------------------------------------------------------------------
@@ -449,58 +466,95 @@ function wrap( positions::Vector{T1}, cell::T2 ) where { T1 <: Real, T2 <: Cell_
 end
 #-------------------------------------------------------------------------------
 
-#-------------------------------------------------------------------------------
-function unWrapOrtho!( positions::Array{T1,2}, origin::T2, target::T3, cell::T4  ) where { T1 <: Real, T2 <: Int, T3 <: Int, T4 <: Cell_param }
+# Unwrapping functions for molecule analysis
+#---------------------------------------------------------------------------------------------
+# Unwrap a target atom using a reference atom, all positions are in array, cell given as a Cell_param
+# - Works for Orthorombic cell
+# - Modifies Array
+function unWrapStructureOrtho!( positions::Array{T1,2}, reference::T2, target::T3, cell::T4  ) where { T1 <: Real, T2 <: Int, T3 <: Int, T4 <: Cell_param }
+    # Arguments:
+    # - positions: trajectory of a single atom in matrix form (n_step,3) (real)
+    # - reference: reference atom (int)
+    # - target: target atom to unwrap (int)
+    # - cell: Cell_param that describes the cell
+    # Output:
+    # - Nothing, modifications made direclty on array
+
+    # Loop over the dimensions
     for i=1:3
-        dist=(positions[origin,i]-positions[target,i])
+        # Compute distance between target and reference
+        dist = ( positions[reference,i] - positions[target,i] )
+        # If distance is larger than half the size of the box, unwrap
         if dist > cell.length[i]*0.5
             positions[target,i] += cell.length[i]
+        # If distance is smaller than - half the size of the box, unwrap
         elseif dist < -cell.length[i]*0.5
             positions[target,i] -= cell.length[i]
         end
     end
+
     return
 end
-function unWrapOrtho!( structure::T1, origin::T2, target::T3, cell::T4  ) where { T1 <: atom_mod.AtomList, T2 <: Int, T3 <: Int, T4 <: Cell_param }
+# Unwrap a target atom using a reference atom, positions in AtomList, cell given in Cell_param
+# - Works for orthorombic cell only
+# - Modifies AtomList
+function unWrapStructureOrtho!( structure::T1, reference::T2, target::T3, cell::T4  ) where { T1 <: atom_mod.AtomList, T2 <: Int, T3 <: Int, T4 <: Cell_param }
+    # Argument
+    # - structure: AtomList that contains the atomic positions
+    # - origin: index of the reference atom
+    # - target: index of the target atom
+    # - cell: Cell_param that describe the cell
+    # Output
+    # - Nothing, modifications are made directly on structure
+
+    # Loop over dimensions
     for i=1:3
-        dist=(structure.positions[origin,i]-structure.positions[target,i])
+        # Compute distance between reference and target
+        dist = ( structure.positions[reference,i] - structure.positions[target,i] )
+
+        # If distance is larger than half the cell, unwrap
         if dist > cell.length[i]*0.5
             structure.positions[target,i] += cell.length[i]
+        # If distance is smaller than minus half the cell, unwrap
         elseif dist < -cell.length[i]*0.5
             structure.positions[target,i] -= cell.length[i]
         end
     end
+
     return
 end
-# Unwraps a target molecule, even if infinite, unwraping atoms only once, exploring the molecule as a tree
-# Useful for visualization
-# Recursive, so use wisely
-function unWrapOrthoOnce( visited::Vector{T1}, matrix::Array{T2,2}, adjacency_table::Vector{T3}, positions::Array{T4,2} , cell::T5, target::T6, index_atoms::Vector{T7}) where { T1 <: Int, T2 <: Real, T3 <: Any, T4 <: Real, T5 <: Cell_param, T6 <: Int, T7 <: Int }
+# Unwrap all atoms within a single molecule, to generate the actual form that is broken by PBC
+# Recursive (may generate infinite loop)
+# Works for orthorombic cell only
+function unWrapStructureOrthoOnce!( visited::Vector{T1}, adjacency_table::Vector{T2}, positions::Array{T3,2} , cell::T4, target::T5, index_atoms::Vector{T6} ) where { T1 <: Int, T2 <: Any, T3 <: Real, T4 <: Cell_param, T5 <: Int, T6 <: Int }
+    # Arguments
+    # - visited: map of all atoms that were previously visited by the function
+    # - adjacency_table: matrix describing which atoms are bonded (int: 0=non bonded, 1=bonded)
+    # - positions: atomic positions in array form
+    # - cell: Cell_param describing cell
+    # - index: conversion table that matchesthe neighbor number to actual index atom (int, vector)
+    # Output:
+    # Nothing, modifications active on positions
+
+    # Target atom is marked as visited
     visited[target]=1
+
+    # Get number of neighbor of target
     nb_neighbor=size(adjacency_table[target])[1]
+
+    # Loop over neighbors
     for neigh=1:nb_neighbor
-        if visited[adjacency_table[target][neigh]] == 0
-            unWrapOrtho!( positions, index_atoms[target], index_atoms[ adjacency_table[target][neigh] ], cell )
-            unWrapOrthoOnce(visited,matrix,adjacency_table,positions,cell,adjacency_table[target][neigh],index_atoms)
+        # If neighbor was already visited, move to the next one
+        if visited[ adjacency_table[target][neigh] ] == 0
+            # Unwrap the neighbor that was not visited
+            unWrapStructureOrtho!( positions, index_atoms[target], index_atoms[ adjacency_table[target][neigh] ], cell )
+            # Goes to unwrap all the neighbors of the neighbor atom
+            unWrapStructureOrthoOnce!( visited, adjacency_table, positions, cell, adjacency_table[target][neigh], index_atoms )
+            # When all neighbors of the branch were visited and unwrap, we go to the next one.
         end
     end
-    return
-end
-#-------------------------------------------------------------------------------
 
-#-------------------------------------------------------------------------------
-function invertCell( cell_matrix::Array{T1,2} ) where { T1 <: Real }
-    if det(cell_matrix) != 0
-        return LinearAlgebra.inv(cell_matrix)
-    else
-        return false
-    end
-end
-function invertCell( cell_matrix::T1 ) where { T1 <: Cell_matrix }
-    return invertCell(cell_matrix.matrix)
-end
-function invertCell( cell_params::T1 ) where { T1 <: Cell_param }
-    return invertCell(params2Matrix(cell_matrix.matrix))
+    return
 end
 #-------------------------------------------------------------------------------
 
@@ -772,7 +826,7 @@ function findUnlinked( matrix::Array{T1,2},  positions::Array{T2,2} , cell::T3, 
 end
 #---------------------------------------------------------------------------
 
-# I have no clue 
+# I have no clue
 #-------------------------------------------------------------------------------
 function computeMoveVector( index::Vector{T1}, cell_matrix::Array{T2,2} ) where { T1 <: Int, T2 <: Real }
     moveVector = zeros(Real,3)
