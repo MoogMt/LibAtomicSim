@@ -276,18 +276,39 @@ end
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
+# Inverts the matrix cell, if possible
 function invertCell( cell_matrix::Array{T1,2} ) where { T1 <: Real }
-    if det(cell_matrix) != 0
+    # Argument
+    # - cell_matrix: cell matrix describing the cell
+    # Output
+    # - inverse of the cell matrix (3x3 real scalar matrix) if inversion if possible, false otherwise
+
+    # If det( matrix ) is not null then matrix is inversible (det comes from LinearAlgebra)
+    if det( cell_matrix ) != 0
+        # Computes and return inverse
         return LinearAlgebra.inv(cell_matrix)
+    # Otherwise inversion is impossible, returns false
     else
         return false
     end
 end
-function invertCell( cell_matrix::T1 ) where { T1 <: Cell_matrix }
-    return invertCell(cell_matrix.matrix)
-end
+# Returns the inverse of the matrix cell corresponding to the cell parameters given as Cell_param
 function invertCell( cell_params::T1 ) where { T1 <: Cell_param }
-    return invertCell(params2Matrix(cell_matrix.matrix))
+    # Argument
+    # - cell_params: Cell_param describing the cell
+    # Output
+    # - 3x3 matrix containing the inverse of the cell matrix, or False if inversion is not possible
+
+    # Computes the matrix linked to the params
+    out = invertCell( params2Matrix(cell_params) )
+
+    # If the inversion fails, return false
+    if out == false
+        return false
+    # Otherwise returns the inverse of the cell matrix
+    else
+        return out
+    end
 end
 #-------------------------------------------------------------------------------
 
@@ -558,162 +579,397 @@ function unWrapStructureOrthoOnce!( visited::Vector{T1}, adjacency_table::Vector
 end
 #-------------------------------------------------------------------------------
 
+# Functions dealing with Cartesian <-> Reduced coordinates
+# NB: TEST THOSE FUNCTIONS
 #-------------------------------------------------------------------------------
+# Transforms the position of an atom (real vector) using the matrix given in parameter
+# - From cartesian to reduced with the inverse cell matrix
+# - From reduced to cartesian coordinates with the cell matrix
 function getTransformedPosition( target_vector::Vector{T1}, cell_matrix::Array{T2,2} ) where {T1 <: Real, T2 <: Real }
+    # Argument:
+    # - target_vector: original position (real vector of size 3)
+    # - cell_matrix: 3x3 matrix, either the cell matrix or its inverse
+    # Output:
+    # - vector: transformed position (real vector of size 3)
+
+    # Initialize output
     vector=zeros(3)
+
+    # Loop over dimension 1
     for i=1:3
+        # Loop over dimension 2
         for j=1:3
             vector[i] += cell_matrix[i,j]*target_vector[j]
         end
     end
+
+    # Returns the transformed atomic position
     return vector
 end
+# Transforms positions of atoms (real matrix form) using the matrix given in parameter
+# - From cartesian to reduced with the inverse cell matrix
+# - From reduced to cartesian coordinates with the cell matrix
 function getTransformedPosition( target_matrix::Array{T1,2}, cell_matrix::Array{T2,2} ) where {T1 <: Real, T2 <: Real }
-    nb_point=size(target_matrix)[1]
+    # Argument
+    # - target_matrix: atomic position in real matrix form (nb_atoms,3)
+    # - cell_matrix: either cell matrix or its inverse, (3x3 real matrix)
+    # Output
+    # - matrix_transformed: Transformed positions in matrix form (nb_atoms,3)
+
+    # Initialize output
     matrix_transformed = zeros( nb_point, 3 )
-    for point=1:nb_point
-        matrix_transformed[ point, : ] = getTransformedPosition( target_matrix[ point,: ], cell_matrix )
+
+    # Loop over atoms
+    for atom=1:size(target_matrix)[1]
+        # Transforms each atomic positions
+        matrix_transformed[ atom, : ] = getTransformedPosition( target_matrix[ atom,: ], cell_matrix )
     end
+
+    # Returns the transformed positions
     return matrix_transformed
 end
-function getScaledPosition( vector::Vector{T1}, cell_matrix::Array{T2,2} ) where { T1 <: Real , T2 <: Real }
-    cell_mat_inverse=invertCell(cell_matrix)
-    return getTransformedPosition(vector,cell_mat_inverse)
-end
-function getScaledPosition( vector::Vector{T1}, cell_matrix::T2 ) where { T1 <: Real , T2 <: Cell_matrix }
-    return getScaledPosition(vector,cell_matrix.matrix)
-end
-function getScalePosition( target_matrix::Array{T1,2}, cell_matrix::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
-    inv_cell_matrix=invertCell(cell_matrix)
-    nb_atoms=size(target_matrix)[1]
-    scaled_positions=copy(target_matrix)
-    for i=1:nb_atoms
-        scaled_positions[i,:]=getTransformedPosition(target_matrix[i,:],inv_cell_matrix)
+# Transforms cartesian position of a single atom into reduced coordinates for an atom using matrix
+function cartesian2Reduced( vector::Vector{T1}, cell_matrix::Array{T2,2} ) where { T1 <: Real , T2 <: Real }
+    # Arguments
+    # - vector: atomic position cartesian coordinates (real vector, size=3)
+    # - cell_matrix: cell matrix describing the cell
+    # Output:
+    # - vector containing reduced coordinates of the atom (real vector, size=)
+
+    # Compute the inverse of the cell matrix
+    cell_mat_inverse = invertCell( cell_matrix )
+
+    # If cell matrix is not inversible, returns false
+    if cell_mat_inverse == false
+        return false
     end
-    return scaled_positions
+
+    # Compute and returns the reduced coordinates of the atom
+    return getTransformedPosition( vector, cell_mat_inverse )
 end
-function getScalePosition( target_matrix::Array{T1,2}, cell_matrix::T2 ) where { T1 <: Real, T2 <: Cell_matrix }
-    return getScalePosition(target_matrix,cell_matrix.matrix)
+# Transforms cartesian position of a set of atoms (matrix form) into reduced coordinates for an atom using matrix
+function cartesian2Reduced( target_matrix::Array{T1,2}, cell_matrix::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
+    # Arguments:
+    # - target_matrix: Contains the atomic positions as a real matrix (nb_atoms,3) in cartesian coordinates
+    # - cell_matrix: 3x3 matrix describing the cell
+    # Output:
+    # - scaled_positions: transformed positions into reduced coordinates (real matrix (nb_atoms,3))
+    # if matrix is not inversible, returns false
+
+    # Computes the inverse of the cell matrix
+    inv_cell_matrix=invertCell(cell_matrix)
+
+    # If cell_matrix is not inversible, returns false
+    if inv_cell_matrix == false
+        return false
+    end
+
+    # Initialize output (may not be necessary)
+    reduced_positions=copy(target_matrix)
+
+    # Loop over all atoms
+    for atom=1:size(target_matrix)[1]
+        # Transform each atomic position into reduced form
+        reduced_positions[atom,:] = getTransformedPosition( target_matrix[atom,:], inv_cell_matrix )
+    end
+
+    # Return reduced coordinates of all atoms
+    return reduced_positions
 end
+# Transforms reduced coordinates of an atom into cartesian coordinates using cell matrix for the cell
 function reduced2Cartesian( positions_reduced::Vector{T1}, cell_matrix::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
+    # Argument
+    # - positions_reduced: reduced coordinates of a single atom
+    # - cell_matrix: matrix that describes the cell
+    # Output:
+    # - new_positions: cartesian coordinates of the atom corresponding to the reduced
+
+    # Initialize output
     new_positions=zeros(Real,3)
-    for i=1:3 # x,y,z
-        for j=1:3 # 1,2,3
+
+    # Loop over cartesian coordinates dimension
+    for i=1:3
+        # Loop over reduced coordinates dimension
+        for j=1:3
             new_positions[i] += positions_reduced[j]*cell_matrix[i,j]
         end
     end
+
+    # Returns the cartesian coordinates
     return new_positions
 end
+# Transforms reduced coordinates of a set of atoms (real matrix form) into cartesian coordinates, using the cell matrix
 function reduced2Cartesian( positions_reduced::Array{T1,2}, cell_matrix::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
-    nb_atoms=size(positions_reduced)[1]
-    for atom = 1:nb_atoms
+    # Arguments:
+    # - positions_reduced: atomic position in reduced coordinates, matrix form (nb_atoms,3)
+    # - cell_matrix: matrix describing the cell
+    # Output:
+    # - positions_reduced, transformed: the atomic positions in cartesian coordinates
+
+    # Loop over all the atoms
+    for atom=1:size(positions_reduced)[1]
+        # Transforms the positions to cartesian
         positions_reduced[atom,:] = reduced2Cartesian( positions_reduced[atom,:], cell_matrix )
     end
+
+    # Returns the cartesian coordinates
     return positions_reduced
-end
-function reduced2Cartesian( positions_reduced::Array{T1,2}, cell_matrix::T2 ) where { T1 <: Real, T2 <: Cell_matrix }
-    return reduced2Cartesian( positions_reduced, cell_matrix.matrix)
 end
 #-------------------------------------------------------------------------------
 
-# Distance related functions
-# TODO Some bugs in the definition of distances, make sure everything is correct,
-# when possible use longer names to define more precisely...
-# TODO SORT THIS MESS
+# Computation of distances between atoms
+# TODO Check and sort this
 #-------------------------------------------------------------------------------
-function dist1D( x1::T1, x2::T2, a::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Real }
+# Compute distance in 1 dimension
+function distsq1D( x1::T1, x2::T2, a::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Real }
+    # Arguments:
+    # - x1, x2: atomic positions
+    # - a: length of the cell
+    # Output:
+    # squared distance between x1 and x2 with PBC
+
+    # Compute distance
     dx=x1-x2
+
+    # Account for PBC
     if dx > a*0.5
         dx -= a
     end
     if dx < -a*0.5
         dx += a
     end
+
+    # Return squared distance
     return dx*dx
 end
-function distance( v1::Vector{T1}, v2::Vector{T2}, cell::Vector{T3} ) where { T1 <: Real, T2 <: Real, T3 <: Real }
+# Computes the distance between two atoms
+# - works for orthorombic only
+function distanceOrtho( v1::Vector{T1}, v2::Vector{T2}, cell_length::Vector{T3} ) where { T1 <: Real, T2 <: Real, T3 <: Real }
+    # Argument
+    # - v1, v2: atomic positions, real vectors of size 3
+    # - cell_length: lengths of the cell in all three dimension
+    # Output
+    # - distance between v1 and v2 (real value, positive)
+
+    # Initialize output
     dist=0
+
+    # Loop over dimensions
     for i=1:size(v1)[1]
-        dist += dist1D(v1[i],v2[i],cell[i])
+        # Computes squared distance in each dimension
+        dist += distsq1D( v1[i], v2[i], cell_length[i] )
     end
+
+    # Return distance
     return sqrt(dist)
 end
-function distance( v1::Vector{T1}, v2::Vector{T2}, cell_matrix::Array{T3,2} ) where { T1 <: Real, T2 <: Real, T3 <: Real }
-    v1_scaled=getScaledPosition(v1,cell_matrix)
-    v2_scaled=getScaledPosition(v2,cell_matrix)
-    ds=zeros(3)
-    # Distance + Min Image Convention
-    for i=1:3
-        ds[i] = v1_scaled[i]-v2_scaled[i]
-        ds[i] = ds[i] - round(ds[i])
-    end
-    # Descaling of distance vector
-    ds=getTransformedPosition(ds,cell_matrix)
-    return sqrt(dot(ds,ds))
-end
-function distance( v1::Vector{T1}, v2::Vector{T2}, cell_matrix::Array{T3,2}, inv_cell_matrix::Array{T4,2} ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 <: Real }
-    v1_scaled=getTransformedPosition(v1,inv_cell_matrix)
-    v2_scaled=getTransformedPosition(v2,inv_cell_matrix)
-    ds=zeros(3)
-    # Distance + Min Image Convention
-    for i=1:3
-        ds[i] = v1_scaled[i]-v2_scaled[i]
-        ds[i] = ds[i] - round(ds[i])
-    end
-    # Descaling of distance vector
-    ds=getTransformedPosition(ds,cell_matrix)
-    return sqrt(dot(ds,ds))
-end
-function distanceScale( v1_scaled::Vector{T1}, v2_scaled::Vector{T2}, cell_matrix::Array{T3,2} ) where { T1 <: Real, T2 <: Real, T3 <: Real }
-    ds=zeros(3)
-    # Distance + Min Image Convention
-    for i=1:3
-        ds[i] = v1_scaled[i]-v2_scaled[i]
-        ds[i] = ds[i] - round(ds[i])
-    end
-    # Descaling of distance vector
-    ds=getTransformedPosition(ds,cell_matrix)
-    return sqrt(dot(ds,ds))
-end
-function distanceScale( v1_scaled::Vector{T1}, v2_scaled::Vector{T2}, cell_matrix::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Cell_matrix }
-    return distanceScale( v1_scaled, v2_scaled, cell_matrix )
-end
-function distance( v1::Vector{T1}, v2::Vector{T2}, cell_matrix::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Cell_matrix }
-    return distance(v1,v2,cell_matrix.matrix)
-end
-function distance( v1::Vector{T1}, v2::Vector{T2}, cell_params::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Cell_param }
-    return distance(v1,v2,params2Matrix(cell_params))
-end
-function distance( positions::Array{T1,2}, cell::T2, atom1::T3, atom2::T4 ) where { T1 <: Real,  T2 <: Cell_param, T3 <: Real, T4 <: Real }
+# Computes the distance between two atoms in a set of positions (matrix form)
+# - works for orthorombic only
+function distanceOrtho( positions::Array{T1,2}, cell::T2, index1::T3, index2::T4 ) where { T1 <: Real,  T2 <: Cell_param, T3 <: Real, T4 <: Real }
+    # Argument
+    # - positions: matrix containing positions of all atoms (nb_atoms,3)
+    # - cell: Cell_param containing all info about the cell
+    # - index1, index2: index of target atoms (int)
+    # Output:
+    # - dist: distance between atom1 and atom2 (real positive scalar)
+
+    # Initialize output
     dist=0
+
+    # Loop over dimensions
     for i=1:3
-        dist +=  dist1D(positions[atom1,i],positions[atom2,i],cell.length[i])
+        # Compute distance in each dimension
+        dist +=  dist1D( positions[index1,i], positions[index2,i], cell.length[i] )
     end
+
+    # Returns distance
     return sqrt(dist)
 end
+# Computes the distance between two atoms in a set of positions (AtomList form)
+# - works for orthorombic only
 function distance( atoms::T1, cell::T2, index1::T3, index2::T4 ) where { T1 <: atom_mod.AtomList, T2 <: Cell_param , T3 <: Int, T4 <: Int }
+    # Arguments
+    # - atoms: AtomList that contains all atomic positions
+    # - cell: Cell_param that contains all info about the cell
+    # - index1, index2: indexes of the two target atom (int)
+    # Output
+    # - dis: distance between two atoms index1 and index2
+
+    # Initialize output
     dis=0
+
+    # Loop over dimensions
     for i=1:3
+        # Compute distance squared in each dimensions
         dis += dist1D( atoms.positions[index1,i],atoms.positions[index2,i], cell.length[i] )
     end
+
+    # Returns the distance between two atoms
     return sqrt(dis)
 end
-function distance( molecules::T1, cell::T2, index1::T3, index2::T4 ) where { T1 <: atom_mod.AtomMolList, T2 <: Cell_param , T3 <: Int , T4 <: Int }
-    dist=0
-    for i=1:3
-        dist += dist1D( molecules.positions[index1,i],molecules.positions[index2,i], cell.length[i] )
+# Computes the distance between two atoms in a set of positions (AtomList form)
+# - works for orthorombic only
+# - can Wrap atoms before computing distance
+function distanceOrtho( atoms::T1, cell::T2, index1::T3, index2::T3, wrap::T4 ) where { T1 <: atom_mod.AtomList, T2 <: Cell_param,  T3 <: Int, T4 <: Bool }
+    # Arguments
+    # - atoms: AtomList that contains atomic positions between atoms
+    # - cell: Cell_param that contains all information about the cell
+    # - index1, index2: indexes of the target atoms (int)
+    # - wrap: whether or not to wrap atoms
+    # Output
+    # a real vector, the distance between atoms index1 and index2
+
+    # Wrap (or not atoms)
+    if (  wrap )
+        wrap( atoms, cell )
     end
+
+    # Computes and returns the distance between atoms index1 and index2
+    return distance( atoms, cell, index1, index2 )
+end
+# Computes the distance between two atoms in a set of positions (AtomMolList form)
+# - works for orthorombic only
+function distanceOrtho( atoms::T1, cell::T2, index1::T3, index2::T4 ) where { T1 <: atom_mod.AtomMolList, T2 <: Cell_param , T3 <: Int , T4 <: Int }
+    # Argument
+    # - atoms: AtomMolList containing all atomic positions
+    # - cell: Cell_param describing the cell
+    # - index1, index2 : indexes of the target atoms (int)
+    # Output
+    # dist: contains the distance between atoms index1 and index2
+
+    # Initialize output
+    dist=0
+
+    # Loop over dimension
+    for i=1:3
+        # Compute distance squared in all dimensions
+        dist += dist1D( atoms.positions[index1,i], atoms.positions[index2,i], cell.length[i] )
+    end
+
+    # Return distance
     return sqrt(dist)
 end
-function distance( atoms::T1, cell::T2, index1::T3, index2::T3, wrap::T4 ) where { T1 <: atom_mod.AtomList, T2 <: Cell_param,  T3 <: Int, T4 <: Bool }
-    if (  wrap )
-        wrap(atoms,cell)
+# Computes distance in Reduced Coordinates
+function distanceReduced( v1_scaled::Vector{T1}, v2_scaled::Vector{T2}, cell_matrix::Array{T3,2} ) where { T1 <: Real, T2 <: Real, T3 <: Real }
+    # Arguments
+    # - v1_scaled, v2_scaled: position in reduced coordinates
+    # - cell_matrix: cell matrix describing the cell
+    # Output:
+    # - distance in reduced coordinates between v1_scaled and v2_scaled
+
+    # Initialize output
+    ds=zeros(3)
+
+    # Distance + Min Image Convention
+    for i=1:3
+        ds[i] = v1_scaled[i] - v2_scaled[i]
+        ds[i] = ds[i] - round(ds[i])
     end
-    return distance(atoms,cell,index1,index2)
+
+    # Descaling distance vector
+    ds = getTransformedPosition( ds, cell_matrix )
+
+    # Returns the distance in reduced space
+    return sqrt( dot( ds, ds ) )
+end
+# Computes the distance between two atoms, works for all cells (but slower)
+function distance( v1::Vector{T1}, v2::Vector{T2}, cell_matrix::Array{T3,2} ) where { T1 <: Real, T2 <: Real, T3 <: Real }
+    # Argument
+    # - v1, v2: positions in reduced space
+    # - cell_matrix: cell matrix describing the cell
+    # Output
+    # - distance between v1 and v2, real positive scalar
+
+    # Converts positions from cartesian to reduced
+    v1_scaled=getScaledPosition(v1,cell_matrix)
+    v2_scaled=getScaledPosition(v2,cell_matrix)
+
+    # Initialize distance in scaled space
+    ds=zeros(3)
+
+    # Compute Distance in scaled space with PBC
+    for i=1:3
+        ds[i] = v1_scaled[i]-v2_scaled[i]
+        ds[i] = ds[i] - round(ds[i])
+    end
+
+    # Descaling distance
+    ds=getTransformedPosition(ds,cell_matrix)
+
+    # Returns distance
+    return sqrt(dot(ds,ds))
+end
+# Computes the distance between two atoms, works for all cells (but slower) - redundant
+function distance( v1::Vector{T1}, v2::Vector{T2}, cell_matrix::Array{T3,2}, inv_cell_matrix::Array{T4,2} ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 <: Real }
+
+    # Converts cartesian coordinates to reduced coordinates
+    v1_scaled=getTransformedPosition(v1,inv_cell_matrix)
+    v2_scaled=getTransformedPosition(v2,inv_cell_matrix)
+
+    # Initialize distance in reduced coordinates
+    ds=zeros(3)
+
+    # Computes Distance with PBC
+    for i=1:3
+        ds[i] = v1_scaled[i]-v2_scaled[i]
+        ds[i] = ds[i] - round(ds[i])
+    end
+
+    # Descaling of distance vector
+    ds=getTransformedPosition(ds,cell_matrix)
+
+    # Returns distance
+    return sqrt(dot(ds,ds))
+end
+# Computes the distance between two atoms, works for all cells (but slower), with Cell_param to describe the cell
+function distance( v1::Vector{T1}, v2::Vector{T2}, cell_params::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Cell_param }
+    # Arguments
+    # - v1, v2: atomic positions of two atoms
+    # - cell_params: Cell_param object that describes the cell
+    # Output
+    # - Distance between v1 and v2
+
+    # Computes the matrix related to the parameters,
+    # Computes the distance
+    # Returns the distance
+    return distance( v1, v2, params2Matrix( cell_params ) )
 end
 #---------------------------------------------------------------------------
 
-# Compress
+# Computes the velocities in a traj by finite element method from the positions
+# NB: This is not a perfect method, use only with small timestep (a few at most)
+#---------------------------------------------------------------------------
+function velocityFromPosition( traj::Vector{T1}, dt::T2, dx=1::T3 ) where { T1 <: atom_mod.AtomList, T2 <: Real, T3 <: Real }
+    # Arguments:
+    # traj: trajectory in the form of a vector of AtomList, contains all atomic positions
+    # dt: timestep for the trajectory
+    # dx: conversion of the distance units (optional)
+    # Output:
+    # velocities: array(nb_step,nb_atoms,3) containing velocities of atoms
+
+    # Initialize output
+    velocities = zeros( size(traj)[1]-1, size(traj[1].names)[1], 3 )
+
+    # Loop over all step (minus 1, as we can't compute the velocity for the last step)
+    for step=1:size(traj)[1]-1
+        # Loop over the atoms
+        for atom=1:size(traj[1].names)[1]
+            # Loop over dimensions
+            for i=1:3
+                # Compute velocity component i for atom at step
+                velocities[step,atom,i] = dx*( traj[step].positions[atom,i] - traj[step+1].positions[atom,i] )/dt
+            end
+        end
+    end
+
+    # Return velocities
+    return velocities
+end
+#---------------------------------------------------------------------------
+
+# Compressing cell function
+# NB: Not sure it works, and will create serious issues for molecular systems
+# in already reduced states
 #---------------------------------------------------------------------------
 function compressParams( cell::T1, fracs::Vector{T2} ) where { T1 <: Cell_param, T2 <: Real }
     for i=1:3
@@ -731,53 +987,78 @@ function compressAtoms( atoms::T1 , cell::T2, fracs::Vector{T3} ) where { T1 <: 
 end
 #---------------------------------------------------------------------------
 
-# Computes the velocities in a traj by finite element method from the positions (least worst option)
+# Checks for infinite molecules
 #---------------------------------------------------------------------------
-function velocityFromPosition( traj::Vector{T1}, dt::T2, dx::T3 ) where { T1 <: atom_mod.AtomList, T2 <: Real, T3 <: Real }
-    nb_atoms=size(traj[1].names)[1]
-    nb_step=size(traj)[1]
-    velocities=zeros(nb_step-1,nb_atoms,3)
-    for step=1:nb_step-1
-        for atom=1:nb_atoms
-            for i=1:3
-                velocities[step,atom,i]=(traj[step].positions[atom,i]-traj[step+1].positions[atom,i])/dt*dx
-            end
-        end
-    end
-    return velocities
-end
+# Context: used to determine whether molecules where looping over themselves
+# through the PBC in some cases where they form through polymerization.
+#TODO: Check that they actually work
 #---------------------------------------------------------------------------
-
-#---------------------------------------------------------------------------
-# Return two bools:
-# - Is the molecule an infinite chain?
-# - Was the chain exploration went ok?
+# Determine whether the molecule to which the target atom belong is infinite (self-looping) - graph exploration method
+# - Recursive, careful with it
+# NB: This should be tested
 function isInfiniteChain( visited::Vector{T1}, matrix::Array{T2,2}, adjacency_table::Vector{T3}, positions::Array{T4,2} , cell::T5, target::T6, index_atoms::Vector{T7}, cut_off::T8 ) where { T1 <: Int, T2 <: Real, T3 <: Any, T4 <: Real, T5 <: cell_mod.Cell_param, T6 <: Int, T7 <: Int, T8 <: Real }
-    visited[target]=1
-    nb_neighbor=size(adjacency_table[target])[1]
+    # Arguments
+    # - visited: vector (int) containing the information about whether or not the atom was already visited by the exploration (1 visited, 0 no visited)
+    # - matrix: distance matrix between all atoms in the set  (real: (nb_atoms,nb_atoms))
+    # - adjacency_table: connection matrix, determining whether atoms are bonded or not (1=bonded,0=not bonded)
+    # - positions: matrix containing atomic positions (nb_atoms,3) (real)
+    # - cell: Cell_param describing the cell
+    # - target: target atom to start with (int)
+    # - index_atoms: bookeeps the actual index of all atoms (vector of int)
+    # - cut_off: cut_off to determine bonding (real)
+    # Output
+    # - Is the molecule an infinite chain? (Bool)
+    # - Was the chain exploration went ok? (Bool)
+
+    # How this works:
+    # This function tries to unwrap progressively a tree-graph corresponding to the molecule
+    # to which the target atom belongs to. If by unwraping progressively (and only once per atom), a bond disapear,
+    # this means the molecule loops over itself and is infinite
+
+    # Checking the target atom as visited
+    visited[target] = 1
+
+    # Getting the number of neighbor of target atom
+    nb_neighbor = size( adjacency_table[target] )[1]
+
+    # Loop over all neighbors
     for neigh=1:nb_neighbor
+
+        # Checking that neighbor is not already visited
         if visited[adjacency_table[target][neigh]] == 0
+
+            # Unwrapping neighbor of target
             unWrapOrtho!( positions, index_atoms[target], index_atoms[ adjacency_table[target][neigh] ], cell )
+
+            # Checking whether atoms are appart (when they should not be)
             if geom.distance( positions[ index_atoms[target], : ], positions[ index_atoms[ adjacency_table[target][neigh] ] , : ] ) > cut_off
                 return true, true
             end
+
+            # Sending the search to the neighbor
             isinf, isok = isInfiniteChain(visited,matrix,adjacency_table,positions,cell,adjacency_table[target][neigh],index_atoms,cut_off)
-            # If infinite molecule is spotted, we stop
+
+            # Something went wrong
             if ! isok
                 return true, false
             end
+
+            # Chain is infinite
             if ! isinf
                 return true, true
             end
+
+        # If the neighbor was visited but that the distance is too large with regard to the cut-off, infinite chain spotted
         elseif geom.distance(positions[index_atoms[target],:],positions[ index_atoms[adjacency_table[target][neigh]] ,: ] ) > cut_off
             # Spotted infinite loop; stops the search
             return true, true
         end
     end
+
+    # If we get here, the molecule was properly reconstructed and is not infinite
     return false, true
 end
-# Check if molecule is infinite
-# by unwraping once all atoms following a graph exploration method
+# Check if molecule is infinite by unwraping once all atoms following a graph exploration method
 function checkInfiniteChain( matrix::Array{T1,2},  positions::Array{T2,2} , cell::T3, molecule_indexs::Vector{T4}, cut_off::T5 ) where { T1 <: Real, T2 <: Real, T3 <: Cell_param, T4 <: Int, T5 <: Real }
     adjacent_molecule = graph.getAllAdjacentVertex(matrix)
     size_molecule = size( matrix )[1]
@@ -793,8 +1074,7 @@ function checkInfiniteChain( matrix::Array{T1,2},  positions::Array{T2,2} , cell
     # If we get there, the molecule isn't infinite
     return false
 end
-# Find the atoms that are bonded but whose
-# bonds are cut by the one unwrap policty
+# Find the atoms that are bonded but whose bonds are cut by the one unwrap policty
 function findUnlinked( matrix::Array{T1,2},  positions::Array{T2,2} , cell::T3, molecule_indexs::Vector{T4}, cut_off::T5  ) where { T1 <: Real, T2 <: Real, T3 <: Cell_param, T4 <: Int, T5 <: Real }
     list=Array{Int}(undef,0,2)
     size_molecule=size(matrix)[1]
@@ -826,8 +1106,9 @@ function findUnlinked( matrix::Array{T1,2},  positions::Array{T2,2} , cell::T3, 
 end
 #---------------------------------------------------------------------------
 
-# I have no clue
+# Supercell building functions
 #-------------------------------------------------------------------------------
+# Computes how atoms of a unit cell must move when growing for a supercell
 function computeMoveVector( index::Vector{T1}, cell_matrix::Array{T2,2} ) where { T1 <: Int, T2 <: Real }
     moveVector = zeros(Real,3)
     for i=1:3
@@ -837,10 +1118,6 @@ function computeMoveVector( index::Vector{T1}, cell_matrix::Array{T2,2} ) where 
     end
     return moveVector
 end
-#---------------------------------------------------------------------------
-
-# Supercell functions
-#---------------------------------------------------------------------------
 function growCell( cell::Array{T1,2}, n_grow::Vector{T2} ) where { T1 <: Real, T2 <: Int }
     cell2 = copy(cell)
     for i=1:3
@@ -899,6 +1176,7 @@ end
 #-------------------------------------------------------------------------------
 
 # Transforming cell from unorthorombic to orthorombic using a cut
+# NB: Does not work for all structures, be extremely cautious with the results
 #-------------------------------------------------------------------------------
 function toOrthoByCut( cell::T1 ) where { T1 <: cell_mod.Cell_matrix }
     lengths = zeros( Real, 3 )
