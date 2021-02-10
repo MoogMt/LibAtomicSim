@@ -7,7 +7,12 @@ using cell_mod
 
 export Traj
 
+# Structures
+#----------------------------------------------------------
 mutable struct Traj
+    # Descroption
+    # Structure that contains simultaneously all information in  array form
+    # which allows for easier manipulation of trajectory by various functions
 
     # Variables
     #------------------------------------------------------
@@ -78,7 +83,7 @@ mutable struct Traj
         # - A Traj object with a single object
 
         # Creates a new Traj with a single atom and a single step
-        new( atom_name, zeros(1), atom_positions );
+        new( atom_name, zeros(1), atom_positions )
     end
     # Creates a Traj with several atom using their name, index and position (real matrix), with no definite cell, defining a default cell instead (lengths=1A, angles=90°)
     function Traj(  atom_names::Vector{T1}, atom_indexes::Vector{T2}, atom_positions::Array{T3,2} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real }
@@ -114,12 +119,7 @@ mutable struct Traj
         Traj( atoms.names, atom.index, atom.positions )
     end
     # Creates a Traj structure containing a single atom and a single step in a definite cell
-    function Traj(  atom_name::T1,
-                    atom_index::T2,
-                    atom_positions::Vector{T3},
-                    cell_lengths::Vector{T4},
-                    cell_angles::Vector{T5},
-                    cell_matrix::Array{T6,2} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
+    function Traj(  atom_name::T1, atom_index::T2, atom_positions::Vector{T3}, cell_lengths::Vector{T4}, cell_angles::Vector{T5}, cell_matrix::Array{T6,2} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
         # Arguments:
         # - atom_name (String): Name of the atom
         # - atom_index (Int): Index of the atom
@@ -129,7 +129,6 @@ mutable struct Traj
         # - cell_matrix (Matrix, 3x3, Real): cell matrix of the sim cell (default unit: Angstroms)
         # Output:
         # - Trajectory with a single step and a single position
-
 
         # Initialize positions to tensor form
         positions = zeros(1,1,3)
@@ -149,38 +148,69 @@ mutable struct Traj
 
         new( [atom_name], [atom_index], positions, cell_lengths_, cell_angles_, cell_matrix_ );
     end
+    # Creates a Traj containing a single atom (AtomList), a single step and a single cell (Cell_param)
+    function Traj(  atoms::T1, cell_params::T2 ) where { T1 <: atom_mod.AtomList, T2 <: cell_mod.cell_params }
+        # Arguments:
+        # - atoms: AtomList containing a single atom
+        # - cell_params: Cell_param containing the cell
+        # Output:
+        # - Trajectory with a single step and a single position
 
-    function Traj(  atom_names::Array{T1,1},
-                    atom_index::Array{T2,1},
-                    atom_positions::Array{T3,3},
-                    cell_lengths::Array{T4,2},
-                    cell_angles::Array{T5,2},
-                    cell_matrix::Array{T6,3} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
+        # Returns the Trajectory
+        new( atoms.names[1], atoms_index[1], atoms.positions[1,:], cell_params.lengths, cell_params.angles, cell_mod.params2Matrix(cell_params) );
+    end
+    # Creates a Traj from atom_names (vector), index(vector), positions(tensor),  cell lengths (matrix real), cell angles (matrix angles), matrix (real tensor)
+    function Traj(  atom_names::Array{T1,1}, atom_index::Array{T2,1}, atom_positions::Array{T3,3}, cell_lengths::Array{T4,2}, cell_angles::Array{T5,2}, cell_matrix::Array{T6,3} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
+        # Argument
+        # - atom_names: vector of string with the name of atoms
+        # - atom_index: vector of int with index of atoms
+        # - atom_positions: real tensor (nb_step,nb_atoms,3) with the positions of the atoms
+        # - cell_lengths: real matrix (nb_step,3) with the lengths of the cell
+        # - cell_angles: real matrix (nb_step,3) with the angles of the cell
+        # - cell_matrix: real tensor (nb_step,3,3) with the cell matrix
+        # Output:
+        # Traj object or false, if dimension mismatch
+
+        # Get the number of atoms in the traj
         nb_atoms = size(atom_names)[1]
+
+        # Get the number of step of the traj
         nb_step = size(atom_positions)[1]
+
+        # Checking that the various size of array concerning the number of atoms match
         if nb_atoms != size(atom_index)[1] || nb_atoms != size(atom_positions)[2]
+            # If fails, send information about the size of the various arrays
             print( "Mismatch in number of atoms between data: \n" )
             print( "atom_names: ", nb_atoms,"\n" )
             print( "atom_index: ", size(atom_index)[1], "\n" )
             print( "atom_positions: ",size(atom_positions)[3] )
             print( "Aborting." )
-            return
+            # And return false
+            return false
         end
+
+        # Checking that the various size of array concerning number of step match
         if nb_step != size(cell_lengths)[1] || nb_step != size(cell_angles)[1] || nb_step != size(cell_matrix)[1]
+            # If fails, send information about the size of the various arrays
             print( "Mismatch in number of steps between data: \n" )
             print( "atom_positions: ", nb_step, "\n" )
             print( "cell_lengths: ", size(cell_lengths)[1], "\n" )
             print( "cell_angles: ", size(cell_angles)[1], "\n" )
             print( "cell_matrix: ", size(cell_matrix)[1], "\n" )
             print( "Aborting." )
-            return
+            # And return false
+            return false
         end
+
+        # If everything checks out, return the Traj
         new( atom_names, atom_index, atom_positions, cell_lengths, cell_angles, cell_matrix );
     end
     #---------------------------------------------------------------------------
 end
-
 mutable struct TrajNVT
+    # Description:
+    # Useful structure when one wants to deal with NVT calculation, in which you don't need
+    # to have cell information for every step.
 
     # Variables
     #------------------------------------------------------
@@ -193,28 +223,7 @@ mutable struct TrajNVT
     cell_angles        :: Array{Real,1}
     cell_matrix        :: Array{Real,2}
     #------------------------------------------------------
-
-    function TrajNVT( atoms_names::Array{AbstractString,1}, atoms_index::Array{} )
-    end
-
 end
-
-# Cell computation
-#------------------------------------------------------------------------------
-function cellmatrix2params( traj::T1, step::T2 )  where { T1 <: Traj, }
-    for col=1:3
-        for line=1:3
-            traj.cell_length[col] += traj.cell_matrix[line,col]*traj.cell_matrix[line,col]
-        end
-        length[col] = sqrt( length[col] )
-    end
-    tau=180/pi
-    angles = zeros( Real, 3 )
-    angles[1] = acos(sum( cell_matrix[:,2].*cell_matrix[:,3] )/(length[2]*length[3]))*tau
-    angles[2] = acos(sum( cell_matrix[:,1].*cell_matrix[:,3] )/(length[1]*length[3]))*tau
-    angles[3] = acos(sum( cell_matrix[:,1].*cell_matrix[:,2] )/(length[1]*length[2]))*tau
-    return Cell_param( length, angles )
-end
-#-------------------------------------------------------------------------------
+#----------------------------------------------------------
 
 end

@@ -836,6 +836,7 @@ end
 
 # Distance computation (without PBC)
 #-------------------------------------------------------------------------------
+# Compute distance between two atomic positions (real vectors) without PBC (may be redundant with a function in geom)
 function distanceNoPBC( v1::Vector{T1}, v2::Vector{T2} ) where { T1 <: Real, T2 <: Real }
     # Arguments
     # - vector1 : position of atom1
@@ -857,6 +858,7 @@ function distanceNoPBC( v1::Vector{T1}, v2::Vector{T2} ) where { T1 <: Real, T2 
     # Return the distance between v1 and v2
     return sqrt(dist)
 end
+# Compute the distance between two atoms (in AtomList frame) without PBC
 function distanceNoPBC( atoms::T1, index1::T2, index2::T3 ) where { T1 <: AtomList, T2 <: Int, T3 <: Int }
     # Arguments
     # - atoms: AtomList containing the atomic positions
