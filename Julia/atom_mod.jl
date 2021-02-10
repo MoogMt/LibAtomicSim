@@ -705,6 +705,39 @@ function getNbElementSpecies( atoms::T1, species::Vector{T2} ) where { T1 <: Ato
     # returns number of element per species
     return nb_element_species
 end
+function getNbElementSpecie( atoms::T1, specie::T2 ) where { T1 <: AtomList, T2 <: AbstractString }
+    nb_element_specie = 0
+    nb_atoms = getNbAtoms( atoms )
+    for atom = 1:nb_atoms
+        if  specie == atoms.names[i_specie]
+            nb_element_species += 1
+        end
+    end
+    return nb_element_specie
+end
+# Get the number of element of a given specie in a traj
+function getNbElementSpecie( traj::Vector{T1}, specie::T2 ) where { T1 <: AtomList, T2 <: AbstractString }
+    # Argument:
+    # - traj: vector of AtomList describing a trajectory
+    # - specie: target specie (string)
+    # Output
+    # nb_element_specie: number of element of the target specie over time in the trajectory
+
+    # Get number of step
+    nb_step = getNbStep( traj )
+
+    # Initialize output
+    nb_element_specie = zeros(nb_step)
+
+    # Loop over time
+    for step = 1:nb_step
+        # Get the number of element of the target specie
+        nb_element_specie[step]  = getNbElementSpecie( traj[step], specie )
+    end
+
+    # Return the number of element of the target specie over time
+    return nb_element_specie
+end
 # Get the number of each element over time
 function getNbElementSpecies( traj::Vector{T1}, species::Vector{T2} ) where { T1 <: AtomList, T2 <: AbstractString }
     # Argument
@@ -731,26 +764,7 @@ function getNbElementSpecies( traj::Vector{T1}, species::Vector{T2} ) where { T1
     # return the number of element over time
     return nb_element_species
 end
-# 
-function getNbElementSpecie( atoms::T1, specie::T2 ) where { T1 <: AtomList, T2 <: AbstractString }
-    nb_element_specie = 0
-    nb_atoms = getNbAtoms( atoms )
-    for atom = 1:nb_atoms
-        if  specie == atoms.names[i_specie]
-            nb_element_species += 1
-        end
-    end
-    return nb_element_specie
-end
-#
-function getNbElementSpecie( traj::Vector{T1}, specie::T2 ) where { T1 <: AtomList, T2 <: AbstractString }
-    nb_step = getNbStep( traj )
-    nb_element_specie = zeros(nb_step)
-    for step = 1:nb_step
-        nb_element_specie[step]  = getNbElementSpecie( traj[step], specie )
-    end
-    return nb_element_specie
-end
+
 #-------------------------------------------------------------------------------
 
 # Computes velocities by finite different
