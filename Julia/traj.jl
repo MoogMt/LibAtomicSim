@@ -2,6 +2,8 @@ module traj
 
 using utils
 using periodicTable
+using atom_mod
+using cell_mod
 
 export Traj
 
@@ -19,17 +21,26 @@ mutable struct Traj
     cell_matrix        :: Array{Real,3}
     #------------------------------------------------------
 
-    #---------------------------------------------------------------------------
+    #--------------------------------------------------------------------------
+    # Create a default traj, with a given amount of atoms and steps
     function Traj( nb_atoms::T1=0, nb_step::T2=0 ) where { T1 <: Int, T2 <: Int }
-        dim=3
+        # Arguments
+        # - nb_atoms: number of atoms (int) ( optional, default=0 )
+        # - nb_step: number of steps (int)  ( optional, default=0 )
+        # Output
+        # - Create a traj object of definite step and number of atoms or return false if nb_atoms or step is negative
+
+        # Check that the given number of atoms is positive
         if nb_atoms < 0
-            print("Incorrect number of atoms. We have nb_atoms=", nb_atoms, " while it should be >= 0.\n" )
-            return
+            return false
         end
+
+        # Check that the given number of steps is positive
         if nb_step < 0
-            print("Incorrect number of step. We have nb_step=", nb_step, " while it should be >= 0.\n" )
-            return
+            return false
         end
+
+        # return the default Traj structure
         new( Array{AbstractString,1}( undef, nb_atoms ),              # Atom_names
              Array{Int,1}(            undef, nb_atoms ),              # Atom_index
              Array{Real,3}(           undef, nb_step, nb_atoms, 3 ),  # Atom_position
@@ -38,11 +49,78 @@ mutable struct Traj
              Array{Real,3}(           undef, nb_step, 3, 3 ),         # Cell_matrix
             )
     end
-    function Traj(  atom_name::T1, atom_index::T2, atom_positions::Vector{T3},
-                    cell_lengths::Vector{T4}, cell_angles::Vector{T5}, cell_matrix::Array{T6,2} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
-        # Description:
-        # Creates a Traj structure containing a single atom and a single step
-        # Input:
+    # Creates a Traj with a single atom using its name, index and position (vector), with no definite cell, defining a default cell instead (lengths=1A, angles=90°)
+    function Traj(  atom_name::T1, atom_index::T2, atom_positions::Vector{T3} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real }
+        # Arguments
+        # atom_name: name of the atom (string)
+        # atom_index: index of the atom (int)
+        # atom_positions: position of the atom (real vector of size 3)
+        # Output
+        # - Creates a trajectory object for the single atom
+
+        # Converting the vector into a tensor form
+        positions = zeros(1,1,3)
+        positions[1,1,:] = atom_positions
+
+        # Creating cell_matrix
+        cell_matrix = zeros(1,3,3)
+        cell_matrix[1,:,:] = Matrix{Real}(I,3,3)*1.0
+
+        # Creating the traj object
+        new( [atom_name], [atom_index], positions, ones(1, 3), ones(1,3)*90, cell_matrix );
+    end
+    # Creates a Traj witha  single atom using its name and positions (vector real), with no definite cell
+    function Traj(  atom_name::T1, atom_positions::Vector{T3} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real }
+        # Argument
+        # - atom_name: name of the atom (string)
+        # - atom_positions: position of the atom (vector of real, size 3)
+        # Output
+        # - A Traj object with a single object
+
+        # Creates a new Traj with a single atom and a single step
+        new( atom_name, zeros(1), atom_positions );
+    end
+    # Creates a Traj with several atom using their name, index and position (real matrix), with no definite cell, defining a default cell instead (lengths=1A, angles=90°)
+    function Traj(  atom_names::Vector{T1}, atom_indexes::Vector{T2}, atom_positions::Array{T3,2} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real }
+        # Arguments
+        # atom_names: names of the atoms (vector of string)
+        # atom_indexes: indexes of the atom (vector of int)
+        # atom_positions: positions of the atoms (real array (nb_atoms,size 3)
+        # Output
+        # - Creates a trajectory object for the single atom
+
+        # Get number of atoms
+        nb_atoms = size(positions)[1]
+
+        # Converting the vector into a tensor form
+        positions = zeros( 1, nb_atoms, 3 )
+        positions[1,1,:] = atom_positions
+
+        # Creating cell_matrix
+        cell_matrix = zeros(1,3,3)
+        cell_matrix[1,:,:] = Matrix{Real}(I,3,3)*1.0
+
+        # Creating the traj object
+        new( atom_names, atom_indexes, positions, ones(1, 3), ones(1,3)*90, cell_matrix )
+    end
+    # Creates a Traj with an AtomList, with no definite cell, defining a default cell instead (lengths=1A, angles=90°)
+    function Traj(  atoms::T1 ) where { T1 <: atom_mod.AtomList }
+        # Arguments
+        # atoms: AtomList that describes the atomic structure
+        # Output
+        # - Creates a trajectory object for the single atom
+
+        # Creating the traj object
+        Traj( atoms.names, atom.index, atom.positions )
+    end
+    # Creates a Traj structure containing a single atom and a single step in a definite cell
+    function Traj(  atom_name::T1,
+                    atom_index::T2,
+                    atom_positions::Vector{T3},
+                    cell_lengths::Vector{T4},
+                    cell_angles::Vector{T5},
+                    cell_matrix::Array{T6,2} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
+        # Arguments:
         # - atom_name (String): Name of the atom
         # - atom_index (Int): Index of the atom
         # - atom_positions ( Vector, length 3, Real): position of the atom in cell (default unit: Angstroms)
@@ -51,24 +129,27 @@ mutable struct Traj
         # - cell_matrix (Matrix, 3x3, Real): cell matrix of the sim cell (default unit: Angstroms)
         # Output:
         # - Trajectory with a single step and a single position
+
+
+        # Initialize positions to tensor form
         positions = zeros(1,1,3)
         positions[1,1,:] = atom_positions
+
+        # Converts cell lengths to matrix form
         cell_lengths_ = zeros(1,3)
         cell_lengths_ = cell_lengths
+
+        # Converts cell angles to matrix form
         cell_angles_  = zeros(1,3)
         cell_angles_  = cell_angles
+
+        # Converts cell matrix to tensor form
         cell_matrix_  = zeros(1,3,3)
         cell_matrix_  = cell_matrix
+
         new( [atom_name], [atom_index], positions, cell_lengths_, cell_angles_, cell_matrix_ );
     end
-    function Traj(  atom_name::T1, atom_index::T2, atom_positions::Vector{T3} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real }
-        positions = zeros(1,1,3)
-        positions[1,1,:] = atom_positions
-        new( [atom_name], [atom_index], positions, zeros(1, 3), zeros(1,3), zeros(1,3,3) );
-    end
-    function Traj(  atom_name::T1, atom_positions::Vector{T3} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real }
-        new( atom_name, zeros(1), atom_positions, zeros(1, 3), zeros(1,3), zeros(1,3,3) );
-    end
+
     function Traj(  atom_names::Array{T1,1},
                     atom_index::Array{T2,1},
                     atom_positions::Array{T3,3},

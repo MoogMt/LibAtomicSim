@@ -3,6 +3,7 @@ module atom_mod
 export AtomList, AtomMolList
 export switchAtoms!, moveAtom! sortAtomsByZ!
 export getNbAtoms, getNbStep, getNbMol, moveAtom
+export getPositionsAsArray
 
 using utils
 using periodicTable
@@ -502,7 +503,6 @@ function getSpecies( atoms::T1 ) where { T1 <: AtomList }
     end
 end
 # Get all the species names within a vector of AtomList frame
-# NB delete redundancy
 function getSpecies( traj::Vector{T1} ) where { T1 <: AtomList }
     # Argument
     # - traj: vector of AtomList
@@ -521,8 +521,8 @@ function getSpecies( traj::Vector{T1} ) where { T1 <: AtomList }
         push!( species, getSpecies( traj[step] ) )
     end
 
-    # Return a vector with all species names in the traj
-    return species
+    # Return a vector with all species names in the traj, eliminating redundancy
+    return unique(species)
 end
 # Get the number of species in the AtomList
 function getNbSpecies( atoms::T1 ) where { T1 <: AtomList }
@@ -831,6 +831,41 @@ function buildNames( species::Vector{T1}, nb_species::Vector{T2} ) where { T1 <:
 
     # Returns vector of the names of atoms
     return names
+end
+#-------------------------------------------------------------------------------
+
+# Distance computation (without PBC)
+#-------------------------------------------------------------------------------
+function distanceNoPBC( v1::Vector{T1}, v2::Vector{T2} ) where { T1 <: Real, T2 <: Real }
+    # Arguments
+    # - vector1 : position of atom1
+    # - vector2 : position of atom2
+    # Output
+    # - Distance between the vector 1 and 2
+
+    # Initialize output
+    dist=0
+
+    # Loop over dimensions
+    for i=1:3
+        # Distance in the dimension
+        loc = v1[i] - v2[i]
+        # add the square of the distance to the total distance
+        dist += loc*loc
+    end
+
+    # Return the distance between v1 and v2
+    return sqrt(dist)
+end
+function distanceNoPBC( atoms::T1, index1::T2, index2::T3 ) where { T1 <: AtomList, T2 <: Int, T3 <: Int }
+    # Arguments
+    # - atoms: AtomList containing the atomic positions
+    # - index1, index2: index of the target atoms
+    # Output
+    # - distance between atoms index1 and index2
+
+    # Computes and return the distance betweens the atoms
+    return distanceNoPBC( atoms.positions[index1], atoms.positions[index2,:] )
 end
 #-------------------------------------------------------------------------------
 

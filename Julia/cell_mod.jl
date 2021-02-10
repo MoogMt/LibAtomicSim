@@ -240,8 +240,6 @@ mutable struct CellAll
         # Create matrix
         new( [a,b,c], [alpha,beta,gamma], matrix, inv(matrix) )
     end
-    # NB: We probably need to add more functions, because the set that is
-    # here is relatively limiting
     #----------------------------------------------------------
 end
 #--------------------------------------------------------------
@@ -866,28 +864,6 @@ function distanceOrtho( positions::Array{T1,2}, cell::T2, index1::T3, index2::T4
 end
 # Computes the distance between two atoms in a set of positions (AtomList form)
 # - works for orthorombic only
-function distance( atoms::T1, cell::T2, index1::T3, index2::T4 ) where { T1 <: atom_mod.AtomList, T2 <: Cell_param , T3 <: Int, T4 <: Int }
-    # Arguments
-    # - atoms: AtomList that contains all atomic positions
-    # - cell: Cell_param that contains all info about the cell
-    # - index1, index2: indexes of the two target atom (int)
-    # Output
-    # - dis: distance between two atoms index1 and index2
-
-    # Initialize output
-    dis=0
-
-    # Loop over dimensions
-    for i=1:3
-        # Compute distance squared in each dimensions
-        dis += dist1D( atoms.positions[index1,i],atoms.positions[index2,i], cell.length[i] )
-    end
-
-    # Returns the distance between two atoms
-    return sqrt(dis)
-end
-# Computes the distance between two atoms in a set of positions (AtomList form)
-# - works for orthorombic only
 # - can Wrap atoms before computing distance
 function distanceOrtho( atoms::T1, cell::T2, index1::T3, index2::T3, wrap::T4 ) where { T1 <: atom_mod.AtomList, T2 <: Cell_param,  T3 <: Int, T4 <: Bool }
     # Arguments
@@ -950,6 +926,28 @@ function distanceReduced( v1_scaled::Vector{T1}, v2_scaled::Vector{T2}, cell_mat
 
     # Returns the distance in reduced space
     return sqrt( dot( ds, ds ) )
+end
+# Computes the distance between two atoms in a set of positions (AtomList form)
+# - works for orthorombic only
+function distance( atoms::T1, cell::T2, index1::T3, index2::T4 ) where { T1 <: atom_mod.AtomList, T2 <: Cell_param , T3 <: Int, T4 <: Int }
+    # Arguments
+    # - atoms: AtomList that contains all atomic positions
+    # - cell: Cell_param that contains all info about the cell
+    # - index1, index2: indexes of the two target atom (int)
+    # Output
+    # - dis: distance between two atoms index1 and index2
+
+    # Initialize output
+    dis=0
+
+    # Loop over dimensions
+    for i=1:3
+        # Compute distance squared in each dimensions
+        dis += dist1D( atoms.positions[index1,i],atoms.positions[index2,i], cell.length[i] )
+    end
+
+    # Returns the distance between two atoms
+    return sqrt(dis)
 end
 # Computes the distance between two atoms, works for all cells (but slower)
 function distance( v1::Vector{T1}, v2::Vector{T2}, cell_matrix::Array{T3,2} ) where { T1 <: Real, T2 <: Real, T3 <: Real }
