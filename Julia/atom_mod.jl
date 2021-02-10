@@ -673,7 +673,33 @@ function getStartSpecies( traj::Vector{T1}, species::Vector{T2} ) where { T1 <: 
     # Return start_species
     return start_species
 end
-# Get the number of element
+# Get the number of element of a given specie in an AtomList
+function getNbElementSpecie( atoms::T1, specie::T2 ) where { T1 <: AtomList, T2 <: AbstractString }
+    # Arguments
+    # - atoms: AtomList containing atomic structure
+    # - specie: name of the target specie (string)
+    # Output
+    # -nb_element_specie: Number of elements of the target specie in the structure (int)
+
+    # Initialize the number of specie
+    nb_element_specie = 0
+
+    # get the number of atoms
+    nb_atoms = getNbAtoms( atoms )
+
+    # Loop over atoms
+    for atom = 1:nb_atoms
+        # If atom specie is the same as the target...
+        if  specie == atoms.names[i_specie]
+            # Increment the counter
+            nb_element_species += 1
+        end
+    end
+
+    # Return the counter of number of specie
+    return nb_element_specie
+end
+# Get the number of element for a set of species in an AtomList file
 function getNbElementSpecies( atoms::T1, species::Vector{T2} ) where { T1 <: AtomList, T2 <: AbstractString }
     # Argument
     # - atoms: AtomList describing atomic structure
@@ -705,17 +731,7 @@ function getNbElementSpecies( atoms::T1, species::Vector{T2} ) where { T1 <: Ato
     # returns number of element per species
     return nb_element_species
 end
-function getNbElementSpecie( atoms::T1, specie::T2 ) where { T1 <: AtomList, T2 <: AbstractString }
-    nb_element_specie = 0
-    nb_atoms = getNbAtoms( atoms )
-    for atom = 1:nb_atoms
-        if  specie == atoms.names[i_specie]
-            nb_element_species += 1
-        end
-    end
-    return nb_element_specie
-end
-# Get the number of element of a given specie in a traj
+# Get the number of element of a given specie in a traj (vector of AtomList)
 function getNbElementSpecie( traj::Vector{T1}, specie::T2 ) where { T1 <: AtomList, T2 <: AbstractString }
     # Argument:
     # - traj: vector of AtomList describing a trajectory
@@ -738,7 +754,7 @@ function getNbElementSpecie( traj::Vector{T1}, specie::T2 ) where { T1 <: AtomLi
     # Return the number of element of the target specie over time
     return nb_element_specie
 end
-# Get the number of each element over time
+# Get the number of each element over time in a vector of AtomList
 function getNbElementSpecies( traj::Vector{T1}, species::Vector{T2} ) where { T1 <: AtomList, T2 <: AbstractString }
     # Argument
     # - traj: vector of AtomList,
@@ -764,7 +780,6 @@ function getNbElementSpecies( traj::Vector{T1}, species::Vector{T2} ) where { T1
     # return the number of element over time
     return nb_element_species
 end
-
 #-------------------------------------------------------------------------------
 
 # Computes velocities by finite different
