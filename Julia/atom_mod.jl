@@ -1,7 +1,7 @@
 module atom_mod
 
 export AtomList, AtomMolList
-export switchAtoms!, moveAtom! sortAtomsByZ!
+export switchAtoms!, moveAtom!, sortAtomsByZ!
 export getNbAtoms, getNbStep, getNbMol, moveAtom
 export getPositionsAsArray
 

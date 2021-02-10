@@ -149,7 +149,7 @@ mutable struct Traj
         new( [atom_name], [atom_index], positions, cell_lengths_, cell_angles_, cell_matrix_ );
     end
     # Creates a Traj containing a single atom (AtomList), a single step and a single cell (Cell_param)
-    function Traj(  atoms::T1, cell_params::T2 ) where { T1 <: atom_mod.AtomList, T2 <: cell_mod.cell_params }
+    function Traj(  atoms::T1, cell_params::T2 ) where { T1 <: atom_mod.AtomList, T2 <: cell_mod.Cell_param }
         # Arguments:
         # - atoms: AtomList containing a single atom
         # - cell_params: Cell_param containing the cell
