@@ -7,6 +7,12 @@ using cell_mod
 
 export Traj
 
+# Description:
+# Set of structures and associated functions to deal with trajectory, to be used
+# for all input/ouput functions for Molecular dynamics softwares (GROMACS, LAMMPS,
+# CPMD, CP2K, whatever) to manipulate data as structures of array instead of
+# array of structures. 
+
 # TODO: a whole lot, including
 # - more structure for specific trajectory
 # - more

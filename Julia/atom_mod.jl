@@ -1,12 +1,20 @@
 module atom_mod
 
+# Loading necessary modules from LibAtomicSim
+using utils
+using periodicTable
+
+# Export useful functions
+# TODO: check that they are all exported
 export AtomList, AtomMolList
 export switchAtoms!, moveAtom!, sortAtomsByZ!
 export getNbAtoms, getNbStep, getNbMol, moveAtom
 export getPositionsAsArray
 
-using utils
-using periodicTable
+# Description:
+# Set of structures and associated function that deals with trajectory in termes of
+# atoms, their positions, index and names, and all related functions which help deal
+# with all manipulation that does not require or affect the periodic boundary conditions
 
 # Structures
 #-------------------------------------------------------------------------------

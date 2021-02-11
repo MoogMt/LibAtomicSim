@@ -28,28 +28,58 @@ export readCellParams, readCellBox
 # Reads runtime.inpt input to get the species and number of species
 #-------------------------------------------------------------------------------
 function getSpeciesAndNumber( path_file::T1 ) where { T1 <: AbstractString }
+    # Argument:
+    # - path_file: the path to runtime.inpt
+    # Output:
+    # - species: vector of string, containing the species names or false if something goes wrong
+    # - species_nb: vector of int, containing the number of element for each chemical specie, or false is something goes wrong
+
+    # Check if file exist, otherwise return two false
     if ! isfile( path_file )
         return false, false
     end
+
+    # Open input file
     handle_in = open( path_file )
+
+    # Skips the first 4 lines
     utils.skipLines( handle_in, 4 )
+
+    # Compute number of species, by reading the 5th line
     nb_species=parse( Int, split( readline( handle_in ) )[1] )
-    #---------------------------------------
+
+    # Initialize a vector for the species names
     species=Vector{AbstractString}(undef,nb_species)
+
+    # Initialize a vector for the species number
+    species_nb = zeros(Int, nb_species )
+
+    # Read the line containing species names
     species_line = split( readline( handle_in ), "," )
+
+    # Loop over all the element except the last one
     for i_spec = 1:nb_species-1
+        # Get the species names (except for the last one)
         species[i_spec] = species_line[i_spec]
     end
+    # Get the last remaining specie's name
     species[ nb_species ] = split(species_line[nb_species])[1]  # Avoid pesky comment
-    #---------------------------------------
-    species_nb = zeros(Int, nb_species )
+
+    # Read the line containing the species number
     species_nb_line = split( readline( handle_in ),"," )
+
+    # Loop over the species
     for i_spec = 1:nb_species-1
+        # Get the number of element for each chemical element
         species_nb[i_spec] = parse(Int, species_nb_line[i_spec] )
     end
+    # Get number of element for final specie
     species_nb[ nb_species ] = parse(Int, split(species_nb_line[nb_species])[1] )  # Avoid pesky comment
-    #---------------------------------------
+
+    # Close the file
     close( handle_in )
+
+    # Return the species, and their number
     return species, species_nb
 end
 #-------------------------------------------------------------------------------

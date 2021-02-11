@@ -1,18 +1,26 @@
 module cell_mod
 
+# Import all import module from LibAtomSim
+using atom_mod
+using geom
+using graph
+
+# Import necessary modules from Julia default repo
+using LinearAlgebra
+
+# Export useful functions
+#TODO: check that all functions are here
 export Cell_param, Cell
 export Cell
 export wrap, dist1D, distance
 export velocityFromPosition
 
-# Import all import module
-#----------------------------
-using LinearAlgebra
-using atom_mod
-using geom
-using graph
-#----------------------------
+# Description
+# Set of structures that are useful to deal with cell, that is handling the periodic
+# boundary conditions, dealing with non-orthorombic cell and how to compute distances
+# in all cases where standard euclidian distance can't be straightaway used
 
+# Structures
 #-----------------------------
 # Cell_param : describes the cell, using lengths and angles
 mutable struct Cell_param
