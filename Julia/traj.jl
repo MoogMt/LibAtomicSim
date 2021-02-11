@@ -7,6 +7,10 @@ using cell_mod
 
 export Traj
 
+# TODO: a whole lot, including
+# - more structure for specific trajectory
+# - more
+
 # Structures
 #----------------------------------------------------------
 mutable struct Traj

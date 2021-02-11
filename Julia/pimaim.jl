@@ -1,5 +1,6 @@
 module pimaim
 
+# Load all necessary LibAtomicSim modules
 using conversion
 using LinearAlgebra
 using atom_mod
@@ -9,15 +10,22 @@ using pdb
 using periodicTable
 using utils
 
-# CONTAINS
-# - Readers:
-# getSpeciesAndNumber( path_file::AbstractString ) : Reads runtime.inpt and extracts species and their number of atoms
-# readPositions( path_file::AbstractString, nb_atoms::Int ) : Old - to be deleted
-# readPositionsUpToCrash( path_file::AbstractString, nb_atoms ) : Old to be deleted
-# readPositions( path_file::AbstractString, species::Vector(String), nb_species::Vector{Int}, cells::Vector{Cell_params} )
+# Export the function in the file
+export getSpeciesAndNumber
+export readPositions, readPositionsUpToCrash
+export readPosCar
+export readXV
+export readRestart
+export readCellParams, readCellBox
 
-# Reads runtime.inpt to get the species and number of species
-# Runtime extractions
+# Description
+# Set of functions that deals with input and output of the polarizable force
+# field software called PIMAIM created by Mathieu Salanne's team in PHENIX
+# in Sorbonne University, Paris, France (contact him if you want to know more)
+
+# TODO: Test functions to check what works and what needs works
+
+# Reads runtime.inpt input to get the species and number of species
 #-------------------------------------------------------------------------------
 function getSpeciesAndNumber( path_file::T1 ) where { T1 <: AbstractString }
     if ! isfile( path_file )
@@ -48,19 +56,16 @@ end
 
 # Reading positions
 #-----------------------------------------------------------------------------
-# POSCAR
 function readPosCar( path_file::T1 ) where { T1 <: AbstractString }
 
-    #---------------------------------------------------------------------
     nb_lines = utils.getNbLines( path_file )
     if nb_lines == false
         return false, false
     end
-    #---------------------------------------------------------------------
 
     handle_in = open( path_file )
     utils.skipLines( handle_in, 2) # Skip the three first lines
-    #---------------------------------------------------------------------
+
     matrix=zeros(Real,3,3)
     for i=1:3
         keyword=split( readline( handle_in) )
@@ -68,8 +73,7 @@ function readPosCar( path_file::T1 ) where { T1 <: AbstractString }
             matrix[i,j] = parse(Float64,keyword[j])
         end
     end
-    cell = cell_mod.Cell_matrix(matrix)
-    #---------------------------------------------------------------------
+
     matrix2  = copy( matrix )
     for i=1:3
         matrix2[i,:] /= LinearAlgebra.norm(matrix2[i,:])
@@ -77,7 +81,7 @@ function readPosCar( path_file::T1 ) where { T1 <: AbstractString }
     if matrix2[2,1] == 0
         matrix2 = transpose( matrix2 )
     end
-    #---------------------------------------------------------------------
+
     species=split( readline( handle_in ) )
     nb_species_ = split( readline(handle_in ) )
     nb_species = zeros( Int, size(species)[1] )
@@ -85,7 +89,7 @@ function readPosCar( path_file::T1 ) where { T1 <: AbstractString }
         nb_species[i_spec] = parse( Int, nb_species_[i_spec] )
     end
     names_ = atom_mod.buildNames( species, nb_species )
-    #---------------------------------------------------------------------
+
     readline( handle_in ) # skip
     nb_atoms=sum(nb_species)
     atoms=AtomList(nb_atoms)
@@ -106,9 +110,7 @@ function readPosCar( path_file::T1 ) where { T1 <: AbstractString }
     #---------------------------------------------------------------------
     close( handle_in )
 
-    cell.matrix=transpose(cell.matrix)
-
-    return atoms, cell
+    return atoms, matrix
 end
 # poscart.out
 function readPosCarTraj( path_file::T1, species::Vector{T2}, nb_species::Vector{T3} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int }
@@ -150,7 +152,7 @@ function readPosCarTraj( path_file::T1, species::Vector{T2}, nb_species::Vector{
 
     return traj
 end
-function readPosCarTraj( path_file::T1, species::Vector{T2}, nb_species::Vector{T3}, cells::Vector{T4} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int, T4 <: cell_mod.Cell_matrix }
+function readPosCarTraj( path_file::T1, species::Vector{T2}, nb_species::Vector{T3}, cell_matrices::Array{T4,3} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int, T4 <: Real }
 
     #---------------------------------------------------------------------
     nb_lines = utils.getNbLines( path_file )
@@ -175,7 +177,7 @@ function readPosCarTraj( path_file::T1, species::Vector{T2}, nb_species::Vector{
     handle_in = open( path_file )
     for step=1:nb_step
         traj[step] = atom_mod.AtomList(nb_atoms)
-        matrix = cells[step].matrix
+        matrix = cel_matrices[step,:,:]
         inv_matrix = inv( matrix )
         matrix2 = cell_mod.params2Matrix( cell_mod.cellMatrix2Params( matrix ) ).matrix
         for atom=1:nb_atoms
@@ -225,7 +227,7 @@ function readTrajPosCar( input_path::T1, poscar_path::T2, cell_box_path::T3 ) wh
     return traj, cell_mod.cellMatrix2Params( cells )
 end
 # positions.out
-function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T3}, cells::Vector{T4} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int, T4 <: cell_mod.Cell_matrix }
+function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T3}, cell_matrices::Array{T4,3} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int, T4 <: Real }
 
     #---------------------------------------------------------------------
     nb_lines = utils.getNbLines( path_file )
@@ -252,7 +254,7 @@ function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T
     for step=1:nb_step
         box_len=zeros(Real,3)
         traj[step] = atom_mod.AtomList(nb_atoms)
-        matrix2 = copy( cells[step].matrix )
+        matrix2 = copy( cell_matrix[step,:,:] )
         for i=1:3
             box_len[i] = LinearAlgebra.norm( matrix2[:,i] )*conversion.ang2Bohr
         end
@@ -328,10 +330,14 @@ function readPositionsUpToCrash( path_file::T1, species::Vector{T2}, nb_species:
 
     return traj
 end
+#-----------------------------------------------------------------------------
+
 # *.xv
 #-----------------------------------------------------------------------------
 function readXV( path_file::T1 ) where { T1 <: AbstractString }
+
     matrix=zeros(Real,3,3)
+
     handle_in = open( path_file )
     for i=1:3
         line = split(readline( handle_in ))
@@ -339,9 +345,13 @@ function readXV( path_file::T1 ) where { T1 <: AbstractString }
             matrix[i,j] = parse(Float64, line[j] )*conversion.bohr2Ang
         end
     end
-    cell = cell_mod.cellMatrix2Params( cell_mod.Cell_matrix(matrix) )
+
+    cell = cell_mod.cellMatrix2Params( matrix )
+
     nb_atoms = parse(Int64, split( readline( handle_in ) )[1] )
+
     atoms = atom_mod.AtomList( nb_atoms )
+
     for atom=1:nb_atoms
         keyword = split( readline( handle_in ) )
         atoms.names[atom] = periodicTable.z2Names( parse(Int, keyword[2] ) )
@@ -353,7 +363,10 @@ function readXV( path_file::T1 ) where { T1 <: AbstractString }
     close( handle_in )
     return atoms, cell
 end
+#-----------------------------------------------------------------------------
+
 #  restart.dat
+#-----------------------------------------------------------------------------
 function readRestart( restart_path::T1, runtime_path::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
 
     #-----------------------------------------------------------------------
@@ -467,10 +480,9 @@ function readRestart( restart_path::T1, runtime_path::T2 ) where { T1 <: Abstrac
             cell_matrix[i,j] *= cell_matrix[i,j]*boxlens[i]*conversion.bohr2Ang
         end
     end
-    cell = cell_mod.Cell_matrix(cell_matrix)
     #-----------------------------------------------------------------------
 
-    return atoms, velocity, forces, polarization, quad, cell, runs_nb_step
+    return atoms, velocity, forces, polarization, quad, cell_matrix, runs_nb_step
 end
 #------------------------------------------------------------------------------
 
@@ -542,22 +554,22 @@ function readCellBox( path_file::T1 ) where { T1 <: AbstractString }
     end
     nb_step = Int( nb_lines/nb_line_per_box )
 
-    cells = Vector{ cell_mod.Cell_matrix }(undef, nb_step )
+    cells = Array{ Real }(undef, nb_step, 3, 3 )
     handle_in = open( path_file )
     for step = 1:nb_step
         # Reading cell reduced matrix
-        cells[step] = cell_mod.Cell_matrix()
+        cells[step,:,:] = zeros(3,3)
         for i=1:3
             keys = split( readline( handle_in ) )
             for j=1:3
-                cells[step].matrix[i,j] = parse( Float64, keys[j] )
+                cells[step,i,j] = parse( Float64, keys[j] )
             end
         end
         # Reading cell lengths
         keys = split( readline( handle_in ) )
         for i=1:3
             length = parse( Float64, keys[i] )
-            cells[step].matrix[:,i] *= length*conversion.bohr2Ang
+            cells[step,:,i] *= length*conversion.bohr2Ang
         end
     end
     close( handle_in )
@@ -656,7 +668,6 @@ function readVolume( path_file::T1 ) where { T1 <: AbstractString }
     close( handle_in )
     return volume
 end
-
 # fulloutput.dat
 function readFullOutput( path_file::T1 ) where { T1 <: AbstractString }
     nb_lines = utils.getNbLines( path_file)
@@ -682,7 +693,10 @@ function readFullOutput( path_file::T1 ) where { T1 <: AbstractString }
     close(handle_in)
     return data
 end
+#------------------------------------------------------------------------------
+
 # f3.dat
+#------------------------------------------------------------------------------
 function readf3( path_file::T1 ) where { T1 <: AbstractString }
     handle_in = open( path_file )
     nb_step = 0
@@ -746,7 +760,7 @@ function writeFullData( file_out::T1, data::Array{T1,2} ) where { T1 <: Abstract
     close( handle_out )
     return test
 end
-function writeRestart( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_matrix }
+function writeRestart( path_file::T1, atoms::T2, cell::Array{T3,2} ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList, T3 <: Real }
     nb_atoms=atom_mod.getNbAtoms(atoms)
     handle_out=open( path_file , "w" )
     write( handle_out, string("T\n") )
@@ -764,60 +778,78 @@ function writeRestart( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: Abstra
         end
         write( handle_out, string("\n") )
     end
-    matrix=copy(cell.matrix)
-    lengths=cell_mod.cellMatrix2Params(cell).length
+
+    matrix = copy( cell )
+
+    lengths = cell_mod.cellMatrix2Params(cell).length
     for i=1:3
         matrix[:,i] = matrix[:,i]/lengths[i]
     end
+
     for i=1:3
         for j=1:3
             write( handle_out, string( round(matrix[i,j],digits=3), " ") )
         end
         write( handle_out, string("\n") )
     end
+
     for i=1:3
-        write(handle_out,string(round(LinearAlgebra.norm(cell.matrix[:,i])*conversion.ang2Bohr,digits=3),"\n"))
+        write(handle_out,string(round(LinearAlgebra.norm(cell[:,i])*conversion.ang2Bohr,digits=3),"\n"))
     end
+
     close(handle_out)
+
     return true
 end
-function writeCrystalCell( path_file::T1, atoms::T2, cell::T3 ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_matrix }
+function writeCrystalCell( path_file::T1, atoms::T2, cell::Array{T3,2} ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList, T3 <: Real }
 
-    lengths=cell_mod.cellMatrix2Params(cell).length
-    matrix = copy( cell.matrix )
+    lengths = cell_mod.cellMatrix2Params(cell).length
+
     species = atom_mod.getSpecies( atoms )
+
+    matrix  = copy( cell )
+
     for i=1:3
         matrix[:,i] = matrix[:,i]/lengths[i]
     end
 
     handle_in = open( path_file, "w" )
+
     for i=1:3
         for j=1:3
             write( handle_in, string( round(matrix[j,i],digits=3), " " ) )
         end
         write( handle_in, string("\n") )
     end
+
     for i=1:3
         write( handle_in, string( lengths[i], "\n")  )
     end
+
     for i=1:3
         write( handle_in, "1\n" )
     end
+
     for i=1:size(species)[1]
         write( handle_in, string( periodicTable.names2Z( species[i] ), "\n" ) )
         write( handle_in, string( species[i], "_quartz.mat\n" ) )
     end
+
     for i=1:3
         write( handle_in, string( lengths[i], "\n")  )
     end
+
     close(handle_in)
+
     return true
 end
 function writeAcellTxt( path_file::T1, cells::Vector{T2} ) where { T1 <: AbstractString, T2 <: cell_mod.Cell_param }
+
     handle_out=open( path_file, "w" )
-    nb_step = size(cells)[1]
-    for step = 1:nb_step
-        cell_matrix = cell_mod.params2Matrix(cells[step]).matrix
+
+    for step=1:size(cells)[1]
+
+        cell_matrix = cell_mod.params2Matrix(cells[step])
         for i=1:3
             for j=1:3
                 write( handle_out, string( round(cell_matrix[i,j],digits=3), " " ) )
@@ -825,36 +857,49 @@ function writeAcellTxt( path_file::T1, cells::Vector{T2} ) where { T1 <: Abstrac
             write( handle_out, "\n" )
         end
     end
+
     close(handle_out)
+
     return true
 end
-function writeAcellTxt( path_file::T1, cells::Vector{T2} ) where { T1 <: AbstractString, T2 <: cell_mod.Cell_matrix }
+function writeAcellTxt( path_file::T1, cells::Array{T2,3} ) where { T1 <: AbstractString, T2 <: Real }
+
+
     handle_out=open( path_file, "w" )
-    nb_step = size(cells)[1]
-    for step = 1:nb_step
+
+    for step = 1:size(cells)[1]
         for i=1:3
             for j=1:3
-                write( handle_out, string( round(cells[step].matrix[i,j],digits=3), " " ) )
+                write( handle_out, string( round(cells[step,i,j],digits=3), " " ) )
             end
             write( handle_out, "\n" )
         end
     end
+
     close(handle_out)
+
     return true
 end
-function writeCell( path_file::T1, cells::Vector{T2}, timestep::T3 ) where { T1 <: AbstractString, T2 <: cell_mod.Cell_matrix, T3 <: Real }
-    nb_step=size(cells)[1]
+function writeCell( path_file::T1, cells::Array{T2,3}, timestep::T3 ) where { T1 <: AbstractString, T2 <: Real, T3 <: Real }
+
     handle_out = open( path_file, "w" )
-    for step=1:nb_step
+
+    for step=1:size(cells)[1]
+
         write( handle_out, string( step, " ", step*timestep, " " ) )
+
         for i=1:3
             for j=1:3
-                write( handle_out, string( cells[step].matrix[i,j], " " ) )
+
+                write( handle_out, string( cells[step,i,j], " " ) )
             end
         end
-        write( handle_out, string( " ", det(cells[step].matrix), "\n" ) )
+
+        write( handle_out, string( " ", det( cells[step,:,:] ), "\n" ) )
     end
+
     close(handle_out)
+
     return true
 end
 #------------------------------------------------------------------------------
