@@ -85,61 +85,123 @@ end
 #-------------------------------------------------------------------------------
 
 # Reading positions
+#==============================================================================#
+
+# Functions dealing with poscart.out files
 #-----------------------------------------------------------------------------
 function readPosCar( path_file::T1 ) where { T1 <: AbstractString }
+    # Argument:
+    # - path_file: path to the poscart.out file
+    # Output
+    # - atoms: AtomList contaning all atomic coordinates
+    # - matrix: cell matrix, in matrix form (3x3, real)
 
+    # Get the number of lines of the file
     nb_lines = utils.getNbLines( path_file )
-    if nb_lines == false
+    # If the file is empty or the file does not exist, return two false
+    if nb_lines == false || nb_lines == 0
         return false, false
     end
 
+    # Open the file
     handle_in = open( path_file )
-    utils.skipLines( handle_in, 2) # Skip the three first lines
 
+    # Skip the first two lines
+    utils.skipLines( handle_in, 2)
+
+    # Initialize the cell matrix
     matrix=zeros(Real,3,3)
+
+    # Loop over the next three lines
     for i=1:3
-        keyword=split( readline( handle_in) )
+        # Parse the line
+        keyword = split( readline( handle_in) )
+        # Loop over first 3 elements
         for j=1:3
+            # Construct the matrix with the elements
             matrix[i,j] = parse(Float64,keyword[j])
         end
     end
 
+    # Makes a copy of the matrix
     matrix2  = copy( matrix )
+
+    # Create the reduced matrix of pimaim
+    # - Loop over dimensions
     for i=1:3
-        matrix2[i,:] /= LinearAlgebra.norm(matrix2[i,:])
+        # Reduce all vectors by their norm
+        matrix2[i,:] /= LinearAlgebra.norm( matrix2[i,:] )
     end
+
+    # NB: Unsure about this
+    # Check that the reduced matrix is ok
     if matrix2[2,1] == 0
+        # If the matrix is not oriented properly, get the transpose
         matrix2 = transpose( matrix2 )
     end
 
-    species=split( readline( handle_in ) )
-    nb_species_ = split( readline(handle_in ) )
+    # Read the next line, parse it to get the species in the structure
+    species = split( readline( handle_in ) )
+
+    # Read the next line and by parsing it get the number of element per species
+    nb_species_lines = split( readline(handle_in ) )
+
+    # Initialize a vector of int for number of element per specie
     nb_species = zeros( Int, size(species)[1] )
+
+    # Loop over each specie
     for i_spec=1:size(species)[1]
-        nb_species[i_spec] = parse( Int, nb_species_[i_spec] )
+        # Convert the string into int for each element per specie
+        nb_species[i_spec] = parse( Int, nb_species_lines[i_spec] )
     end
+
+    # Construct the vector of string for the names of atoms based on the number of element and their order
     names_ = atom_mod.buildNames( species, nb_species )
 
-    readline( handle_in ) # skip
+    # Skipping line
+    readline( handle_in )
+
+    # Compute number of atoms in the structure
     nb_atoms=sum(nb_species)
+
+    # Initialize AtomList with a given number of atoms
     atoms=AtomList(nb_atoms)
+
+    # Initialize a temporary vector for reduced positions
     temp = zeros(Real,3)
+
+    # Loop over atoms
     for atom=1:nb_atoms
+        # Read the line corresponding to each atom position
         keys = split( readline( handle_in ) )
+
+        # Loop over dimension
         for i=1:3
+            # Parse into Float the string
             temp[i] = parse( Float64, keys[i] )
         end
+
+        # Loop over dimension
         for i=1:3
+            # Loop over dimension for matrix product to convert reduced into cartesian coordinates
             for j=1:3
+                # Transform reduced coordinates into cartesian
                 atoms.positions[atom,i] += matrix2[j,i]*temp[j]
             end
         end
+
+        # Affect the name of the atom to the AtomList section
         atoms.names[atom] = names_[atom]
+
+        # Affect the index of the atom
         atoms.index[atom] = atom
+
     end
-    #---------------------------------------------------------------------
+
+    # Close the file
     close( handle_in )
 
+    # Return AtomList with atomic information and cell matrix for the cell
     return atoms, matrix
 end
 # poscart.out
@@ -256,7 +318,10 @@ function readTrajPosCar( input_path::T1, poscar_path::T2, cell_box_path::T3 ) wh
     end
     return traj, cell_mod.cellMatrix2Params( cells )
 end
-# positions.out
+#-----------------------------------------------------------------------------
+
+# Functions dealing with positions
+#-----------------------------------------------------------------------------
 function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T3}, cell_matrices::Array{T4,3} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int, T4 <: Real }
 
     #---------------------------------------------------------------------
@@ -361,6 +426,8 @@ function readPositionsUpToCrash( path_file::T1, species::Vector{T2}, nb_species:
     return traj
 end
 #-----------------------------------------------------------------------------
+
+#==============================================================================#
 
 # *.xv
 #-----------------------------------------------------------------------------
