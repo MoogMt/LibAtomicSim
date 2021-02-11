@@ -17,6 +17,7 @@ export readPosCar
 export readXV
 export readRestart
 export readCellParams, readCellBox
+# NB: check that all funtions are here
 
 # Description
 # Set of functions that deals with input and output of the polarizable force
@@ -87,14 +88,16 @@ end
 # Reading positions
 #==============================================================================#
 
-# Functions dealing with poscart.out files
+# Functions dealing with POSCAR file
 #-----------------------------------------------------------------------------
-function readPosCar( path_file::T1 ) where { T1 <: AbstractString }
+# Reads POSCAR file, returns AtomList and cell matrix corresponding to the last step of the simulation
+function readPOSCAR( path_file::T1 ) where { T1 <: AbstractString }
     # Argument:
-    # - path_file: path to the poscart.out file
+    # - path_file: path to the POSCAR file
     # Output
     # - atoms: AtomList contaning all atomic coordinates
     # - matrix: cell matrix, in matrix form (3x3, real)
+    # Or false, false if there is a problem with the file
 
     # Get the number of lines of the file
     nb_lines = utils.getNbLines( path_file )
@@ -204,103 +207,210 @@ function readPosCar( path_file::T1 ) where { T1 <: AbstractString }
     # Return AtomList with atomic information and cell matrix for the cell
     return atoms, matrix
 end
-# poscart.out
-function readPosCarTraj( path_file::T1, species::Vector{T2}, nb_species::Vector{T3} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int }
+#-----------------------------------------------------------------------------
 
-    #---------------------------------------------------------------------
+# Functions dealing with poscart.out
+#-----------------------------------------------------------------------------
+# Reads poscart.out and returns a traj in term of vector of AtomList, position may still be in pseudo-reduced form
+function readPoscarOut( path_file::T1, species::Vector{T2}, nb_species::Vector{T3} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int }
+    # Argument
+    # - path_file: path to the poscart.out file (string)
+    # - species: names of the species in the cell (vector of string)
+    # - nb_species: number of element for each species (vector of int)
+    # Output
+    # - traj: vector of AtomList of the trajectory or false if file does not exists
+    # OR returns false if poscart.out does not exists
+
+    # Get number of lines of the file
     nb_lines = utils.getNbLines( path_file )
-    if nb_lines == false
+    # If the file does not exists, or is empty, return false
+    if nb_lines == false || nb_lines == 0
         return false
     end
-    #---------------------------------------------------------------------
 
-    #---------------------------------------------------------------------
+    # Compute the number of atoms in the traj
     nb_atoms = sum(nb_species)
-    names_=atom_mod.buildNames( species, nb_species )
+
+    # Construct the names of atoms using the names of species and number of element per specie
+    names_ = atom_mod.buildNames( species, nb_species )
+
+    # Check that the format is ok (basic check for sanity of file)
     if nb_lines % nb_atoms != 0
-        print("Problem within file: ",path_file," :\n")
-        print("Number of lines is not a multiple of the number of atoms given.\n")
+        # If the format is problematic, returns false
+        print( "Problem within file: ", path_file, " :\n" )
+        print( "Number of lines is not a multiple of the number of atoms given.\n" )
         return false
     end
-    nb_step = Int(nb_lines/nb_atoms)
-    traj = Vector{AtomList}( undef, nb_step )
-    #---------------------------------------------------------------------
 
-    #---------------------------------------------------------------------
+    # Compute the number of step in the trajectory
+    nb_step = Int(nb_lines/nb_atoms)
+
+    # Initialize the vector of AtomList for the positions
+    traj = Vector{AtomList}( undef, nb_step )
+
+    # Open the file
     handle_in = open( path_file )
+
+    # Loop over step
     for step=1:nb_step
+
+        # Initialize the AtomList of the step
         traj[step] = atom_mod.AtomList(nb_atoms)
+
+        # Loop over atoms
         for atom=1:nb_atoms
+
+            # Read and parse each line per atom
             keys = split( readline( handle_in ) )
+
+            # Loop over index
             for i=1:3
+                # Parse the positions, converts strings to float and converts from bohr to angstroms
                 traj[step].positions[atom,i] = parse( Float64, keys[i] )*conversion.bohr2Ang
             end
+
+            # Put the name of the atoms in
             traj[step].names[atom] = names_[atom]
+
+            # Put the index of the atoms in
             traj[step].index[atom] = atom
         end
+
     end
-    #---------------------------------------------------------------------
+
+    # Close the file
     close( handle_in )
 
+    # Return the trajectory in the form of a vector of AtomList, position may need to be transformed
     return traj
 end
-function readPosCarTraj( path_file::T1, species::Vector{T2}, nb_species::Vector{T3}, cell_matrices::Array{T4,3} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int, T4 <: Real }
+# Reads poscart.out and returns a traj in term of vector of AtomList, use cell_matrices to transform the positions
+# NB: unsure of the purpose of this function
+function readPoscarOut( path_file::T1, species::Vector{T2}, nb_species::Vector{T3}, cell_matrices::Array{T4,3} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int, T4 <: Real }
+    # Argument
+    # - path_file: path to the poscart.out file (string)
+    # - species: names of the species in the structure (vector of string)
+    # - nb_species: number of atoms per elements (vector of int)
+    # - cell_matrices: tensor contaning the information of the cell (real matrix, nb_step,3,3)
+    # Output
+    # - traj: vector of AtomList, containing the trajectory of the system
 
-    #---------------------------------------------------------------------
+    # Get the number of lines of the file
     nb_lines = utils.getNbLines( path_file )
+    # If the file is empty or does not exists, return false
     if nb_lines == false
         return false
     end
-    #---------------------------------------------------------------------
 
-    #---------------------------------------------------------------------
+    # Computes the number of atoms in the traj
     nb_atoms = sum(nb_species)
-    names_=atom_mod.buildNames( species, nb_species )
+
+    # Construct the names
+    names_ = atom_mod.buildNames( species, nb_species )
+
+    # Check that the file format is ok
     if nb_lines % nb_atoms != 0
+        # If the format is problematic, sends a message and returns false
         print("Problem within file: ",path_file," :\n")
         print("Number of lines is not a multiple of the number of atoms given.\n")
         return false
     end
-    nb_step = Int(nb_lines/nb_atoms)
-    traj = Vector{AtomList}( undef, nb_step )
-    #---------------------------------------------------------------------
 
-    #---------------------------------------------------------------------
+    # Computes number of step of trajectory
+    nb_step = Int(nb_lines/nb_atoms)
+
+    # Initialize trajectory
+    traj = Vector{AtomList}( undef, nb_step )
+
+    # Open poscart.out file
     handle_in = open( path_file )
+
+    # Loop over step
     for step=1:nb_step
+
+        # Initialize local AtomList
         traj[step] = atom_mod.AtomList(nb_atoms)
-        matrix = cel_matrices[step,:,:]
+
+        # Is
+        matrix = copy( cell_matrices[step,:,:] )
+
+        # Invert the given matrix
         inv_matrix = inv( matrix )
-        matrix2 = cell_mod.params2Matrix( cell_mod.cellMatrix2Params( matrix ) ).matrix
+
+        # Get the proper matrix to convert the positions
+        matrix2 = cell_mod.params2Matrix( cell_mod.cellMatrix2Params( matrix ) )
+
+        # Loop over atoms
         for atom=1:nb_atoms
+
+            # Reads and parse the atomic positions lines
             keys = split( readline( handle_in ) )
+
+            # Loop over dimension
             for i=1:3
+                # Read, parse positions from string to real, and converts from bohr to angstrom
                 traj[step].positions[atom,i] = parse( Float64, keys[i] )*conversion.bohr2Ang
             end
-            positions_temp = matrix2*inv_matrix*traj[step].positions[atom,:]
+
+            # conversion of positions
+            positions_temp = matrix2 * inv_matrix * traj[step].positions[atom,:]
+
+            # Copies atomic positions to AtomList
             traj[step].positions[atom,:] = positions_temp
+
+            # Copies names of atom to AtomList
             traj[step].names[atom] = names_[atom]
+
+            # Copies index of atom to AtomList
             traj[step].index[atom] = atom
         end
+
     end
-    #---------------------------------------------------------------------
+
+    # Close the poscart.out file
     close( handle_in )
 
+    # Return the vector of AtomList that is the trajectory
     return traj
 end
-function readTrajPosCar( input_path::T1, poscar_path::T2, cell_length_path::T3, cell_angles_path::T4 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString, T4 <: AbstractString }
+#
+function readPoscarTraj( input_path::T1, poscar_path::T2, cell_length_path::T3, cell_angles_path::T4 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString, T4 <: AbstractString }
+    # Arguments:
+    # - input_path: path to the runtime.inpt file (string)
+    # - poscar_path: path to the poscart.out file (string)
+    # - cell_length_path: path to the celllens.out file (string)
+    # - cell_angles_path: path to the cellangles.out file (string)
+    # Output
+    # - traj: vectors of AtomList - trajectory of atoms
+    # - cells: vector of Cell_param - trajectory of the cell
+
+    # Get the species and number of atoms per species
     species, species_nb = pimaim.getSpeciesAndNumber( input_path )
+    # Check that it worked
     if species == false || species_nb == false
+        # If it fails, returns false, false
         return false, false
     end
-    traj = readPosCarTraj( poscar_path, species, species_nb )
+
+    # Read the trajectory of atoms
+    traj = readPoscarOut( poscar_path, species, species_nb )
+    # Check that it works
     if traj == false
+        # If it fails, returns false, false
         return false, false
     end
+
+    # Reads the cell trajectory
     cells = pimaim.readCellParams( cell_length_path, cell_angles_path )
+    # Check that it worked
     if cells == false
+        # If it did not work, returns false, false
         return false, false
     end
+
+    # Return Trajectory in the shape of
+    # - a vector of AtomList for the atoms
+    # - a vector of Cell_param for the cells
     return traj, cells
 end
 function readTrajPosCar( input_path::T1, poscar_path::T2, cell_box_path::T3 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString }
