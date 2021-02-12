@@ -1,8 +1,5 @@
 module utils
 
-#-------------------------------------------------------------------------------
-#  List of useful random functions that I could not fit elsewhere
-#-------------------------------------------------------------------------------
 
 
 function getNbLines( file_path::T1 ) where { T1 <: AbstractString }
@@ -217,9 +214,6 @@ function spaces( string1::T1, nb::T2 ) where { T1 <: AbstractString, T2 <: Int }
 end
 #==============================================================================#
 
-#===============#
-# General Array #
-#===============#
 
 #==============================================================================#
 function isIn( element, list )

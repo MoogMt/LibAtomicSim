@@ -1,5 +1,8 @@
 module conversion
 
+# Description
+# Allows conversion between various units for many thermodynamical variables
+
 # Pressure
 aU2Pascal = 2.9421912*10^(13)
 pascal2AU = 1/aU2Pascal
