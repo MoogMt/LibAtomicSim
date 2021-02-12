@@ -1458,166 +1458,331 @@ function readf3( path_file::T1 ) where { T1 <: AbstractString }
     # Return the array with the ring statistics
     return ring_data
 end
-#------------------------------------------------------------------------------
+#----------------------g--------------------------------------------------------
 
+# Writting data (generic)
 #------------------------------------------------------------------------------
+# Generic function to write data using an IO handler for the output file
 function writeFullData( handle_out::T1, data::Array{T2,2} ) where { T1 <: IO, T2 <: Real }
+    # Argument
+    # - handle_out: IO handler for the file
+    # - data: array containing data (nb_step,n_dim), where nb_step and n_dim are int and left up to the user
+    # Output
+    # - True, if it works
+
+    # Get the number of steps
     nb_step = size( data )[1]
+
+    # Get the dimension of the data array
     n_dim = size( data )[2]
+
+    # Loop over the array
     for step=1:nb_step
+        # Loop over the data array
         for i=1:n_dim
+            # Write the data for each dimension
             Base.write( handle_out, string( data[step,i], " " ) )
         end
+
+        # Write end of line
         Base.write( handle_out, string( "\n" ) )
     end
+
+    # Return true if it worked
     return true
 end
+# Generic function to write data using a string for the path of the output file
 function writeFullData( file_out::T1, data::Array{T1,2} ) where { T1 <: AbstractString, T2 <: Real }
+    # Argument
+    # - file_out: path to the output path (string)
+    # - data: real array (nb_step,n_dim) containing the data
+    # Output
+    # - Bool: if the writting was successful or not
+
+    # Open file
     handle_out = open( file_out, "w"  )
-    test=writeFullData( handle_out, data )
+
+    # Writting data
+    test = writeFullData( handle_out, data )
+
+    # Check if the data was written
+    if ! test
+        return false
+    end
+
+    # Closing file
     close( handle_out )
-    return test
+
+    # Return true if it works
+    return true
 end
-function writeRestart( path_file::T1, atoms::T2, cell::Array{T3,2} ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList, T3 <: Real }
-    nb_atoms=atom_mod.getNbAtoms(atoms)
-    handle_out=open( path_file , "w" )
-    write( handle_out, string("T\n") )
-    write( handle_out, string("F\n") )
-    write( handle_out, string("F\n") )
-    write( handle_out, string("F\n") )
-    positions_ = copy(atoms.positions)
+#------------------------------------------------------------------------------
+
+# Writing restart.dat file
+#------------------------------------------------------------------------------
+# Write restart.dat with only positions
+function writeRestartPositionsOnly( path_file::T1, atoms::T2, cell::Array{T3,2} ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList, T3 <: Real }
+    # Argument
+    # - path_file: file to the restart.dat file
+    # - atoms: AtomList containing the structure to write
+    # - cell: cell_matrix
+    # Output
+    # - Bool: whether or not the writting went ok
+
+    # Get the number of atoms in the structure
+    nb_atoms = atom_mod.getNbAtoms( atoms )
+
+    # Opens output file
+    handle_out = open( path_file , "w" )
+
+    # Write the bool concerning the data in the file
+    write( handle_out, string( "T\n" ) ) # - We write the position
+    write( handle_out, string( "F\n" ) ) # - We don't write velocities
+    write( handle_out, string( "F\n" ) ) # - We don't write forces
+    write( handle_out, string( "F\n" ) ) # - We don't write polarization
+
+    # Copy the positions from AtomList
+    positions_ = copy( atoms.positions )
+
+    # Put the positions into reduced coordinates
     positions_ = cell_mod.getTransformedPosition( positions_, inv(cell.matrix) )
+
+    # Reduced the positions by the cell length (pimaim specific)
     for i=1:3
         positions_[:,i] *= LinearAlgebra.norm( cell.matrix[:,i] )
     end
+
+    # Loop over atoms
     for atom=1:nb_atoms
+        # Loop over dimensions
         for i=1:3
-            write( handle_out, string( round(positions_[atom,i]*conversion.ang2Bohr,digits=3)," " ) )
+            # Write positions, converting them into bohr first, and limiting precision to third digit
+            write( handle_out, string( round( positions_[atom,i]*conversion.ang2Bohr, digits=3 ), " " ) )
         end
+
+        # Writting end of line
         write( handle_out, string("\n") )
     end
 
+    # Copying matrix for manipulation
     matrix = copy( cell )
 
+    # Computing cell lengths
     lengths = cell_mod.cellMatrix2Params(cell).length
+
+    # Loop over dimensions
     for i=1:3
+        # Reducing the matrix by the cell matrix length
         matrix[:,i] = matrix[:,i]/lengths[i]
     end
 
+    # Loop over dimension 1
     for i=1:3
+        # Loop over dimension 2
         for j=1:3
-            write( handle_out, string( round(matrix[i,j],digits=3), " ") )
+            # Writting matrix data into file
+            write( handle_out, string( round( matrix[i,j], digits=3 ), " ") )
         end
+
+        # Writting end of line
         write( handle_out, string("\n") )
     end
 
+    # Loop over dimensions
     for i=1:3
-        write(handle_out,string(round(LinearAlgebra.norm(cell[:,i])*conversion.ang2Bohr,digits=3),"\n"))
+        # Writting lenghts of the box, converted into bohr into file
+        write( handle_out, string( round( LinearAlgebra.norm( cell[:,i])*conversion.ang2Bohr, digits=3 ), "\n" ) )
     end
 
+    # Closing file
     close(handle_out)
 
+    # Returning true if all went ok
     return true
 end
+#------------------------------------------------------------------------------
+
+# Write Crystal cell
+#------------------------------------------------------------------------------
+# Writting crystal cell with AtomList and Cell_param
 function writeCrystalCell( path_file::T1, atoms::T2, cell::Array{T3,2} ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList, T3 <: Real }
+    # Argument:
+    # - path_file: path to the restart.dat file to create
+    # - atoms: AtomList with positions and other atomic information
+    # - cell: cell matrix with information on the cell
+    # Output
+    # - Bool: whether or not the file was written successfully
 
-    lengths = cell_mod.cellMatrix2Params(cell).length
+    # Get the length of the cell
+    lengths = cell_mod.cellMatrix2Params( cell ).length
 
+    # Get the species of element present in the AtomList
     species = atom_mod.getSpecies( atoms )
 
+    # Copying matrix for manipulation
     matrix  = copy( cell )
 
+    # Loop over dimension
     for i=1:3
+        # Reducing matrix by the length of cell
         matrix[:,i] = matrix[:,i]/lengths[i]
     end
 
+    # Opening output file
     handle_in = open( path_file, "w" )
 
+    # Loop over dimension 1
     for i=1:3
+        # Loop over dimension 2
         for j=1:3
-            write( handle_in, string( round(matrix[j,i],digits=3), " " ) )
+            # Writting matrix element, keeping only precision up to the third digits
+            write( handle_in, string( round( matrix[j,i], digits=3 ), " " ) )
         end
+
+        # Write end of line
         write( handle_in, string("\n") )
     end
 
+    # Loop over dimension
     for i=1:3
+        # Writing lengths of the cells
         write( handle_in, string( lengths[i], "\n")  )
     end
 
+    # Loop over dimension
+    # NB: unsure what this is for
     for i=1:3
+        # Writting 1
         write( handle_in, "1\n" )
     end
 
+    # Loop over species
     for i=1:size(species)[1]
+        # Writting species Z from name
         write( handle_in, string( periodicTable.names2Z( species[i] ), "\n" ) )
+
+        # Writting arbitrary file name
         write( handle_in, string( species[i], "_quartz.mat\n" ) )
     end
 
+    # Loop over dimension
     for i=1:3
+        # Writting length of the cell
         write( handle_in, string( lengths[i], "\n")  )
     end
 
+    # Closing file
     close(handle_in)
 
+    # Returns true if everything works
     return true
 end
-function writeAcellTxt( path_file::T1, cells::Vector{T2} ) where { T1 <: AbstractString, T2 <: cell_mod.Cell_param }
+#------------------------------------------------------------------------------
 
+# Writting acell.txt file
+#------------------------------------------------------------------------------
+# Writting acell.txt from a cell trajectory using a vector of Cell_param
+function writeAcellTxt( path_file::T1, cells::Vector{T2} ) where { T1 <: AbstractString, T2 <: cell_mod.Cell_param }
+    # Argument
+    # - path_file: path of the output acell.txt file
+    # - cells: vector of Cell_param that contains the cell trajectory
+    # Output
+    # - Bool: whether or not the writting was successful
+
+    # Opening file in writting mode
     handle_out=open( path_file, "w" )
 
+    # Loop over steps
     for step=1:size(cells)[1]
-
+        # Converting current step cell params to cell matrix
         cell_matrix = cell_mod.params2Matrix(cells[step])
+
+        # Loop over dimension 1
         for i=1:3
+            # Loop over dimension 2
             for j=1:3
+                # Writting cell matrix element
                 write( handle_out, string( round(cell_matrix[i,j],digits=3), " " ) )
             end
+            # Writting end of line
             write( handle_out, "\n" )
         end
     end
 
+    # Close the output file
     close(handle_out)
 
+    # Returns true if all went well
     return true
 end
+# Writting acell.txt from a cell trajectory using a tensor with cell matrices
 function writeAcellTxt( path_file::T1, cells::Array{T2,3} ) where { T1 <: AbstractString, T2 <: Real }
+    # Arguments
+    # - path_file: path to the acell.txt file to write
+    # - cells: tensor (nb_step,3,3) with the cell matrices overtime
+    # Output
+    # - Bool: whether or not the writting was successful
 
-
+    # Opening output file
     handle_out=open( path_file, "w" )
 
+    # Loop over steps
     for step = 1:size(cells)[1]
+        # Loop over dimensions 1
         for i=1:3
+            # Loop over dimensions 2
             for j=1:3
-                write( handle_out, string( round(cells[step,i,j],digits=3), " " ) )
+                # Writting cell matrix element, precision up to the third digits
+                write( handle_out, string( round( cells[step,i,j], digits=3 ), " " ) )
             end
+            # Write end of line to file
             write( handle_out, "\n" )
         end
     end
 
+    # Closing the file
     close(handle_out)
 
+    # Return true if the writting was successful
     return true
 end
-function writeCell( path_file::T1, cells::Array{T2,3}, timestep::T3 ) where { T1 <: AbstractString, T2 <: Real, T3 <: Real }
+#------------------------------------------------------------------------------
 
+# Writting cellbox.out file
+#------------------------------------------------------------------------------
+function writeCellbox( path_file::T1, cells::Array{T2,3}, timestep::T3 ) where { T1 <: AbstractString, T2 <: Real, T3 <: Real }
+    # Argument
+    # - path_file: path to the cellbox.out file to write
+    # - cells: tensor describing cell trajectory with cell matrices
+    # - timestep: timestep of the simulation (fs)
+    # Output
+    # - Bool: Whether it successfully wrote the file
+
+    # Opening output file
     handle_out = open( path_file, "w" )
 
+    # Loop over steps
     for step=1:size(cells)[1]
-
+        # Writting step in int and actual simulation time
         write( handle_out, string( step, " ", step*timestep, " " ) )
 
+        # Loop over dimension 1
         for i=1:3
+            # Loop over dimension 2
             for j=1:3
-
+                # Write cell matrix element
                 write( handle_out, string( cells[step,i,j], " " ) )
             end
         end
 
+        # Write the total volume of the cell
         write( handle_out, string( " ", det( cells[step,:,:] ), "\n" ) )
     end
 
+    # Closing file
     close(handle_out)
 
+    # Returns true if it worked
     return true
 end
 #------------------------------------------------------------------------------
