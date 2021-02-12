@@ -64,6 +64,25 @@ mutable struct AtomList
     end
     #----------------------------------------------------------------------------
 end
+# AtomTraj: Contains a simple trajectory for the atoms
+mutable struct AtomTraj
+
+    # Variables
+    #-------------------------------
+    names::Vector{AbstractString} # Names of the atoms (chemical species)
+    index::Vector{Int}            # Index of atoms (labels)
+    positions::Array{Real,3}      # Positions of the atoms
+    #-------------------------------
+
+    #----------------------------------------------------------------------
+    function AtomTraj()
+        # Argument
+        # - None
+        # Output
+        # - Creates a trajectory
+    end
+    #----------------------------------------------------------------------
+end
 # AtomMolList: Contains all atoms with positions, names and index + name and index of the molecule they belong to
 # Mostly useful for classical simulations (GROMACS,LAMMPS)
 mutable struct AtomMolList

@@ -373,7 +373,8 @@ function readPoscarOut( path_file::T1, species::Vector{T2}, nb_species::Vector{T
     # Return the vector of AtomList that is the trajectory
     return traj
 end
-#
+# Reads runtime.inpt, poscart.out, celllens.out and cellangles.out
+# - returns a trajectory for the atoms (vector of AtomList) and the cell (vector of Cell_param)
 function readPoscarTraj( input_path::T1, poscar_path::T2, cell_length_path::T3, cell_angles_path::T4 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString, T4 <: AbstractString }
     # Arguments:
     # - input_path: path to the runtime.inpt file (string)
@@ -413,36 +414,65 @@ function readPoscarTraj( input_path::T1, poscar_path::T2, cell_length_path::T3, 
     # - a vector of Cell_param for the cells
     return traj, cells
 end
-function readTrajPosCar( input_path::T1, poscar_path::T2, cell_box_path::T3 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString }
+# Reads runtime.inpt, poscart.out, cellbox.out
+# - returns a trajectory for the atoms (vector of AtomList) and the cell (vector of Cell_param)
+function readPoscarTraj( input_path::T1, poscar_path::T2, cell_box_path::T3 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString }
+    # Argument:
+    # - input_path: path to runtime.inpt (string)
+    # - poscar_path: path to the poscart.out file (string)
+    # - cell_box_path: path to cellbox.out (string)
+    # Output
+    # - traj: vector of AtomList (Trajectory of the atoms)
+    # - cells: vector of Cell_param (trajectory of the cell)
+
+    # Get the chemical species and number of element per species
     species, species_nb = pimaim.getSpeciesAndNumber( input_path )
+    # Check that all went well
     if species == false || species_nb == false
+        # if not, returns false, false
         return false, false
     end
+
+    # Reads the cell trajectory
     cells = pimaim.readCellBox( cell_box_path )
+    # Check that cells is ok
     if cells == false
+        # If not , returns false, false
         return false, false
     end
-    traj = readPosCarTraj( poscar_path, species, species_nb, cells )
+
+    # Reads the atoms trajectory
+    traj = readPosCarTraj( poscar_path, species, species_nb )
+    # Check that it worked
     if traj == false
+        # If not , returns false, false
         return false, false
     end
-    return traj, cell_mod.cellMatrix2Params( cells )
+
+    # Return Trajectory in the shape of
+    # - a vector of AtomList for the atoms
+    # - a vector of Cell_param for the cells
+    return traj, cells
 end
 #-----------------------------------------------------------------------------
 
-# Functions dealing with positions
+# Reading positions.out
 #-----------------------------------------------------------------------------
 function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T3}, cell_matrices::Array{T4,3} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int, T4 <: Real }
+    # Argument:
+    # - path_file:
+    # - species:
+    # - nb_species:
+    # - cell_matrices
+    # Output
+    # - traj: vector of AtomList describing the trajectory
 
-    #---------------------------------------------------------------------
     nb_lines = utils.getNbLines( path_file )
     if nb_lines == false
         # utils.getNbLines will have return the error message
         return false
     end
-    #---------------------------------------------------------------------
 
-    #---------------------------------------------------------------------
     nb_atoms = sum(nb_species)
     names_=atom_mod.buildNames( species, nb_species )
     if nb_lines % nb_atoms != 0
@@ -450,41 +480,55 @@ function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T
         print("Number of lines is not a multiple of the number of atoms given.\n")
         return false
     end
-    nb_step = Int(nb_lines/nb_atoms)
-    traj = Vector{AtomList}( undef, nb_step )
-    #---------------------------------------------------------------------
 
-    #---------------------------------------------------------------------
+    nb_step = Int(nb_lines/nb_atoms)
+
+    traj = Vector{AtomList}( undef, nb_step )
+
     handle_in = open( path_file )
+
     for step=1:nb_step
+
         box_len=zeros(Real,3)
+
         traj[step] = atom_mod.AtomList(nb_atoms)
+
         matrix2 = copy( cell_matrix[step,:,:] )
+
         for i=1:3
             box_len[i] = LinearAlgebra.norm( matrix2[:,i] )*conversion.ang2Bohr
         end
+
         cells[step].matrix = cell_mod.params2Matrix( cell_mod.cellMatrix2Params( cells[step] ) ).matrix
+
         for atom=1:nb_atoms
+
             temp = zeros(Real,3)
+
             keys = split( readline( handle_in ) )
+
             for i=1:3
                 temp[i] = parse(Float64,keys[i])/box_len[i]
             end
+
             for i=1:3
                 for j=1:3
                     traj[step].positions[atom,i] += temp[j]*cells[step].matrix[i,j]
                 end
             end
+
             traj[step].names[atom] = names_[atom]
             traj[step].index[atom] = atom
+
         end
+
     end
-    #---------------------------------------------------------------------
+
     close( handle_in )
 
     return traj
 end
-function readPositionsUpToCrash( path_file::T1, species::Vector{T2}, nb_species::Vector{T3}, cells::Vector{T4} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int, T4 <: cell_mod.Cell_param }
+function readPositionsCrash( path_file::T1, species::Vector{T2}, nb_species::Vector{T3}, cells::Vector{T4} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int, T4 <: cell_mod.Cell_param }
 
     #---------------------------------------------------------------------
     nb_lines = utils.getNbLines( path_file )
