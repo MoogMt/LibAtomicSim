@@ -939,264 +939,524 @@ function readRestart( restart_path::T1, runtime_path::T2 ) where { T1 <: Abstrac
         end
     end
 
-    
+     # returns data
     return atoms, velocity, forces, polarization, quad, cell_matrix, runs_nb_step
 end
 #------------------------------------------------------------------------------
 
 # Reading Cell informations
 #------------------------------------------------------------------------------
-# celllens.out, cellangles.out -> Cell_param
+# Reads the files celllens.out and cellangles.out and converts them into a vector of Cell_param
 function readCellParams( path_file_len::T1, path_file_angles::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
+    # Argument
+    # - path_file_len: path to the file celllens.out (string)
+    # - path_file_angles: path to the file cellangles.out (string)
+    # Output
+    # - Vector of Cell_param that gives the information of the trajectory of the cell
+    # OR false if something went wrong with the file
 
-    #-------------------------------------------------
+    # Get the number of lines in the cellangles file
     nb_lines_angles = utils.getNbLines( path_file_angles )
-    if nb_lines_angles == false
+    # if the file does not exists or is empty, prints a message and returns false
+    if nb_lines_angles == false || nb_lines_angles == 0
+        print("File cellangles.out does not exists or is empty.\n")
         return false
     end
-    nb_lines_lengths = utils.getNbLines( path_file_len )
-    if nb_lines_lengths == false
-        return false
-    end
-    nb_step=min( nb_lines_angles, nb_lines_lengths )
-    if nb_lines_angles != nb_lines_lengths
-        print("Missmatch between number of lengths and angles, using the minimum to proceed.\n")
-    end
-    #-------------------------------------------------
 
-    #-------------------------------------------------
+    # Get the number of lines in the celllens file
+    nb_lines_lengths = utils.getNbLines( path_file_len )
+    # if the file does not exists or is empty, prints a message and returns false
+    if nb_lines_lengths == false
+        print("File celllens.out does not exists or is empty.\n")
+        return false
+    end
+
+    # Check that files have the same number of steps
+    nb_step = min( nb_lines_angles, nb_lines_lengths )
+    # If not, use the minimum to proceed, but warns the user
+    if nb_lines_angles != nb_lines_lengths
+        print( "Missmatch between number of lengths and angles, using the minimum to proceed.\n" )
+    end
+
+    # Initialize vectors for lenghts and angles
     lengths = zeros(Real, nb_step , 3 )
     angles  = zeros(Real, nb_step , 3 )
-    #-------------------------------------------------
 
-    #-------------------------------------------------
+    # Value to convert radiants to degrees
     tau=180/pi
-    handle_in_len = open( path_file_len )
-    handle_in_ang = open( path_file_angles )
+
+    # Open files
+    handle_in_len = open( path_file_len )    # Opens celllens.out
+    handle_in_ang = open( path_file_angles ) # Opens cellangles.out
+
+    # Initialize output (vector of Cell_param)
     cells = Vector{ cell_mod.Cell_param }( undef, nb_step )
+
+    # Loop of ver step
     for line=1:nb_step
-        key_len = split( readline( handle_in_len ) )
-        key_ang = split( readline( handle_in_ang ) )
+
+        # Read  step line ...
+        key_len = split( readline( handle_in_len ) ) # for lengths
+        key_ang = split( readline( handle_in_ang ) ) # for angles
+
+        # Loop over dimension for conversion
         for i=1:3
+            # Converts lengths from Bohr to Angstroms
             lengths[line,i] = parse( Float64, key_len[1+i] )*conversion.bohr2Ang
+            # Converts angles from radians to degrees
             angles[line,i]  = parse( Float64, key_ang[1+i] )*tau
         end
-        stock=angles[line,1]
-        angles[line,1]=angles[line,3]
-        angles[line,3]=stock
-        cells[ line ] = cell_mod.Cell_param( lengths[line,:], angles[line,:] )
-        #angles[line,:]=circshift(angles[line,:],1)
-    end
-    close( handle_in_len )
-    close( handle_in_ang )
-    #-------------------------------------------------
 
+        # Switch angles around (technicality so that they match the proper order)
+        stock           = angles[line,1]
+        angles[line,1]  = angles[line,3]
+        angles[line,3]  = stock
+
+        # Puts lengths and angles into the Cell_param for current step
+        cells[ line ] = cell_mod.Cell_param( lengths[line,:], angles[line,:] )
+    end
+
+    # Closing files
+    close( handle_in_len ) # celllens.out file
+    close( handle_in_ang ) # cellangles.out file
+
+    # Returns the vector of Cell_param with cell trajectory
     return cells
 end
-# cellbox.out -> Cell_matrix
+# Reads the files celllbox.out and converts them into a vector of Cell_param
 function readCellBox( path_file::T1 ) where { T1 <: AbstractString }
-    nb_lines = utils.getNbLines( path_file )
+    # Argument:
+    # - path_file: path to the cellbox.out file
+    # Output
+    # - cells: return a tensor (real; nb_step,3,3) which contains a cell matrix for each step
+    # OR false if there is a problem with file
 
-    if nb_lines == 0
-        print("File ",path_file," is empty...\n")
+    # Get number of lines of the file
+    nb_lines = utils.getNbLines( path_file )*
+    # If the file is empty or does not exists, prints message and returns false
+    if nb_lines == 0 || nb_lines == false
+        print("File ",path_file," is empty or does not exist...\n")
         return false
     end
 
+    # Number of line per cell matrix
     nb_line_per_box = 4
-    if nb_lines == false
-        return false
-    end
+
+    # Check that the format is ok
     if nb_lines % nb_line_per_box != 0
+        # If the format is not right, sends a message and returns false
         print("File: ",path_file," does not have the correct number of lines.\n")
         return false
     end
+
+    # Compute number of steps
     nb_step = Int( nb_lines/nb_line_per_box )
 
+    # Initialize cell tensor
     cells = Array{ Real }(undef, nb_step, 3, 3 )
+
+    # Opening input file
     handle_in = open( path_file )
+
+    # Loop over steps
     for step = 1:nb_step
-        # Reading cell reduced matrix
+
+        # Reading cell reduced matrix for current step
         cells[step,:,:] = zeros(3,3)
+
+        # Loop over dimension
         for i=1:3
+            # Read line and parse with " " deliminator
             keys = split( readline( handle_in ) )
+
+            # loop over dimension 2
             for j=1:3
+                # parse the element of the matrix from string to float
                 cells[step,i,j] = parse( Float64, keys[j] )
             end
         end
-        # Reading cell lengths
+
+        # Reading cell lengths lines and parse with " " as delimitator
         keys = split( readline( handle_in ) )
+
+        # Loop over dimension
         for i=1:3
+
+            # Cast the element from string to float
             length = parse( Float64, keys[i] )
+
+            # Unreduced cell tensor, and converts length from Bohr to Angstrom
             cells[step,:,i] *= length*conversion.bohr2Ang
         end
     end
+
+    # Close file
     close( handle_in )
 
+    # Returns the cell tensor with cell trajectory
     return cells
 end
 #------------------------------------------------------------------------------
 
+# Reading energy file
 #------------------------------------------------------------------------------
-function readEnergy( path_file::T1 ) where { T1 <: AbstractString }
+# Reading eng1.out file, contains total, potential and kinetic energy
+function readEng1( path_file::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - path_file: path to the eng1.out file
+    # Output
+    # - total energy: real vector (nb_step), containing total energy (Kinetic+Potential energy)
+    # - kinetic energy: real vector (nb_step), containing kinetic energy
+    # - potential energy: real vector (nb_step), containing potential energy
+    # OR false, false, false if something is wrong with the file
 
-    #---------------------------------------------------------------------
+    # Get number of lines in the input file
     nb_lines = utils.getNbLines( path_file )
-    if nb_lines == false
-        return false
+    # If the file is empty or does not exists, returns false
+    if nb_lines == false || nb_lines == 0
+        return false, false, false
     end
-    #---------------------------------------------------------------------
 
+    # Initialize output vectors
     enpot = zeros(Real,nb_lines)
     enkin = zeros(Real,nb_lines)
+
+    # Open the input file
     handle_in = open( path_file )
+
+    # Loop over steps
     for step=1:nb_lines
+        # Read line, parse with " " as deliminator
         keyword = split(readline(handle_in))
-        enpot[step] = parse(Float64, keyword[2] )
-        enkin[step] = parse(Float64, keyword[3] )
+
+        # Converts the string into floats
+        enpot[step] = parse(Float64, keyword[2] ) # Second element is the potential energy
+        enkin[step] = parse(Float64, keyword[3] ) # Third element is the kinetic energy
     end
+
+    # Close the input file
     close(handle_in)
 
+    # Return the total energy (float), the potential energy (float) and the kinetic energy (float)
     return enpot.+enkin, enpot, enkin
 end
+# Reading eng2.out file, contains enthalpy and pv contribution
 function readEnthalpy( path_file::T1 ) where { T1 <: AbstractString }
+    # Argument:
+    # - path_file: path to eng2.out file
+    # Output
+    # - enthalpy: real vector (nb_step), contains the enthalpy
+    # - pv: real vector (nb_step), contains the P*V
 
-    #---------------------------------------------------------------------
+    # Get the number of lines in the file
     nb_lines = utils.getNbLines( path_file )
-    if nb_lines == false
+    # If the file
+    if nb_lines == false || nb_lines == 0
         return false
     end
-    #---------------------------------------------------------------------
 
-    enthalpy = zeros(Real,nb_lines)
-    pv = zeros(Real,nb_lines)
+    # Initialize output vectors for
+    enthalpy = zeros(Real,nb_lines) # - the enthalpy
+    pv = zeros(Real,nb_lines)       # - the P*V contribution
+
+    # Open input file
     handle_in = open( path_file )
+
+    # Loop over steps
     for step=1:nb_lines
+        # Reading line and parsing using " " as deliminator
         keyword = split(readline(handle_in))
-        pv[step] = parse(Float64, keyword[2] )
-        enthalpy[step] = parse(Float64, keyword[3] )
+
+        # Casting strings into float :
+        pv[step] = parse(Float64, keyword[2] )        # - Second column of file is P*V
+        enthalpy[step] = parse(Float64, keyword[3] )  # - Third columns is the enthalpy (Total Energy + P*V)
     end
+
+    # Closing file
     close(handle_in)
 
+    # Returning enthalpy and PV contribution
     return enthalpy, pv
 end
-function readPressure( path_file::T1 ) where { T1 <: AbstractString }
+#------------------------------------------------------------------------------
 
-    #---------------------------------------------------------------------
+# Reading thermodynamical data
+#------------------------------------------------------------------------------
+# Reading pressure.out file, return a real vector contains the pressure
+function readPressure( path_file::T1 ) where { T1 <: AbstractString }
+    # Argument:
+    # - path_file: path to the pressure.out file
+    # Output
+    # - pressure: vector (real) contains the pressure during trajectory
+    # OR false if something is wrong with the file
+
+    # Get number of lines in the file
     nb_lines = utils.getNbLines( path_file )
-    if nb_lines == false
+    # If the file is empty or does not exists, return false
+    if nb_lines == false || nb_lines == 0
         return false
     end
-    #---------------------------------------------------------------------
 
-    pressure = zeros(Real,nb_lines)
+    # Initialize vector for output
+    pressure = zeros(Real, nb_lines )
+
+    # Open file
     handle_in = open( path_file )
+
+    # Loop over step
     for step=1:nb_lines
-        pressure[step] = parse(Float64, split(readline(handle_in))[2] )*conversion.au2Gpa
+        # Read line
+        # Parse with " "
+        # Get only second element,
+        # Cnverts pressure from atomic unit to GPa
+        # Converts string to real
+        pressure[step] = parse(Float64, split( readline( handle_in ) )[2] )*conversion.au2Gpa
     end
+
+    # Close the file
     close(handle_in)
 
+    # Returns real vector containing pressure
     return pressure
 end
+# Reading kintemp.out file, returns a real vector containing the temperature
 function readTemperature( path_file::T1 ) where { T1 <: AbstractString }
+    # Argument:
+    # - path_file: path to the kintemp.out file
+    # Output
+    # - temperature: vector containing the temperature (real; nb_step)
+    # OR false if something goes wrong in the file
+
+    # Get number of lines in the file
     nb_lines = utils.getNbLines( path_file )
+    # If the file is empty or does not exists, return false
     if nb_lines == 0 || nb_lines == false
         return false
     end
 
+    # Initialize vector for temperature
     temperature = zeros(Real, nb_lines)
+
+    # Open file
     handle_in = open( path_file )
+
+    # Loop over steps
     for step=1:nb_lines
+        # Read the line, parse with " ", gets only second element, converts element to float
         temperature[step] = parse(Float64, split( readline(handle_in) )[2] )
     end
+
+    # Close the file
     close( handle_in )
+
+    # Return vector of temperature
     return temperature
 end
+# Reading cellvol.out returns two vectors containing the volume and some other thing related but unknown
 function readVolume( path_file::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - path_file: path to the cellvol.out file
+    # Output
+    # - volume: real vector (nb_step) contains the volume of the cell as a function of time (likely Bohr^3)
+    # - other_vol: real vector (nb_step), contains unknown physical value
+    # OR false, false if something goes wrong with the file
 
+    # Get the number of lines of the file
     nb_lines = utils.getNbLines( path_file )
+    # If the file is empty or does not exists, return false, false
     if nb_lines == 0 || nb_lines == false
+        return false, false
+    end
+
+    # Initialize vectors for
+    volume    = zeros(Real, nb_lines) # The volume
+    other_vol = zeros(Real, nb_lines) # Whatever the second value in the file is
+
+    # Opens the file
+    handle_in = open( path_file )
+
+    # Loop over steps
+    for step=1:nb_lines
+        # For each value, reads the line, select the element and casts the string into float
+        volume[step]    = parse(Float64, split( readline(handle_in) )[2] ) # For the volume gets the 2nd element
+        other_vol[step] = parse(Float64, split( readline(handle_in) )[3] ) # FOr the other quantity gets the 3rd element
+    end
+
+    # Close the file
+    close( handle_in )
+
+    # Return the volume and the other quantity
+    return volume, other_vol
+end
+# Reading fulloutput.dat file and returns a data array with thermodynamical values
+function readFullOutput( path_file::T1 ) where { T1 <: AbstractString }
+    # Argument:
+    # - path_file: path to the fulloutput.dat file
+    # Output
+    # - data: array (nb_step,6) containing thermodynamical values
+    # OR false, if something is wrong with the file
+
+    # Gets the number of lines in the file
+    nb_lines = utils.getNbLines( path_file )
+    # If the file is empty or does not exists, returns false
+    if nb_lines == false || nb_lines == 0
         return false
     end
 
-    volume = zeros(Real, nb_lines)
-    handle_in = open( path_file )
-    for step=1:nb_lines
-        volume[step] = parse(Float64, split( readline(handle_in) )[2] )
-    end
-    close( handle_in )
-    return volume
-end
-# fulloutput.dat
-function readFullOutput( path_file::T1 ) where { T1 <: AbstractString }
-    nb_lines = utils.getNbLines( path_file)
-    if nb_lines == false
+    # Determine data block size
+    data_block_size = 7
+
+    # Check the format of the file
+    if nb_lines % data_block_size != 0
+        # If the format is not right, sends a message to the user and return false
+        print("Issue with fulloutput.dat at ", path_file," !\n")
         return false
     end
-    if nb_lines % 7 != 0
-        print("Issue with fulloutput.dat at ", path_file,"!\n")
-        return false
-    end
+
+    # Compute number of steps
     nb_step = Int( nb_lines/7 )
-    handle_in = open( path_file )
+
+    # Initialize array for output
     data = zeros(nb_step,6)
+
+    # Opens the file
+    handle_in = open( path_file )
+
+    # Loop over steps
     for step=1:nb_step
-        for i=1:6
+
+        # Eliminates the first 6 lines that do not contain interesting data
+        for i=1:data_block_size-1
             test=readline( handle_in )
         end
-        keys = readline( handle_in )
+
+        # reads the data line and parse it using " " as delimintator
+        keys = split( readline( handle_in ) )
+
+        # Loop over the data elements
         for i=1:6
-            data[ step, i ] = parse( Float64, split(keys)[i+1] )
+            # Put data into array (1st column is time)
+            data[ step, i ] = parse( Float64, keys[i+1] )
         end
     end
+
+    # Close input file
     close(handle_in)
+
+    # Return the data array
     return data
 end
 #------------------------------------------------------------------------------
 
-# f3.dat
+# Extract data from fulloutput.dat
 #------------------------------------------------------------------------------
-function readf3( path_file::T1 ) where { T1 <: AbstractString }
-    handle_in = open( path_file )
-    nb_step = 0
-    while ! eof( handle_in )
-        readline( handle_in )
-        nb_step += 1
-    end
-    seekstart( handle_in )
-    col_nb = 9
-    readline( handle_in )
-    nb_step = nb_step-1
-    ring_data = zeros( nb_step, col_nb )
-    for step = 1:nb_step
-        keys = split( readline( handle_in ) )
-        for col=1:col_nb
-            ring_data[ step, col ] = parse(Float64, keys[col] )
-        end
-    end
-    close( handle_in )
-    return ring_data
+# Extract temperature from a data array from fulloutput.dat
+function extractTemperature( data::Array{T1,2} ) where { T1 <: Real }
+    # Argument
+    # - data: array real (nb_step,6) containing thermodynamical data from fulloutput.dat
+    # Output
+    # - Real vector (nb_step) containing the temperature (K)
+
+    # Returns the temperature
+    return data[:,6]
+end
+# Extract pressure from a data array from fulloutput.dat
+function extractPressure( data::Array{T1,2} ) where { T1 <: Real }
+    # Argument
+    # - data: array real (nb_step,6) containing thermodynamical data from fulloutput.dat
+    # Output
+    # - Real vector (nb_step) containing the pressure (GPa)
+
+    # Returns the pressure
+    return data[:,5]
+end
+# Extract volume from a data array from fulloutput.dat
+function extractVolume( data::Array{T1,2} ) where { T1 <: Real }
+    # Argument
+    # - data: array real (nb_step,6) containing thermodynamical data from fulloutput.dat
+    # Output
+    # - Real vector (nb_step) containing the volume (A^3)
+
+    # Returns the volume
+    return data[:,4]
+end
+# Extract the total energy from a data array from fulloutput.dat
+function extractTotalEnergy( data::Array{T1,2} ) where { T1 <: Real }
+    # Argument
+    # - data: array real (nb_step,6) containing thermodynamical data from fulloutput.dat
+    # Output
+    # - Real vector (nb_step) containing the total energy (a.u?)
+
+    # Returns the total energy
+    return data[:,3]
+end
+# Extract the kinetic energy from a data array from fulloutput.dat
+function extractKineticEnergy( data::Array{T1,2} ) where { T1 <: Real }
+    # Argument
+    # - data: array real (nb_step,6) containing thermodynamical data from fulloutput.dat
+    # Output
+    # - Real vector (nb_step) containing the kinetic energy energy (a.u?)
+
+    # Returns the kinetic energy
+    return data[:,2]
+end
+# Extract the potential energy from a data array from fulloutput.dat
+function extractPotentialEnergy( data::Array{T1,2} ) where { T1 <: Real }
+    # Argument
+    # - data: array real (nb_step,6) containing thermodynamical data from fulloutput.dat
+    # Output
+    # - Real vector (nb_step) containing the potential energy energy (a.u?)
+
+    # Returns the potential energy
+    return data[:,1]
 end
 #------------------------------------------------------------------------------
 
-# Extract from fulloutput.dat data
+# Reading f3.dat file containing boroxol fraction as a function of time
 #------------------------------------------------------------------------------
-function extractTemperature( data::Array{T1,2} ) where { T1 <: Real }
-    return data[:,6]
-end
-function extractPressure( data::Array{T1,2} ) where { T1 <: Real }
-    return data[:,5]
-end
-function extractVolume( data::Array{T1,2} ) where { T1 <: Real }
-    return data[:,4]
-end
-function extractTotalEnergy( data::Array{T1,2} ) where { T1 <: Real }
-    return data[:,3]
-end
-function extractKineticEnergy( data::Array{T1,2} ) where { T1 <: Real }
-    return data[:,2]
-end
-function extractPotentialEnergy( data::Array{T1,2} ) where { T1 <: Real }
-    return data[:,1]
+function readf3( path_file::T1 ) where { T1 <: AbstractString }
+    # Argument:
+    # - path_file: path to the f3.dat file
+    # Output:
+    # - ring_data: contains a real array (nb_step,6) with fraction of various rings
+    # OR false if something went wrong with the file
+
+    # Gets the number of lines in the file
+    nb_lines = utils.getNbLines( path_file )
+    # If the file is empty or does not exists, returns false
+    if nb_lines == false || nb_lines == 0
+        return false
+    end
+
+    # Opens the file
+    handle_in = open( path_file )
+
+    # Number of columns in the file
+    col_nb = 9
+
+    # Initialize output array
+    ring_data = zeros( nb_step, col_nb )
+
+    # skip the first line
+    readline( handle_in )
+
+    # Loop over steps
+    for step = 1:nb_lines-1
+        # Read line for step and parse using " " as deliminator
+        keys = split( readline( handle_in ) )
+
+        # Loop over columns
+        for col=1:col_nb
+            # Converts data from string to real
+            ring_data[ step, col ] = parse(Float64, keys[col] )
+        end
+    end
+
+    # Close the file
+    close( handle_in )
+
+    # Return the array with the ring statistics
+    return ring_data
 end
 #------------------------------------------------------------------------------
 
