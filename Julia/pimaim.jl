@@ -458,165 +458,286 @@ end
 
 # Reading positions.out
 #-----------------------------------------------------------------------------
+# Read positions.out and returns vector of AtomList, requires cell matrices to convert the position to cartesian (converts from Bohr to Angstrom)
 function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T3}, cell_matrices::Array{T4,3} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int, T4 <: Real }
     # Argument:
-    # - path_file:
-    # - species:
-    # - nb_species:
-    # - cell_matrices
+    # - path_file: path to positions.out (string)
+    # - species: names of the species in the cell (vector string)
+    # - nb_species: number of elements per chemical species (vector int)
+    # - cell_matrices: tensor with the cell trajectory
     # Output
     # - traj: vector of AtomList describing the trajectory
+    # Or false if something is wrong with the file
 
+    # Get number of lines
     nb_lines = utils.getNbLines( path_file )
-    if nb_lines == false
-        # utils.getNbLines will have return the error message
+    # If the file does not exists, or is empty, returns false
+    if nb_lines == false || nb_lines == 0
         return false
     end
 
+    # Compute number of atoms
     nb_atoms = sum(nb_species)
-    names_=atom_mod.buildNames( species, nb_species )
+
+    # Construct the vector of names of the atoms based on the number of element of species
+    # - assumes that atoms are sorted by types
+    names_ = atom_mod.buildNames( species, nb_species )
+
+    # Check that the number of lines is coherent with the number of atoms
     if nb_lines % nb_atoms != 0
+        # If the format is wrong sends a message and returns false
         print("Problem within file: ",path_file," :\n")
         print("Number of lines is not a multiple of the number of atoms given.\n")
         return false
     end
 
+    # Compute number of steps
     nb_step = Int(nb_lines/nb_atoms)
 
+    # Initialize trajectory
     traj = Vector{AtomList}( undef, nb_step )
 
+    # Open file
     handle_in = open( path_file )
 
+    # Loop over step
     for step=1:nb_step
 
-        box_len=zeros(Real,3)
-
+        # Initialize AtomList for step
         traj[step] = atom_mod.AtomList(nb_atoms)
 
+        # Copy cell matrix for step
         matrix2 = copy( cell_matrix[step,:,:] )
 
+        # Initialize vector for box lengths
+        box_len=zeros(Real,3)
+
+        # Compute the lengths
         for i=1:3
+            # Compute the norm for all three directions and converts from Bohr to Ang
             box_len[i] = LinearAlgebra.norm( matrix2[:,i] )*conversion.ang2Bohr
         end
 
-        cells[step].matrix = cell_mod.params2Matrix( cell_mod.cellMatrix2Params( cells[step] ) ).matrix
+        #
+        cells[step].matrix = cell_mod.params2Matrix( cell_mod.matrix2Params( cells[step,:,:] ) )
 
+        # Loop over atoms
         for atom=1:nb_atoms
 
+            # Initialize vector for positions
             temp = zeros(Real,3)
 
+            # Reads and parse position line for atom
             keys = split( readline( handle_in ) )
 
+            # Loop over dimension
             for i=1:3
+                # Converts positions to float and divide by box lengths
                 temp[i] = parse(Float64,keys[i])/box_len[i]
             end
 
+            # Converts reduced position to cartesian positions
+            # - Loop for dimensions
             for i=1:3
+                # - Second loop over dimensions
                 for j=1:3
-                    traj[step].positions[atom,i] += temp[j]*cells[step].matrix[i,j]
+                    # Converts reduced to cartesian
+                    traj[step].positions[atom,i] += temp[j]*cells[step,i,j]
                 end
             end
 
+            # Affects names of atoms to the AtomList
             traj[step].names[atom] = names_[atom]
+
+            # Affects index of atoms to the AtomList
             traj[step].index[atom] = atom
 
         end
 
     end
 
+    # Close atoms
     close( handle_in )
 
+    # Returns trajectory in shape of vector of AtomList
     return traj
 end
+# Read positions.out and return vector of AtomList, but also works if the format is wrong, requires a cell trajectory in vector of cell_param
 function readPositionsCrash( path_file::T1, species::Vector{T2}, nb_species::Vector{T3}, cells::Vector{T4} ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: Int, T4 <: cell_mod.Cell_param }
+    # Argument
+    # - path_file: path of positions.out file
+    # - species: names of all elements in the structure (vector of string)
+    # - nb_species: number of elements for each species (vector of int)
+    # - cells: vector of Cell_param for the trajectory of cells
+    # Output
+    # - traj: vector of AtomList to the trajectory of the atoms
+    # OR false if something goes wrong with the file
 
-    #---------------------------------------------------------------------
+    # Get the number of lines of the file
     nb_lines = utils.getNbLines( path_file )
-    if nb_lines == false
+    # If the file is empty or does not exists, return false
+    if nb_lines == false || nb_lines == 0
         return false
     end
-    #---------------------------------------------------------------------
 
-    #---------------------------------------------------------------------
-    nb_atoms = sum(nb_species)
-    names_=atom_mod.buildNames( species, nb_species )
-    nb_step = Int( trunc( nb_lines/nb_atoms ) )-1
+    # Compute number of atoms
+    nb_atoms = sum( nb_species )
+
+    # Computes vector of
+    names_ = atom_mod.buildNames( species, nb_species )
+
+    # Compute number of steps in the file
+    nb_step = Int( trunc( nb_lines/nb_atoms ) ) - 1
+    # If the number of step is problematic, returns false
     if nb_step < 1
         return false
     end
+
+    # if the size of the cell trajectory is smaller than the number of step
+    # reduces the number of steps to that of the number of step in the cell trajectory
+    # ( assumption is that the positions didn't write the last steps )
     if size(cells)[1] < nb_step
         nb_step = size(cells)[1]
     end
-    traj = Vector{AtomList}( undef, nb_step )
-    #---------------------------------------------------------------------
 
-    #---------------------------------------------------------------------
+    # Initialize vector of AtomList for the atom trajectory
+    traj = Vector{AtomList}( undef, nb_step )
+
+    # Open the file
     handle_in = open( path_file )
+
+    # Loop over step
     for step=1:nb_step
-        box_len=zeros(Real,3)
+
+        # Initialize AtomList for current step
         traj[step] = atom_mod.AtomList(nb_atoms)
-        matrix2 = copy( cell_mod.params2Matrix( cells[step] ).matrix )
+
+        # computes the cell matrix for the current step from a Cell_param
+        matrix2 = cell_mod.params2Matrix( cells[step] )
+
+        # Initialize vector for box lengths
+        box_len = zeros(Real,3)
+
+        # Loop over dimensions for box length computations and conversion from Bohr to Angstrom
         for i=1:3
             box_len[i] = LinearAlgebra.norm( matrix2[:,i] )*conversion.ang2Bohr
         end
+
+        # Loop over atoms
         for atom=1:nb_atoms
-            temp = zeros(Real,3)
+
+            # Reads and parse the position for current atom
             keys = split( readline( handle_in ) )
+
+            # Initialize temporary file for current position
+            temp = zeros(Real,3)
+
+            # Compute position and remove the box length conversion of pimaim
             for i=1:3
-                temp[i] = parse(Float64,keys[i])/box_len[i]
+                temp[i] = parse(Float64, keys[i] )/box_len[i]
             end
+
+            # Converts positions from reduced to cartesian
+            # - Loop over dimension
             for i=1:3
+                # - Second Loop over dimensions
                 for j=1:3
+                    # Converts positions
                     traj[step].positions[atom,i] += temp[j]*matrix2[i,j]
                 end
             end
+
+            # Affects the names of atoms to the AtomList for current step
             traj[step].names[atom] = names_[atom]
+
+            # Affects the index to the AtomList for current step
             traj[step].index[atom] = atom
+
         end
+
     end
-    #---------------------------------------------------------------------
+
+    # Close the file
     close( handle_in )
 
+    # Trajectory in the shape of a vector of AtomList
     return traj
 end
 #-----------------------------------------------------------------------------
 
 #==============================================================================#
 
-# *.xv
+# Reading *.xv file
 #-----------------------------------------------------------------------------
+# Reads structure from .xv file, returns atoms position in AtomList and cell with Cell_param
 function readXV( path_file::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # path_file: path to the *.xv file
+    # Output:
+    # - atoms: AtomList with atomic informations
+    # - cell: Cell_param with information about the cell
+    # OR false if something goes wrong
 
+    # Get number of lines
+    nb_lines = utils.getNbLines( path_file )
+    # If the file does not exists, or is empty, returns false
+    if nb_lines == false || nb_lines == 0
+        return false
+    end
+
+    # Initialize cell matrix
     matrix=zeros(Real,3,3)
 
+    # Open file
     handle_in = open( path_file )
+
+    # Loop over the first three lines (cell matrix)
     for i=1:3
-        line = split(readline( handle_in ))
+        # Read the line and parse it
+        line = split( readline( handle_in ) )
+        # Loop over the three first elements
         for j=1:3
+            # Converts string to float, and converts lengths from Bohr to Angstroms
             matrix[i,j] = parse(Float64, line[j] )*conversion.bohr2Ang
         end
     end
 
+    # Converts cell matrix to Cell_param
     cell = cell_mod.cellMatrix2Params( matrix )
 
+    # Compute the number of atoms
     nb_atoms = parse(Int64, split( readline( handle_in ) )[1] )
 
+    # Initialize AtomList
     atoms = atom_mod.AtomList( nb_atoms )
 
+    # Loop over atoms
     for atom=1:nb_atoms
+        # Read and parse current atom line
         keyword = split( readline( handle_in ) )
+
+        # Get the name of the atom from its atomic number
         atoms.names[atom] = periodicTable.z2Names( parse(Int, keyword[2] ) )
+
+        # Use the atomic number as index for AtomList
         atoms.index[atom] = atom
+
+        # Loop over the elements 2-5 for the atomic positions
         for i=1:3
+            # Parse string to float, and converts position from Bohr to Angstrom
             atoms.positions[atom,i] = parse(Float64, keyword[2+i] )*conversion.bohr2Ang
         end
     end
+
+    # Close file
     close( handle_in )
+
+    # Returns AtomList and Cell_param descrbing the structure
     return atoms, cell
 end
 #-----------------------------------------------------------------------------
 
-#  restart.dat
+# Reading restart.dat
 #-----------------------------------------------------------------------------
 function readRestart( restart_path::T1, runtime_path::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
 
