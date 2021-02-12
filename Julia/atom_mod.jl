@@ -2,6 +2,7 @@ module atom_mod
 
 # Loading necessary modules from LibAtomicSim
 using utils
+using geom
 using periodicTable
 
 # Export useful functions
@@ -863,28 +864,6 @@ end
 
 # Distance computation (without PBC)
 #-------------------------------------------------------------------------------
-# Compute distance between two atomic positions (real vectors) without PBC (may be redundant with a function in geom)
-function distanceNoPBC( v1::Vector{T1}, v2::Vector{T2} ) where { T1 <: Real, T2 <: Real }
-    # Arguments
-    # - vector1 : position of atom1
-    # - vector2 : position of atom2
-    # Output
-    # - Distance between the vector 1 and 2
-
-    # Initialize output
-    dist=0
-
-    # Loop over dimensions
-    for i=1:3
-        # Distance in the dimension
-        loc = v1[i] - v2[i]
-        # add the square of the distance to the total distance
-        dist += loc*loc
-    end
-
-    # Return the distance between v1 and v2
-    return sqrt(dist)
-end
 # Compute the distance between two atoms (in AtomList frame) without PBC
 function distanceNoPBC( atoms::T1, index1::T2, index2::T3 ) where { T1 <: AtomList, T2 <: Int, T3 <: Int }
     # Arguments
@@ -894,7 +873,7 @@ function distanceNoPBC( atoms::T1, index1::T2, index2::T3 ) where { T1 <: AtomLi
     # - distance between atoms index1 and index2
 
     # Computes and return the distance betweens the atoms
-    return distanceNoPBC( atoms.positions[index1], atoms.positions[index2,:] )
+    return geom.distance( atoms.positions[index1], atoms.positions[index2,:] )
 end
 #-------------------------------------------------------------------------------
 

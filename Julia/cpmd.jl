@@ -6,6 +6,9 @@ using filexyz
 using press_stress
 using atom_mod
 
+# Description
+# Set of fucntions used to deal with CPMD specific input and output files
+
 # NB  Much left to do:
 # We need to do a proper input structure for the CPMD input reading/writting
 # so that we can check consistency.
