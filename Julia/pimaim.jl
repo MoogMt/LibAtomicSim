@@ -739,121 +739,207 @@ end
 
 # Reading restart.dat
 #-----------------------------------------------------------------------------
+# Reads restart.dat file and returns what it contains (positions as AtomList, the rest as vectors or array of real)
+# NB: some things are still unclear, may need some work
 function readRestart( restart_path::T1, runtime_path::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
+    # Arguments
+    # - restart_path: path to the restart.dat file (string)
+    # - runtime_path:  path to the runtime.inpt file (string)
+    # Output
+    # - atoms: AtomList containing positions (optional)
+    # - velocity: velocities of the atoms (array, real, nb_atoms,3) (optional)
+    # - forces: forces acting on atoms (array, real, nb_atoms, 3) (optional)
+    # - polarization: polarization of atoms (vector real)
+    # - quadrupolar: barostat parameters (array real)
+    # - cell_matrix: cell matrix of the cell
+    # - runs_nb_step: vector of int, with number of steps for each precedent
+    # OR false if the file does not contain the aforementionned information
 
-    #-----------------------------------------------------------------------
+    # Get the species and their number of atoms
     species, nb_element_species = getSpeciesAndNumber( runtime_path )
+
+    # Compute total number of different elements
     n_species = size(species)[1]
+
+    # Compute number of atoms
     nb_atoms = sum( nb_element_species )
-    atoms_names = Vector{AbstractString}(undef,nb_atoms)
+
+    # Construct the atom names vector (assume that atoms are sorted by type)
+    atoms_names = Vector{AbstractString}(undef, nb_atoms )
+
+    # Loop over species
     for i_spec=1:n_species
+
+        # Compute the offset
         offset_specie = sum( nb_element_species[1:i_spec-1] )
+
+        # Loop over atom species
         for atom_spec=1:nb_element_species[i_spec]
+            # Compute the species
             atoms_names[ offset_specie + atom_spec ] = species[ i_spec ]
         end
     end
-    #-----------------------------------------------------------------------
 
-    #-----------------------------------------------------------------------
+    # Open restart.dat file
     handle_in = open( restart_path )
-    check_position  = split( readline( handle_in ) )[1]
-    check_velocity  = split( readline( handle_in ) )[1]
-    check_forces    = split( readline( handle_in ) )[1]
-    check_polarity  = split( readline( handle_in ) )[1]
-    #-----------------------------------------------------------------------
 
-    #-----------------------------------------------------------------------
+    # Determine what kind of information is in the file
+    # - Whether we have the positions
+    check_position  = split( readline( handle_in ) )[1]
+    # - Whether we have the velocities
+    check_velocity  = split( readline( handle_in ) )[1]
+    # - Whether we have the forces
+    check_forces    = split( readline( handle_in ) )[1]
+    # - Whether we have the polarization information
+    check_polarity  = split( readline( handle_in ) )[1]
+
+    # Initialize atoms as false
     atoms = false
+    # If there is AtomList if present in file
     if check_position == "T"
+
+        # Initialize AtomList
         atoms = atom_mod.AtomList( nb_atoms )
+
+        # Loop over atoms
         for atom=1:nb_atoms
+
+            # Parse line for current atom
             keyword = split( readline( handle_in ) )
+
+            # Affects index of atom to AtomList
             atoms.index[atom] = atom
+
+            # Affects name of atom to AtomList
             atoms.names[atom] = atoms_names[atom]
             for i=1:3
+                # Converts from String to Float, converts from bohr to Angstrom
                 atoms.positions[atom,i] = parse(Float64, keyword[i] )*conversion.bohr2Ang
             end
         end
     end
-    #-----------------------------------------------------------------------
 
-    #-----------------------------------------------------------------------
+    # Initialize output for velocities
     velocity = false
+    # Check if the file contains velocities
     if check_velocity == "T"
+
+        # Initialize vector for velocities
         velocities = zeros(Real, nb_atoms, 3)
+
+        # Loop over the atoms
         for atom=1:nb_atoms
+
+            # Parse the current velocity of atom line
             keyword = split( readline( handle_in ) )
+
+            # Loop over dimension
             for i=1:3
+                # converts string to float (may need to convert as well, but unclear about the units of velocities)
                 velocities[atom,i] = parse(Float64, keyword[i] )
             end
         end
     end
-    #-----------------------------------------------------------------------
 
-    #-----------------------------------------------------------------------
+    # Initialize output for forces
     forces = false
+    # Check if the file contains forces
     if check_forces == "T"
+
+        # Initialize forces as Array (real: nb_atoms,3)
         forces = zeros(Real, nb_atoms, 3)
+
+        # Loop over atoms
         for atom=1:nb_atoms
+
+            # Read and parse the force on atom line
             keyword = split( readline( handle_in ) )
+
+            # Loop over dimensions
             for i=1:3
+                # Converts strings into floats, may need to convert (but unknown units)
                 forces[ atom, i ] = parse(Float64, keyword[i] )
             end
         end
     end
-    #-----------------------------------------------------------------------
 
-    #-----------------------------------------------------------------------
+    # Compute the number of previous runs
     nb_runs = parse(Int64, split( readline( handle_in ) )[1])
+
+    # Initialize int vector for number of steps of previous simulations
     runs_nb_step = zeros( nb_runs )
+
+    # Loop over nb_runs following lines to get the number of steps of the previous sim
     for i=1:nb_runs
+        # Converts string to int for the number of steps of previous sim
         runs_nb_step[i] = parse(Int64, split( readline(handle_in) )[1] )
     end
-    #-----------------------------------------------------------------------
 
-    #-----------------------------------------------------------------------
+    # Initialize polarization vector
     polarization = zeros( 30 )
+    # Loop over the next 30 (why 30???) lines
     for i=1:30
+        # reads polarization, converts string to float
         polarization[i] = parse(Float64, split( readline(handle_in) )[1] )
     end
-    #-----------------------------------------------------------------------
 
-    #-----------------------------------------------------------------------
+    # Initialize quadrupolar matrix (why 2x2??)
     quad = zeros( 2, 2 )
+    # Loop over two lines
     for i=1:2
+
+        # Read line and parse it with " " as delimitator
         keys = split( readline( handle_in ) )
+
+        # Loop over two first elements
         for j=1:2
+            # Parse from string to float the quadrupolar information
             quad[i,j] = parse(Float64, keys[j] )
         end
     end
-    #-----------------------------------------------------------------------
 
-    #-----------------------------------------------------------------------
+    # Ignores three lines (why?)
     for i=1:3
         readline( handle_in )
     end
-    #-----------------------------------------------------------------------
 
-    #-----------------------------------------------------------------------
+    # Initialize cell matrix
     cell_matrix = zeros(Real,3,3)
+    # Loop over dimension 1
     for i=1:3
+
+        # Reads line and parse with " " as delimitator
         keyword = split( readline(handle_in) )
+
+        # Loop over dimension 2
         for j=1:3
+            # Parse from string to float and send information to cell matrix
             cell_matrix[i,j] = parse( Float64, keyword[j] )
         end
     end
+
+    # Initialize box lengths vector
     boxlens = zeros(3)
+    # Loop over dimensions
     for i=1:3
+        # Reads the line and parse with " "
         key = split( readline( handle_in ) )
+
+        # compute box lengths by casting string into float
         boxlens[i] = parse(Float64, key[1] )
     end
+
+    # Converts the cell matrix elements from bohr to angstrom and multiply elements by box length
+    # - Loop over dimension 1
     for i=1:3
+        # - Loop over dimension 2
         for j=1:3
+            # Recompute cell matrix element
             cell_matrix[i,j] *= cell_matrix[i,j]*boxlens[i]*conversion.bohr2Ang
         end
     end
-    #-----------------------------------------------------------------------
 
+    
     return atoms, velocity, forces, polarization, quad, cell_matrix, runs_nb_step
 end
 #------------------------------------------------------------------------------
