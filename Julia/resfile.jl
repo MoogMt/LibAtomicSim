@@ -1,5 +1,6 @@
 module resfile
 
+# Loading necessary modules from LibAtomicSim
 using utils
 using conversion
 using atom_mod
@@ -7,23 +8,41 @@ using cell_mod
 using filexyz
 using pdb
 
+# Loading necessary module from general repository
 using LinearAlgebra
 
+# Cell information
 #-------------------------------------------------------------------------------
+# Read cell info from .res file using IO handler for the input file
 function extractCellInfo( file_io::T1 ) where { T1 <: IO}
-    # incase not at start
+    # Argument
+    # - file_io: handler of the input .res file
+    # Output
+    # - Cell_param describing the cell
+
+    # Goes back to the begining of the file if we're not there
     seekstart( file_io )
+
+    # Parse the first line of the file with " " deliminator
     keywords = utils.getLineElements( file_io )
+
+    # Initialize lengths vector
     lengths=zeros(Real,3)
-    for i=1:3
-        lengths[i] = parse( Float64, keywords[i+2] )
-    end
+
+    # Initialize angles vector
     angles=zeros(Real,3)
+
+    # Loop over dimension
     for i=1:3
-        angles[i] = parse( Float64, keywords[i+5] )
+        # Parse strings into float
+        lengths[i] = parse( Float64, keywords[i+2] ) # For lengths for element 3-5
+        angles[i]  = parse( Float64, keywords[i+5] ) # For angles for element 6-8
     end
+
+    # Converts lengths and angles into Cell_param and returns it
     return cell_mod.Cell_param( lengths, angles )
 end
+# Read cell info from .res file using string for the path of the file
 function extractCellInfo( file_path::T1 ) where { T1 <: AbstractString }
     handle_in = open( file_path )
     cell = extractCellInfo( handle_in )
