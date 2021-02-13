@@ -507,7 +507,7 @@ function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T
         traj[step] = atom_mod.AtomList(nb_atoms)
 
         # Copy cell matrix for step
-        matrix2 = copy( cell_matrix[step,:,:] )
+        matrix2 = copy( cell_matrices[step,:,:] )
 
         # Initialize vector for box lengths
         box_len=zeros(Real,3)
@@ -518,8 +518,8 @@ function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T
             box_len[i] = LinearAlgebra.norm( matrix2[:,i] )*conversion.ang2Bohr
         end
 
-        #
-        cells[step].matrix = cell_mod.params2Matrix( cell_mod.matrix2Params( cells[step,:,:] ) )
+        # Realign cell matrix so that its v1 is aligned with z-axis
+        cell_matrices[step,:,:] = cell_mod.params2Matrix( cell_mod.matrix2Params( cell_matrices[step,:,:] ) )
 
         # Loop over atoms
         for atom=1:nb_atoms
@@ -542,7 +542,7 @@ function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T
                 # - Second loop over dimensions
                 for j=1:3
                     # Converts reduced to cartesian
-                    traj[step].positions[atom,i] += temp[j]*cells[step,i,j]
+                    traj[step].positions[atom,i] += temp[j]*cell_matrices[step,i,j]
                 end
             end
 
@@ -1032,7 +1032,7 @@ function readCellBox( path_file::T1 ) where { T1 <: AbstractString }
     # OR false if there is a problem with file
 
     # Get number of lines of the file
-    nb_lines = utils.getNbLines( path_file )*
+    nb_lines = utils.getNbLines( path_file )
     # If the file is empty or does not exists, prints message and returns false
     if nb_lines == 0 || nb_lines == false
         print("File ",path_file," is empty or does not exist...\n")

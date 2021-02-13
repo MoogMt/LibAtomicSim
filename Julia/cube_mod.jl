@@ -37,6 +37,7 @@ mutable struct Volume
 end
 #-----------------------------------------------------------------------
 
+#-----------------------------------------------------------------------------------
 # Reads a cube file and returns all or parts of its informations
 function readCube( file_name::T1 ) where { T1 <: AbstractString }
     #--------------
@@ -140,7 +141,9 @@ function readCube( file_name::T1 ) where { T1 <: AbstractString }
 
     return atom_list, cell_matrix, volume
 end
+#-----------------------------------------------------------------------------------
 
+#-----------------------------------------------------------------------------------
 function computeDisplacementOrigin( data::T1 , cell::T2 ) where { T1 <: Volume, T2 <: cell_mod.Cell_param }
     index=zeros(Int,3)
     for i=1:3
@@ -281,10 +284,6 @@ function traceLine( atom1::T1, atom2::T2, nb_points::T3, volume::T4, atoms::T5 ,
     end
 
     return distances, data
-end
-
-function centerOnPosition( target_position::Vector{T1}, volume::T2 ) where { T1 <: Real, T2 <: Volume }
-    
 end
 
 end

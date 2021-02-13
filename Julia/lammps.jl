@@ -1,17 +1,17 @@
 module cpmd
 
+# Loading necessary modules from LibAtomSim
 using conversion
 using atom_mod
 
+# Description
+# Handles interface with LAMMPS: Reads input and output files, writes input file,
+# sets up simulations based on user parameters, etc...
+
 export writeLammpsInput
 
-# Handles interface with LAMMPS
-# - Reads input files
-# - Writes input files
-# - Reads output files
-
-#==============================================================================#
 # Writting from a collection of molecules
+#-------------------------------------------------------------------------------
 function writeLammpsInput( molecules::Vector{T1}, file::T2 ) where { T1 <: atom_mod.AtomMolList, T2 <: AbstractString }
   # Variables
   # - number of atomic species
@@ -73,6 +73,6 @@ function writeLammpsInput( molecules::Vector{T1}, file::T2 ) where { T1 <: atom_
   end
   close(out)
 end
-#==============================================================================#
+#-------------------------------------------------------------------------------
 
 end
