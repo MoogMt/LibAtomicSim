@@ -701,11 +701,14 @@ function getTransformedPosition( target_matrix::Array{T1,2}, cell_matrix::Array{
     # Output
     # - matrix_transformed: Transformed positions in matrix form (nb_atoms,3)
 
+    # Get number of atoms
+    nb_atoms = size( target_matrix )[1]
+
     # Initialize output
-    matrix_transformed = zeros( nb_point, 3 )
+    matrix_transformed = zeros( nb_atoms, 3 )
 
     # Loop over atoms
-    for atom=1:size(target_matrix)[1]
+    for atom=1:nb_atoms
         # Transforms each atomic positions
         matrix_transformed[ atom, : ] = getTransformedPosition( target_matrix[ atom,: ], cell_matrix )
     end
