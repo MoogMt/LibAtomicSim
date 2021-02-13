@@ -1,6 +1,41 @@
 module utils
 
+# Description
+# Various functions that are very useful but that do not really fit very well
+# anywhere else
+# - basic I/O handling files:
+#  -> get number of lines/test existence of file
 
+# TODO: Export all functions
+
+export getNbLines
+
+
+# Write a vector of x and f(x) data into a file
+function writeBasicData( file_out::T1, dx::Vector{T2}, fx::Vector{T3} ) where { T1 <: AbstractString, T2 <: Real, T3 <: Real }
+    # Argument
+    # - file_out: path to the output file
+    # - dx: Input of the function (vector Real; (nb_data))
+    # - fx: value associated to dx (vector Real; (nb_data))
+    # Output
+    # - True: If the writting went ok
+
+    # Opens the file
+    handle_out = open( file_out, "w" )
+
+    # Get number of data
+    nb_data = size(dx)[1]
+
+    # Loop over data points
+    for data=1:nb_data
+        # Writting data to file
+        write( handle_out, string( dx[data], " ", fx[data], "\n" ) )
+    end
+
+    # Close the file
+    close(handle_out)
+
+end
 
 function getNbLines( file_path::T1 ) where { T1 <: AbstractString }
     if ! isfile( file_path )
@@ -271,5 +306,46 @@ function gauss( amplitudes::Vector{T1}, positions::Array{T2,2}, widths::Vector{T
     return values
 end
 #==============================================================================#
+
+
+function histogram( data::Vector{T1}, min_data::T2, max_data::T3, nb_box_data::T4 ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 < :Int }
+    # Argument
+    # - data : Vector of real (nb_data), with the data to put in histogram
+    # - min_data: minimum value of the histogram
+    # - max_data: maximum value of the histogram
+    # - nb_box: number of boxes of the histogram
+    # Output
+    # - dx: centers of the histogram boxes
+    # - hist: normed values of the histogram of the data
+
+    # Number of data points
+    nb_data = size(data)[1]
+
+    # Computing the size of the boxes
+    delta_data = ( max_data - min_data )/nb_box_data
+
+    # Initialize histogram data
+    hist = zeros(Real, nb_box_data + 1 )
+
+    # Initialize boxes center positions
+    dx = zeros(Real, nb_box_data + 1 )
+
+    # Computing box centers
+    for box=1:nb_box_data
+        dx[i] = box*delta_ + min_data
+    end
+
+    # Loop over data point
+    for i=1:nb_data
+        point = round(Int, ( abs(distances_to_plan[i]) - min_ )/delta_ + 1 )
+        hist[ point ] = hist[point] + 1
+    end
+
+    # Normalization of the histogram
+    hist /= sum( hist )
+
+    # Returns the center of boxes and histogram
+    return dx, hist
+end
 
 end
