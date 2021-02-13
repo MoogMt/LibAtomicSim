@@ -293,14 +293,14 @@ function matrix2Params( cell_matrices::Array{T1,3} ) where { T1 <: Real }
     # - cell_params: Vector of Cell_param object that describes
 
     # Compute number of step
-    nb_step = size( cell_matrices )[3]
+    nb_step = size( cell_matrices )[1]
 
     # Initialize output
     cells_params = Vector{ Cell_param }(undef, nb_step )
 
     # Loop over time
     for step=1:nb_step
-        cells_params[step] = matrix2Params( cell_matrices[:,:,step] )
+        cells_params[step] = matrix2Params( cell_matrices[step,:,:] )
     end
 
     # Return object
@@ -966,15 +966,15 @@ function distance( v1::Vector{T1}, v2::Vector{T2}, cell_matrix::Array{T3,2} ) wh
     # - distance between v1 and v2, real positive scalar
 
     # Converts positions from cartesian to reduced
-    v1_scaled=getScaledPosition(v1,cell_matrix)
-    v2_scaled=getScaledPosition(v2,cell_matrix)
+    v1_scaled = getTransformedPosition( v1, cell_matrix )
+    v2_scaled = getTransformedPosition( v2, cell_matrix )
 
     # Initialize distance in scaled space
     ds=zeros(3)
 
     # Compute Distance in scaled space with PBC
     for i=1:3
-        ds[i] = v1_scaled[i]-v2_scaled[i]
+        ds[i] = v1_scaled[i] - v2_scaled[i]
         ds[i] = ds[i] - round(ds[i])
     end
 
