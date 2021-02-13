@@ -13,17 +13,34 @@ export writeBasicData, getNbLines, getAllFilesWithExtension, getFileName, getFil
 
 # Basic IO handling
 #-------------------------------------------------------------------------------
-# Write a vector of x and f(x) data into a file
+# Write 1D data to file
 function writeData( file_path::T1, data::Vector{T2} ) where { T1 <: AbstractString, T2 <: Real }
+    # Argument
+    # - file_path: path to the output file
+    # - data: vector of data
+    # Output
+    # - Bool: whether the writting was successful
+
+    # Number of data point
     nb_data=size(data)[1]
+
+    # Open output file
     file_out=open(file_path,"w")
-    for step=1:nb_data
-        write(file_out,string(data[step],"\n"))
+
+    # Loop over data points
+    for point=1:nb_data
+        # Writes data to file
+        write( file_out, string( data[point], "\n" ) )
     end
+
+    # Closing file
     close(file_out)
+
+    # Sends true if it worked
     return true
 end
-function writeBasicData( file_out::T1, dx::Vector{T2}, fx::Vector{T3} ) where { T1 <: AbstractString, T2 <: Real, T3 <: Real }
+# Write a vector of x and f(x) data into a file
+function writeData( file_out::T1, dx::Vector{T2}, fx::Vector{T3} ) where { T1 <: AbstractString, T2 <: Real, T3 <: Real }
     # Argument
     # - file_out: path to the output file
     # - dx: Input of the function (vector Real; (nb_data))
@@ -46,145 +63,343 @@ function writeBasicData( file_out::T1, dx::Vector{T2}, fx::Vector{T3} ) where { 
     # Close the file
     close(handle_out)
 end
+# Write a vector of x and 2D data array into a file
+function writeData( file_out::T1, data::Array{T2,2} ) where { T1 <: AbstractString, T2 <: Real }
+    # Argument
+    # - file_out: path to the output file
+    # - data: data-array (nb_data,n_dim) with the data
+    # Output
+    # - True: If the writting went ok
+
+    # Opens the file
+    handle_out = open( file_out, "w" )
+
+    # Get number of data
+    nb_data = size(data)[1]
+
+    # Get the dimensional of data
+    n_dim = size(data)[2]
+
+    # Loop over data points
+    for step=1:nb_data
+        # Loop over dimensions
+        for dim=1:n_dim
+            # Writting data to file
+            write( handle_out, string( data[step,dim], " " ) )
+        end
+
+        # Write end of line to file
+        write( handle_out, string("\n") )
+    end
+
+    # Close the file
+    close(handle_out)
+
+    # Return true if all went well
+    return true
+end
+# Get all lines from a file
 function getLines( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument:
+    # - file_path: path of the input file
+    # Output
+    # - Vector of AbstractString containing all lines in the file as string
+
+    # Opens file
     file_in = open( file_path )
+
+    # Reads all lines
     lines = readlines( file_in )
+
+    # Close file
     close( file_in )
+
+    # Returns the lines of the file
     return lines
 end
 # Get the number of lines in a file, returns a user message and false if the file does not exists
 function getNbLines( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file_path: path to the input file
+    # Output
+    # - Number of lines of files
+    # OR false if something went wrong (with a user message)
+
+    # Check that the file exists
     if ! isfile( file_path )
+        # If not, sends a message and returns false
         print("No file found at: ",file_path,"\n")
         return false
     end
+
+    # Init line counter at 0
     count_ = 0
+
+    # Opens file
     handle_in = open( file_path )
+
+    # Loop as long as you can read the file
     while ! eof( handle_in )
+        # Read one line
         readline( handle_in )
+        # Add one line to counter
         count_ += 1
     end
+
+    # Close the file
     close(handle_in)
+
+    # Returns the number of lines in the file
     return count_
 end
 # Returns all files with a given extension in a given folder
 function getAllFilesWithExtension( folder_path::T1, extension::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
+    # Argument
+    # - folder_path: path to the target folder
+    # - extension: type of the extension to select
+    # Output
+    # - files: Vector of String with names of files with target extension
+
+    # Check that the directory exists
     if ! isdir( folder_path )
+        # If the folder does not exists, return false
         print("Folder ",folder_path," does not exists!\n")
         return false
     end
+
+    # Reads the folder for all the files
     all_files = readdir( folder_path )
+
+    # Initialize vector string
     files = Vector{ AbstractString }( undef, 0 )
+
+    # Loop over files
     for file=1:size(all_files)[1]
+        #  Parse file name with "." as deliminator
         keyword = split( all_files[file], "." )
+
+        # Gets number of keys with parsing
         nb_keys = size( keyword )[1]
+
+        # If the last key is the same as the target extension, add the files to the vector
         if keyword[ nb_keys ] == extension
             push!( files, all_files[file] )
         end
     end
+
+    # Return the list of files
     return files
-end
-function getFolderPath( computers_names::Vector{T1}, paths::Vector{T2} ) where { T1 <: AbstractString, T2 <: AbstractString }
-    size_vector = size( computers_names )[1]
-    host_name = gethostname()
-    for i=1:size_vector
-        if computers_names[i] == host_name
-            return paths[i]
-        end
-    end
-    return false
 end
 # Returns the name of the file, without the extension
 function getFileName( file::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file: path to the target file
+    # Output
+    # - Get the name of the file, minus the extension
+
+    # Parse the file with "." as deliminators
     keyword = split( file, "." )
+
+    # Gets number of keys generated with parsing
     nb_keys = size( keyword )[1]
+
+    # Generate new parser as "." + last key generated
     extension = string( ".", keyword[nb_keys] )
+
+    # Parse with extension as deliminator
     keyword2 = split( file, extension )
+
+    # Return the name of the file
     return keyword2[1]
 end
 # Get the names of all files, without the extension
 function getFilesName( files::Vector{T1} ) where { T1 <: AbstractString }
+    # Argument:
+    # - files: vector of strings containing the names of the files to parse
+    # Output
+    # - names: the names of the files to parse
+
+    # Initialize vector of names
     names = Vector{ AbstractString }( undef, size(files)[1] )
+
+    # Loop over the list of file names
     for i=1:size(files)[1]
+        # Parse each file
         names[i] = getFileName( files[i] )
     end
+
+    # Return the names
     return names
 end
-function copyLine2file( line::T1, file_io::T2 ) where { T1 <: AbstractString, T2 <: IO }
-    write( file_io, string( line, "\n" ) )
-    return true
-end
+# Copies set of element to a file
 function copyLine2file( line_element::Vector{T1}, file_io::T2 ) where { T1 <: AbstractString, T2 <: IO }
+    # Argumente
+    # - line_element: Vector of Strings you want to write to file
+    # - file_io: handler of the otuput file
+    # Output
+    # - Bool: if the writting is successful or not
+
+    # Number of elements in the vector to write
     nb_elements = size(line_element)[1]
+
+    # Loop over the elements
     for i=1:nb_elements
+        # Write file elements to file
         write( file_io, string( line_element[i], " " ) )
     end
-    write(file_io, string("\n"))
+
+    # Write end of line to file
+    write( file_io, string("\n") )
+
+    # Returns true if all was ok
     return true
 end
+# Reads a given number of lines without getting the data
 function skipLines( handle::T1, nb_line::T2 ) where { T1 <: IO, T2 <: Int  }
+    # Argument
+    # - handle: handler of the input file
+    # - nb_line: number of line to skip
+
+    # Loop over the number of line to skip
     for i=1:nb_line
-        test=readline( handle )
+        # Reading line, results goes into emptyness
+        readline( handle )
     end
+
+    # Returns true if all went well
     return true
 end
-function getLineElements( file_io::T1 ) where {T1 <: IO }
+# Read and parse line with " " deliminator
+function readParseLine( file_io::T1 ) where { T1 <: IO }
+    # Argument
+    # - file_io: input file handler
+    # Output
+    # - Vector of string with all the parsed element from the line
+
+    # Reads and parse the line with the target deliminator
     return split( readline(file_io) )
+end
+# Read and parse a line with a given deliminator
+function readParseLine( file_io::T1, deliminator::T2 ) where { T1 <: IO, T2 <: AbstractString }
+    # Argument
+    # - file_io: input file handler
+    # - deliminator: string that will be used for parsing
+    # Output
+    # - Vector of string with all the parsed element from the line
+
+    # Reads and parse the line with the target deliminator
+    return split( readline(file_io), deliminator )
 end
 #-------------------------------------------------------------------------------
 
 # Strings Handling
 #-------------------------------------------------------------------------------
+# Cuts a string corresponding to a number if it is longer than a given number of characters
 function ifLongerCut( string_::T1, length_max::T2, cut_ind::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int }
+    # Argument
+    # - string_: string to potentially cut
+    # - length_max: maximum length of the string
+    # - cut_ind: maximum precision on the number
+    # Output
+    # - string_ : potentially cut string
+
+    # Check if the string is longer than a given amount
     if length(string_) > length_max
-        number=parse(Float64,string_)
-        number=round(number,digits=cut_ind)
-        string_=string_(number)
+        # parse the string into a number
+        number = round( parse(Float64,string_), digits=cut_ind )
+
+        # Translates number back into a string
+        string_ = string_(number)
     end
+
+    # Returns the potentially cut string
     return string_
-end
-# Prase a string into a real
-function str2rl( string::T ) where { T <: AbstractString }
-    return parse(Float64,string)
-end
-# Parse a string into an Int
-function str2int( string::T ) where { T <: AbstractString }
-    return parse(Int64,string)
 end
 # Transforms a character into a int
 function char2int(char::T) where { T <: Char }
+    # Argument
+    # - char: character to turn into int
+    # Output
+    # - Int that corresponds to the character
+
+    # All characters in CapsLock
     maj=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
+    # All characters in normal size
     min=['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z']
+
+    # Loop over characters, do not respect casse
     for i=1:26
+        # If the character in the array matches the target one, we replace it by the associated index
         if char == maj[i] || char == min[i]
             return i
         end
     end
 end
+# Adds a given number of strings to a string
 function spaces( string1::T1, nb::T2 ) where { T1 <: AbstractString, T2 <: Int }
-    string2=string1
+    # Argument
+    # - string1: the string to add spaces to
+    # - nb: number of spaces to add
+    # Output
+    # - string2: the string with added spaces
+
+    # Copy the original string
+    string2 = copy( string1 )
+
+    # Loop over the number of spaces to add
     for i=1:nb
-        string2=string(string2," ")
+        # Add space to string
+        string2 = string( string2, " " )
     end
+
+    # returns the modified string
     return string2
 end
 #-------------------------------------------------------------------------------
 
 # Striding stuff
 #-------------------------------------------------------------------------------
+# Returns the number of steps that would results of a given striding
 function nbStepStriding( nb_step::T1 , stride_::T2 ) where { T1 <: Int, T2 <: Int }
+    # Argument
+    # - nb_step: number of steps
+    # - stride_: size of the stride
+    # Output
+    # - Int, number of step remaining if stride_ is used
+
+    # Returns the number of strides is stride_ is module of nb_step
     if nb_step % stride_ == 0
-        return Int(nb_step/stride_)
+        return Int( nb_step/stride_ )
+    # Otherwise it's (nb_step/stride_)+1
     else
-        return trunc(Int,nb_step/stride_)+1
+        return trunc( Int, nb_step/stride_ ) + 1
     end
 end
+# Returns the number of steps that would results of a given striding, if we ignore the first nb_ignored steps
 function nbStepStriding( nb_step::T1, stride_::T2, nb_ignored::T3 ) where { T1 <: Int, T2 <: Int, T3 <: Int }
-    return nbStepStriding( nb_step-nb_ignored, )
+    # Argument
+    # - nb_step: number of steps
+    # - stride_: size of the stride
+    # - nb_ignored : number of steps to ignore
+    # Output
+    # - Int, number of step remaining if stride_ is used with nb_ignored steps skipped
+
+    # Returns the number of remaining steps
+    return nbStepStriding( nb_step - nb_ignored, )
 end
+# Striding data
 function strideData!( data::Vector{T1}, stride::T2 ) where { T1 <: Real, T2 <: Int }
+    # Argument
+    # - data: vector with data to stride
+    # Output
+    # - Vector with a stride
+    # Or False if the stride is negative or too large
+
+    # If stride is problematic return false
     if stride < 0 || stride > size(data)[0]
         return false
+    # Or return the data with stride
+    else
         return data[1:stride:size(data)[0]]
     end
 end
@@ -192,101 +407,176 @@ end
 
 # Vectors
 #-------------------------------------------------------------------------------
-# - Checks whether vector is of dimension dim
-function checkDimVec(vector::Vector{T1}, dim::T2) where {T1 <: Real, T2 <: Int}
+# Checks whether vector is of dimension dim
+function checkDimVec( vector::Vector{T1}, dim::T2 ) where { T1 <: Real, T2 <: Int }
+    # Argument
+    # - vector: Vector to check the dimension
+    # - dim: expected dimension of the vector
+    # Output
+    # Bool: whether or not the vector has the expected dimension
+
+    # Size of the vector
     sizevec = size(vector)[1]
+
+    # If the vector is the write size, return true
     if ( sizevec == dim )
         return true
+    # If the vector is not the wrong size, return false and sends message
     else
         error("Error! Wrong dimension for vector ($sizevec instead of $dim)")
         return false
     end
 end
-# - Checks whether matrix is of dimension xdim*ydim
+# Checks whether matrix is of dimension (xdim,ydim)
 function checkMatDim( matrix::Matrix{T1}, xdim::T2, ydim::T3 ) where { T1 <: Real, T2 <: Int, T3 <: Int }
-    sizematx=size(matrix)[1]
-    sizematy=size(matrix)[2]
-    if ( sizematx == xdim && sizematy == ydim )
+    # Argument
+    # - matrix: 2D matrix of dimension (xdim,ydim)
+    # - xdim, ydim: matrix dimensions
+    # Output
+    # - Bool: whether the matrix has the expected dimensions
+
+    # Actual dimensions of the matrix
+    sizemat_x = size(matrix)[1] # X dim
+    sizemat_y = size(matrix)[2] # Y dim
+
+    # Check if the matrix has the expected dimension
+    if ( sizemat_x == xdim && sizemat_y == ydim )
+        # If so, returns true
         return true
     else
+        # If not, returns an error message and returns false
         error("Error! Wrong dimension for matrix!\n Got ($sizexmat,$sizeymat) instead of ($xdim,$ydim)")
         return false
     end
 end
-# - Removes the duplicate elements in a vector
-function removeDuplicates( vector::Vector{T1} ) where { T1 <: Real }
-    i=1; j=2;
-    while i < size(vector)[1]
-        while j <= size(vector)[1]
-            if vector[i] == vector[j]
-                deleteat!(vector,j)
-            else
-                j=j+1
-            end
-        end
-        i=i+1
-        j=i+1
-    end
-    return vector
-end
-function isIn( element, list )
-    for i=1:size(list)[1]
-        if element == list[i]
-            return true
-        end
-    end
-    return false
-end
+# Creates a matrix where element follow a simple sequence
 function sequenceMatrixH( nb_element::T1 ) where { T1 <: Int }
-    matrix=zeros(Int,nb_element,nb_element)
+    # Argument
+    # - nb_element: maximum size of the cell (and of the sequence)
+    # Output
+    # - matrix: (Int,nb_element,nb_element)
+
+    # Initialize matrix with 0
+    matrix = zeros( Int, nb_element, nb_element )
+
+    # Loop over dimension x
     for i=1:nb_element
+        # Loop over dimension y
         for j=1:nb_element
-            matrix[i,j]=j
+            # Affect matrix element
+            matrix[i,j] = j
         end
     end
+
+    # Returns the sequence matrix
     return matrix
 end
 #-------------------------------------------------------------------------------
 
 # Switching Functions
 #-------------------------------------------------------------------------------
-function switchingFunction( x::T1, d::T2, n::T3, m::T4) where { T1 <: Real, T2 <: Real, T3 <: Int, T4 <: Int}
-    return (1-(x/d)^n)/(1-(x/d)^m)
+# Returns the result of a switching function
+function switchingFunction( x::T1, d::T2, n::T3, m::T4) where { T1 <: Real, T2 <: Real, T3 <: Int, T4 <: Int }
+    # Argument
+    # - x: value where to evaluate the SF
+    # - d, n, m: parameters of the switching function
+    # Output
+    # Results of the switchin function
+
+    # Returns the result of the switching function
+    return ( 1 - (x/d)^n )/( 1 - (x/d)^m )
 end
+# Returns the results of a switching function, in case where m=2*n
 function switchingFunction( x::T1, d::T2, n::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Int }
-    return 1/(1+(x/d)^n)
+    # Argument
+    # - x : point where we want to evaluate the switching function
+    # - d, n: parameters of the switching function
+    # Output
+    # Results of the switching function (scalar)
+
+    # Returns the value
+    return 1/( 1 + (x/d)^n )
 end
 #-------------------------------------------------------------------------------
 
 # Gaussian related functions
 #-------------------------------------------------------------------------------
+# Returns a gaussian with definite parameters for a single point, with same amplitude, central position and width in all dimensions
 function gauss( amplitude::T1, position::Vector{T2}, width::T3,  x :: Vector{T4} ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 <: Real }
+    # Argument
+    # - amplitude: amplitude of the gaussian
+    # - position: vector with the central position of the gaussian
+    # - width: width of the gaussian (same in all directions)
+    # - x : position where we want to evaluate the gaussian
+    # Output
+    # - value of the gaussian at a given point
+
+    # Initialize value
     value=0
+
+    # Loop over vector dimension
     for i=1:size(position)[1]
-        value += (x[i]-position[i])*(x[i]-position[i])
+        # Adds square values around central position
+        dist = x[i] - position[i]
+        value += dist*dist
     end
-    return amplitude*exp( - (value)/(2*(width*width)) )
+
+    # Return the value of the gaussian
+    return amplitude*exp( - ( value )/(2*( width*width ) ) )
 end
+# Returns a gaussian with definite parameters for a single point, with different amplitude, central positions and widths in different dimensions
 function gauss( amplitudes::Vector{T1}, positions::Array{T2,2}, widths::Vector{T3},  x :: Vector{T4} ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 <: Real }
+    # Argument
+    # - amplitude: vector of reals with the amplitudes of the gaussian
+    # - position: vector with the central position of the gaussian
+    # - widths: vector of real for the width of the gaussian (same in all directions)
+    # - x : position where we want to evaluate the gaussian
+    # Output
+    # - value of the gaussian at a given point
+
+    # Initialize value
     value=0
+
+    # Loop over dimensions
     for i=1:size(amplitudes)[1]
-        value += gauss(amplitudes[i],positions[i,:],widths[i],x)
+        # Add the value of the gaussian in all dimension
+        value += gauss( amplitudes[i], positions[i,:], widths[i], x )
     end
+
+    # Returns the value
     return value
 end
+# Returns a gaussian with definite parameters for several points, with different widths in different dimensions
 function gauss( amplitudes::Vector{T1}, positions::Array{T2,2}, widths::Vector{T3},  x :: Array{T4,2} ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 <: Real }
+    # Argument
+    # - amplitude: vector of reals with the amplitudes of the gaussian
+    # - position: vector with the central position of the gaussian
+    # - widths: vector of real for the width of the gaussian (same in all directions)
+    # - x : position where we want to evaluate the gaussian
+    # Output
+    # - values of the gaussian at the target points
+
+    # Number of data points
     nb_points=size(x)[1]
+
+    # Initialize vector for results
     values=zeros(nb_points)
+
+    # Loop over points
     for i=1:nb_points
-        values[i] = gauss( amplitudes, positions,widths,x[i,:])
+        # Compute gaussian values for each point
+        values[i] = gauss( amplitudes, positions, widths,x[i,:] )
     end
+
+    # Returns vector with values
     return values
 end
 #-------------------------------------------------------------------------------
 
 # Histogram handling
 #-------------------------------------------------------------------------------
-function histogram( data::Vector{T1}, min_data::T2, max_data::T3, nb_box_data::T4 ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 < :Int }
+# Simple histogram where we define min, max and number of boxes
+function histogram( data::Vector{T1}, min_data::T2, max_data::T3, nb_box_data::T4 ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 <: Int }
     # Argument
     # - data : Vector of real (nb_data), with the data to put in histogram
     # - min_data: minimum value of the histogram
@@ -315,7 +605,7 @@ function histogram( data::Vector{T1}, min_data::T2, max_data::T3, nb_box_data::T
 
     # Loop over data point
     for i=1:nb_data
-        point = round(Int, ( abs(distances_to_plan[i]) - min_ )/delta_ + 1 )
+        point = round(Int, ( abs(distances_to_plan[i]) - min_data )/delta_data + 1 )
         hist[ point ] = hist[point] + 1
     end
 
