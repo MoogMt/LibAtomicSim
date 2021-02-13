@@ -4,14 +4,25 @@ module utils
 # Various functions that are very useful but that do not really fit very well
 # anywhere else
 # - basic I/O handling files:
-#  -> get number of lines/test existence of file
+# - basic String handling
 
 # TODO: Export all functions
 
-export getNbLines
+export writeBasicData, getNbLines, getAllFilesWithExtension, getFileName, getFilesName
 
 
+# Basic IO handling
+#-------------------------------------------------------------------------------
 # Write a vector of x and f(x) data into a file
+function writeData( file_path::T1, data::Vector{T2} ) where { T1 <: AbstractString, T2 <: Real }
+    nb_data=size(data)[1]
+    file_out=open(file_path,"w")
+    for step=1:nb_data
+        write(file_out,string(data[step],"\n"))
+    end
+    close(file_out)
+    return true
+end
 function writeBasicData( file_out::T1, dx::Vector{T2}, fx::Vector{T3} ) where { T1 <: AbstractString, T2 <: Real, T3 <: Real }
     # Argument
     # - file_out: path to the output file
@@ -34,9 +45,14 @@ function writeBasicData( file_out::T1, dx::Vector{T2}, fx::Vector{T3} ) where { 
 
     # Close the file
     close(handle_out)
-
 end
-
+function getLines( file_path::T1 ) where { T1 <: AbstractString }
+    file_in = open( file_path )
+    lines = readlines( file_in )
+    close( file_in )
+    return lines
+end
+# Get the number of lines in a file, returns a user message and false if the file does not exists
 function getNbLines( file_path::T1 ) where { T1 <: AbstractString }
     if ! isfile( file_path )
         print("No file found at: ",file_path,"\n")
@@ -51,8 +67,7 @@ function getNbLines( file_path::T1 ) where { T1 <: AbstractString }
     close(handle_in)
     return count_
 end
-
-#-------------------------------------------------------------------------------
+# Returns all files with a given extension in a given folder
 function getAllFilesWithExtension( folder_path::T1, extension::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
     if ! isdir( folder_path )
         print("Folder ",folder_path," does not exists!\n")
@@ -69,6 +84,17 @@ function getAllFilesWithExtension( folder_path::T1, extension::T2 ) where { T1 <
     end
     return files
 end
+function getFolderPath( computers_names::Vector{T1}, paths::Vector{T2} ) where { T1 <: AbstractString, T2 <: AbstractString }
+    size_vector = size( computers_names )[1]
+    host_name = gethostname()
+    for i=1:size_vector
+        if computers_names[i] == host_name
+            return paths[i]
+        end
+    end
+    return false
+end
+# Returns the name of the file, without the extension
 function getFileName( file::T1 ) where { T1 <: AbstractString }
     keyword = split( file, "." )
     nb_keys = size( keyword )[1]
@@ -76,6 +102,7 @@ function getFileName( file::T1 ) where { T1 <: AbstractString }
     keyword2 = split( file, extension )
     return keyword2[1]
 end
+# Get the names of all files, without the extension
 function getFilesName( files::Vector{T1} ) where { T1 <: AbstractString }
     names = Vector{ AbstractString }( undef, size(files)[1] )
     for i=1:size(files)[1]
@@ -83,16 +110,17 @@ function getFilesName( files::Vector{T1} ) where { T1 <: AbstractString }
     end
     return names
 end
-#-------------------------------------------------------------------------------
-
-#-------------------------------------------------------------------------------
-function ifLongerCut( string_::T1, length_max::T2, cut_ind::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int }
-    if length(string_) > length_max
-        number=parse(Float64,string_)
-        number=round(number,digits=cut_ind)
-        string_=string_(number)
+function copyLine2file( line::T1, file_io::T2 ) where { T1 <: AbstractString, T2 <: IO }
+    write( file_io, string( line, "\n" ) )
+    return true
+end
+function copyLine2file( line_element::Vector{T1}, file_io::T2 ) where { T1 <: AbstractString, T2 <: IO }
+    nb_elements = size(line_element)[1]
+    for i=1:nb_elements
+        write( file_io, string( line_element[i], " " ) )
     end
-    return string_
+    write(file_io, string("\n"))
+    return true
 end
 function skipLines( handle::T1, nb_line::T2 ) where { T1 <: IO, T2 <: Int  }
     for i=1:nb_line
@@ -103,18 +131,42 @@ end
 function getLineElements( file_io::T1 ) where {T1 <: IO }
     return split( readline(file_io) )
 end
-function copyLine2file( line::T1, file_io::T2 ) where { T1 <: AbstractString, T2 <: IO }
-    write(file_io, line )
-    write(file_io, string("\n"))
-    return true
-end
-function copyLine2file( line_element::Vector{T1}, file_io::T2 ) where { T1 <: AbstractString, T2 <: IO }
-    nb_elements = size(line_element)[1]
-    for i=1:nb_elements
-        write( file_io, string( line_element[i], " " ) )
+#-------------------------------------------------------------------------------
+
+# Strings Handling
+#-------------------------------------------------------------------------------
+function ifLongerCut( string_::T1, length_max::T2, cut_ind::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int }
+    if length(string_) > length_max
+        number=parse(Float64,string_)
+        number=round(number,digits=cut_ind)
+        string_=string_(number)
     end
-    write(file_io, string("\n"))
-    return true
+    return string_
+end
+# Prase a string into a real
+function str2rl( string::T ) where { T <: AbstractString }
+    return parse(Float64,string)
+end
+# Parse a string into an Int
+function str2int( string::T ) where { T <: AbstractString }
+    return parse(Int64,string)
+end
+# Transforms a character into a int
+function char2int(char::T) where { T <: Char }
+    maj=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
+    min=['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z']
+    for i=1:26
+        if char == maj[i] || char == min[i]
+            return i
+        end
+    end
+end
+function spaces( string1::T1, nb::T2 ) where { T1 <: AbstractString, T2 <: Int }
+    string2=string1
+    for i=1:nb
+        string2=string(string2," ")
+    end
+    return string2
 end
 #-------------------------------------------------------------------------------
 
@@ -138,41 +190,8 @@ function strideData!( data::Vector{T1}, stride::T2 ) where { T1 <: Real, T2 <: I
 end
 #-------------------------------------------------------------------------------
 
-
+# Vectors
 #-------------------------------------------------------------------------------
-function writeData( file_path::T1, data::Vector{T2} ) where { T1 <: AbstractString, T2 <: Real }
-    nb_data=size(data)[1]
-    file_out=open(file_path,"w")
-    for step=1:nb_data
-        write(file_out,string(data[step],"\n"))
-    end
-    close(file_out)
-    return true
-end
-function getLines( file_path::T1 ) where { T1 <: AbstractString }
-    file_in = open( file_path )
-    lines = readlines( file_in )
-    close( file_in )
-    return lines
-end
-#-------------------------------------------------------------------------------
-
-
-#==============================================================================#
-function determineFolderPath( computers_names::Vector{T1}, paths::Vector{T2} ) where { T1 <: AbstractString, T2 <: AbstractString }
-    size_vector = size( computers_names )[1]
-    host_name = gethostname()
-    for i=1:size_vector
-        if computers_names[i] == host_name
-            return paths[i]
-        end
-    end
-    return false
-end
-#==============================================================================#
-
-# VECTORS
-#==============================================================================#
 # - Checks whether vector is of dimension dim
 function checkDimVec(vector::Vector{T1}, dim::T2) where {T1 <: Real, T2 <: Int}
     sizevec = size(vector)[1]
@@ -210,47 +229,6 @@ function removeDuplicates( vector::Vector{T1} ) where { T1 <: Real }
     end
     return vector
 end
-#==============================================================================#
-
-# STRING
-#==============================================================================#
-# Parsing
-#--------------------------------------------------------------
-# Prase a string into a real
-function str2rl( string::T ) where { T <: AbstractString }
-    return parse(Float64,string)
-end
-# Parse a string into an Int
-function str2int( string::T ) where { T <: AbstractString }
-    return parse(Int64,string)
-end
-#---------------------------------------------------------------
-# Conversion
-# Transforms a character into a int
-function char2int(char::T) where { T <: Char }
-    maj=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
-    min=['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z']
-    for i=1:26
-        if char == maj[i] || char == min[i]
-            return i
-        end
-    end
-end
-#---------------------------------------------------------------
-# String
-#----------
-# Puts nb spaces at string1 end
-function spaces( string1::T1, nb::T2 ) where { T1 <: AbstractString, T2 <: Int }
-    string2=string1
-    for i=1:nb
-        string2=string(string2," ")
-    end
-    return string2
-end
-#==============================================================================#
-
-
-#==============================================================================#
 function isIn( element, list )
     for i=1:size(list)[1]
         if element == list[i]
@@ -259,7 +237,6 @@ function isIn( element, list )
     end
     return false
 end
-#==============================================================================#
 function sequenceMatrixH( nb_element::T1 ) where { T1 <: Int }
     matrix=zeros(Int,nb_element,nb_element)
     for i=1:nb_element
@@ -269,20 +246,20 @@ function sequenceMatrixH( nb_element::T1 ) where { T1 <: Int }
     end
     return matrix
 end
-#==============================================================================#
+#-------------------------------------------------------------------------------
 
 # Switching Functions
-#==============================================================================#
+#-------------------------------------------------------------------------------
 function switchingFunction( x::T1, d::T2, n::T3, m::T4) where { T1 <: Real, T2 <: Real, T3 <: Int, T4 <: Int}
     return (1-(x/d)^n)/(1-(x/d)^m)
 end
 function switchingFunction( x::T1, d::T2, n::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Int }
     return 1/(1+(x/d)^n)
 end
-#==============================================================================#
+#-------------------------------------------------------------------------------
 
-# GAUSSIAN
-#==============================================================================#
+# Gaussian related functions
+#-------------------------------------------------------------------------------
 function gauss( amplitude::T1, position::Vector{T2}, width::T3,  x :: Vector{T4} ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 <: Real }
     value=0
     for i=1:size(position)[1]
@@ -305,9 +282,10 @@ function gauss( amplitudes::Vector{T1}, positions::Array{T2,2}, widths::Vector{T
     end
     return values
 end
-#==============================================================================#
+#-------------------------------------------------------------------------------
 
-
+# Histogram handling
+#-------------------------------------------------------------------------------
 function histogram( data::Vector{T1}, min_data::T2, max_data::T3, nb_box_data::T4 ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 < :Int }
     # Argument
     # - data : Vector of real (nb_data), with the data to put in histogram
@@ -347,5 +325,6 @@ function histogram( data::Vector{T1}, min_data::T2, max_data::T3, nb_box_data::T
     # Returns the center of boxes and histogram
     return dx, hist
 end
+#-------------------------------------------------------------------------------
 
 end
