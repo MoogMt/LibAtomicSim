@@ -23,67 +23,111 @@ export writeXYZ
 # - Add More write functions?
 # - Check that all functions are exported
 
-# Counts the nb of steps contained in file
+# Getting number of atoms and steps of a *.xyz file
 #------------------------------------------------------------------------------
+# Get number of steps of a file
 function getNbSteps( file_path::T1 ) where { T1 <: AbstractString }
+  # Argument:
+  # file_path: path to the *.xyz file
+  # Output:
+  # Int, number of steps in the trajectory
 
+  #
+  # Check that the file exists
   if ! isfile( file_path )
+    # If file is empty, send a message and returns false
     print("File TRAJEC.xyz does not exists at ",file_path,"\n")
     return false
   end
 
+  # Initialize number of atoms and lines
   nb_lines=0
   nb_atoms=0
+
+  # Open input file
   file_in = open( file_path )
+
+  # Loop over lines as long as there are lines to read
   while ! eof(file_in)
+    line=readline( file_in )
+    # The first line of the file gives the number of atoms
     if nb_lines == 0
-      nb_atoms = parse(Float64,split( readline( file_in ) )[1] )
-    else
-      temp = readline( file_in )
+      # Parse the string with number of atoms from string to float
+      nb_atoms = parse(Float64, split( line )[1] )
     end
+    # Increments counter of lines
     nb_lines += 1
   end
+
+  # Close file
   close(file_in)
 
-  if nb_lines % (nb_atoms+2) != 0
+  # Check that the file format is ok
+  # - There should be nb_atoms+2 lines per step
+  if nb_lines % ( nb_atoms + 2 ) != 0
+    # If the file format is wrong, sends a message and return false
     print("File TRAJEC.xyz at ",file_path," is corrupted!\n")
     return false
   end
 
-  return Int(nb_lines/(nb_atoms+2))
+  # Returns number of atoms
+  return Int( nb_lines/(nb_atoms + 2 ) )
 end
+# Gets the number of steps and number of atoms of a file
+# -> Assumes that it is a traj and the number of atoms does not change
 function getNbStepAtoms( file_path::T1 ) where { T1 <: AbstractString }
+  # Argument
+  # - file_path: path to the input *.xyz file
+  # Output
+  # - Int, number of steps
+  # - nb_atoms: nb of atoms, Int
 
+  # Check that the input file exists
   if ! isfile( file_path )
+    # If not, sends a message and returns false
     print("File TRAJEC.xyz does not exists at ",file_path,"\n")
     return false
   end
 
+  # Initialize number of atoms and lines
   nb_lines=0
   nb_atoms=0
+
+  # Opens the file
   file_in = open( file_path )
+
+  # Loop over line as long as possible
   while ! eof(file_in)
+    # Read line
+    line = readline( file_in )
+
+    # The first line contains the number of atoms
     if nb_step == 0
-      nb_atoms = parse(Float64,split( readline( file_in ) )[1] )
-    else
-      temp = readline( file_in )
+      # Parsing the string into a float for number of atoms
+      nb_atoms = parse(Float64, split( line )[1] )
     end
+
+    # Increments line counter
     nb_lines += 1
   end
+
+  # Closes file
   close(file_in)
 
+  # Check the file format
   if nb_lines % (nb_atoms+2) != 0
+    # If the file format is problematic, sends a message and return false
     print("File TRAJEC.xyz at ",file_path," is probably corrupted!\n")
     return false
   end
 
+  # Returns number of steps and number of atoms in the traj
   return Int(nb_lines/(nb_atoms+2)), nb_atoms
 end
 #------------------------------------------------------------------------------
 
-
 # Reading XYZ files
-#==============================================================================#
+#------------------------------------------------------------------------------
 function readStructureAtomList( file_path::T1 ) where { T1 <: AbstractString }
 
   #-----------------------------------------------
@@ -298,10 +342,10 @@ function readFileAtomList( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T
 
   return traj
 end
-#==============================================================================#
+#------------------------------------------------------------------------------
 
 # Writing XYZ File To Disk (currently solely from AtomList structures )
-#==============================================================================#
+#------------------------------------------------------------------------------
 function writeXYZ( file_handle::T1, atoms::T2 ) where { T1 <: IOStream, T2 <: atom_mod.AtomList }
   nb_atoms=size(atoms.names)[1]
   Base.write(file_handle,string(nb_atoms,"\n"))
@@ -346,6 +390,6 @@ function writeXYZ( file::T1, traj::Vector{T2} ) where { T1 <: AbstractString, T2
   close(file_out)
   return true
 end
-#==============================================================================#
+#------------------------------------------------------------------------------
 
 end

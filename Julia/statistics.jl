@@ -105,7 +105,7 @@ end
 # Histogram
 #-------------------------------------------------------------------------------
 # Creates a simple histogram by giving data as vector, the number of box, min and max of the boxes
-function histogram( data::Vector{T1}, nb_box::T2, min_::T3, max_::T4 ) where { T1 <: Real , T2 <: Int, T3 <: Real, T4 <: Real }
+function histogram( data::Vector{T1}, nb_box::T2, min_hist::T3, max_hist::T4 ) where { T1 <: Real , T2 <: Int, T3 <: Real, T4 <: Real }
     # Argument
     # - data: vector of real, contains the data
     # - nb_box: number of histogram boxes
@@ -115,19 +115,25 @@ function histogram( data::Vector{T1}, nb_box::T2, min_::T3, max_::T4 ) where { T
     # - histogram: Vector with Int, containing number of occurences of data within each boxes
 
     # Initialize boxes
-    histogram = zeros( nb_box )
+    hist = zeros( nb_box )
 
     # Computes size of the boxes
-    delta_box=(max_-min_)/nb_box
+    delta_box = ( max_hist - min_hist )/nb_box
+    print("delta: ",delta_box,"\n")
 
     # Loop over boxes
     for box=1:size(data)[1]
+        # Box_integer:
+        box_int = round(Int, ( data[box] - min_hist )/delta_box ) + 1
+        if box_int > nb_box
+            box_int = nb_box
+        end
         # Adds point to box
-        histogram[ round(Int, ( data[i] - min_ )/delta_box )  + 1 ]  += 1
+        hist[ box_int ]  = hist[ box_int ] +  1
     end
 
     # Return histogram
-    return histogram
+    return hist
 end
 # Creates a simple histogram by giving data as vector, the number of box
 # - uses min and max of the data
@@ -155,17 +161,17 @@ function histogramNormed( data::Vector{T1}, nb_box::T2) where { T1 <: Real , T2 
     # - histogram: histogram of the data, normed so that sum(histogram=1)
 
     # Computes the histogram of the data using min and max of the data
-    histogram = histogram( data, nb_box )
+    hist = histogram( data, nb_box )
 
     # Normalize histogram
-    histogram /= sum(histogram)
+    hist/= sum(hist)
 
     # Returns histogram
-    return histogram
+    return hist
 end
 # Creates a simple normed histogram by giving data as vector, the number of box
 # - uses min and max of the data
-function histogramNormed( data::Vector{T1}, nb_box::T2, min_::T3, max_::T4 ) where { T1 <: Real , T2 <: Int, T3 <: Real, T4 <: Real }
+function histogramNormed( data::Vector{T1}, nb_box::T2, min_hist::T3, max_hist::T4 ) where { T1 <: Real , T2 <: Int, T3 <: Real, T4 <: Real }
     # Argument
     # - data: Vector of real, containing data
     # - nb_box: Int, number of boxes of the histogram
@@ -174,7 +180,7 @@ function histogramNormed( data::Vector{T1}, nb_box::T2, min_::T3, max_::T4 ) whe
     # - hist: histogram of the data, normed so that sum(histogram=1)
 
     # Computes the histogram of the data
-    hist = histogram( data, nb_box, min_, max_ )
+    hist = histogram( data, nb_box, min_hist, max_hist )
 
     # Normalize histogram
     hist /= sum( hist )
@@ -239,8 +245,22 @@ function histogram2D( data::Array{T1,2}, nb_box::Vector{T2}, mins_::Vector{T3}, 
 
     # Loop over data points
     for point=1:nb_point
-        # Adds point to corresponding box
-        histogram[ round(Int, ( data[point,1] - mins_[1] )/delta_box[1] ) + 1 , round(Int, ( data[point,2] - mins_[2] )/delta_box[2] ) + 1 ]  += 1
+        # Init box_int vector
+        box_int = zeros(Int,2)
+
+        # Determine boxes where to add data point
+        # - Loop over dimension
+        for i=1:2
+            # Compute box for the data
+            box_int[i] = round(Int, ( data[point,i] - mins_[i] )/delta_box[i] ) + 1
+            # If box number is over the max, put point in the max
+            if box_int_x > nb_box[i]
+                box_int[i] = nb_box[i]
+            end
+        end
+
+        # Adds point to the histogram
+        histogram[ box_int[1], box_int[2] ]  += 1
     end
 
     # Returns the histogram
