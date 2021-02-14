@@ -1,4 +1,4 @@
-module statistics
+module stats
 
 # Loading necessary modules from LibAtomicSim
 using Statistics
