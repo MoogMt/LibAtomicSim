@@ -171,16 +171,16 @@ function histogramNormed( data::Vector{T1}, nb_box::T2, min_::T3, max_::T4 ) whe
     # - nb_box: Int, number of boxes of the histogram
     # - min_, max_: min and max of the histogram boxes
     # Output
-    # - histogram: histogram of the data, normed so that sum(histogram=1)
+    # - hist: histogram of the data, normed so that sum(histogram=1)
 
     # Computes the histogram of the data
-    histogram = histogram( data, nb_box, min_, max_ )
+    hist = histogram( data, nb_box, min_, max_ )
 
     # Normalize histogram
-    histogram /= sum(histogram)
+    hist /= sum( hist )
 
     # Returns the histogram
-    return histogram
+    return hist
 end
 # Writes histogram to file, using path of the file, assumes uniform histogram
 function writeHistogram( file_out::T1, histogram::Vector{T2}, min_::T4, max_::T5 ) where { T1 <: AbstractString, T2 <: Real, T3 <: Int, T4 <: Real, T5 <: Real }

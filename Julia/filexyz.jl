@@ -1,25 +1,27 @@
 module filexyz
 
-# filexyz
-# Contains functions to deal with xyz file:
-# - Functions to get the number of steps in a file
-# - Functions to read the file into an AtomList structure (see atom_mod.jl)
-# - Functions to write an .xyz file into a given filepath from an AtomList structure
-
-# TODO
-# - Support for non AtomList Object
-# - Support for AtomMolList
-# - Add More write functions?
-
-export getNbSteps
-export readFastFile, readStep, readXYZ
-export writeXYZ
-
+# Loading necessary modules from LibAtomicSim
 using atom_mod
 using cell_mod
 using cube_mod
 using utils
 
+# Description
+# Contains functions to deal with xyz file:
+# - Functions to get the number of steps in a file
+# - Functions to read the file into an AtomList structure (see atom_mod.jl)
+# - Functions to write an .xyz file into a given filepath from an AtomList structure
+
+# Exporting functions
+export getNbSteps
+export readFastFile, readStep, readXYZ
+export writeXYZ
+
+# TODO
+# - Support for non AtomList Object
+# - Support for AtomMolList
+# - Add More write functions?
+# - Check that all functions are exported
 
 # Counts the nb of steps contained in file
 #------------------------------------------------------------------------------
