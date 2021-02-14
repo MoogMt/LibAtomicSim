@@ -119,17 +119,16 @@ function histogram( data::Vector{T1}, nb_box::T2, min_hist::T3, max_hist::T4 ) w
 
     # Computes size of the boxes
     delta_box = ( max_hist - min_hist )/nb_box
-    print("delta: ",delta_box,"\n")
 
     # Loop over boxes
     for box=1:size(data)[1]
         # Box_integer:
         box_int = round(Int, ( data[box] - min_hist )/delta_box ) + 1
-        if box_int > nb_box
-            box_int = nb_box
+        # We keep only elements that are valid
+        if box_int > 0 && box_int <= nb_box
+            hist[ box_int ]  = hist[ box_int ] +  1
         end
         # Adds point to box
-        hist[ box_int ]  = hist[ box_int ] +  1
     end
 
     # Return histogram
@@ -164,7 +163,7 @@ function histogramNormed( data::Vector{T1}, nb_box::T2) where { T1 <: Real , T2 
     hist = histogram( data, nb_box )
 
     # Normalize histogram
-    hist/= sum(hist)
+    hist = hist./sum(hist)
 
     # Returns histogram
     return hist
@@ -183,7 +182,7 @@ function histogramNormed( data::Vector{T1}, nb_box::T2, min_hist::T3, max_hist::
     hist = histogram( data, nb_box, min_hist, max_hist )
 
     # Normalize histogram
-    hist /= sum( hist )
+    hist = hist ./ sum( hist )
 
     # Returns the histogram
     return hist
@@ -204,16 +203,16 @@ function writeHistogram( file_out::T1, histogram::Vector{T2}, min_::T4, max_::T5
     delta_box = ( max_- min_ )/nb_box
 
     # Opens file
-    file_o = open(file_out, "w")
+    handle_out = open( file_out, "w" )
 
     # Loop over boxes
     for box=1:nb_box
         # Writes data for each box in file
-        Base.write( file_o, string( box*delta_box + min_, " ", histogram[box], "\n" ) )
+        Base.write( handle_out, string( box*delta_box + min_, " ", histogram[box], "\n" ) )
     end
 
     # Close file
-    close(file_o)
+    close(handle_out)
 
     # Returns true if all went well
     return true
@@ -241,7 +240,7 @@ function histogram2D( data::Array{T1,2}, nb_box::Vector{T2}, mins_::Vector{T3}, 
     end
 
     # Initialize histogram
-    histogram = zeros( nb_box[1], nb_box[2] )
+    hist = zeros( nb_box[1], nb_box[2] )
 
     # Loop over data points
     for point=1:nb_point
@@ -254,17 +253,17 @@ function histogram2D( data::Array{T1,2}, nb_box::Vector{T2}, mins_::Vector{T3}, 
             # Compute box for the data
             box_int[i] = round(Int, ( data[point,i] - mins_[i] )/delta_box[i] ) + 1
             # If box number is over the max, put point in the max
-            if box_int_x > nb_box[i]
-                box_int[i] = nb_box[i]
+            if box_int[i] > 0 && box_int[i] <= nb_box
+                hist[ box_int[1], box_int[2] ] = hist[ box_int[1], box_int[2] ] +  1
             end
         end
 
         # Adds point to the histogram
-        histogram[ box_int[1], box_int[2] ]  += 1
+        hist[ box_int[1], box_int[2] ]  += 1
     end
 
     # Returns the histogram
-    return histogram
+    return hist
 end
 # Creates a 2D histogram using number of boxes
 # - uses mins and maxs from the data
@@ -298,13 +297,13 @@ function histogram2DNormed( data::Array{T1,2}, nb_box::Vector{T2} ) where { T1 <
     # - histogram: normed histogram
 
     # Computes 2D histogram
-    histogram = histogram2D( data, nb_box )
+    hist = histogram2D( data, nb_box )
 
     # Normalize 2D histogram
-    histogram /= sum(histogram)
+    hist /= sum(hist)
 
     # Returns normalized histogram
-    return histogram
+    return hist
 end
 # Creates a normed 2D histogram using number of boxes, mins_ and maxs_ in each direction
 function histogram2DNormed( data::Array{T1,2}, nb_box::Vector{T2}, mins_::Vector{T3}, maxs_::Vector{T4} ) where { T1 <: Real, T2 <: Int, T3 <: Real, T4 <: Real }
@@ -316,13 +315,13 @@ function histogram2DNormed( data::Array{T1,2}, nb_box::Vector{T2}, mins_::Vector
     # histogram: 2D normed histogram
 
     # Compute 2D histogram
-    histogram = histogram2D( data, nb_box, mins_, maxs_ )
+    hist = histogram2D( data, nb_box, mins_, maxs_ )
 
     # Normalize histogram
-    histogram /= sum(histogram)
+    hist /= sum(hist)
 
     # Returns histogram
-    return histogram
+    return hist
 end
 # Writes 2D histogram to file
 function writeHistogram2D( file_out::T1, histogram::Vector{T2}, nb_box::T3, mins_::T4, maxs_::T5 ) where { T1 <: AbstractString, T2 <: Real, T3 <: Int, T4 <: Real, T5 <: Real }
@@ -344,7 +343,7 @@ function writeHistogram2D( file_out::T1, histogram::Vector{T2}, nb_box::T3, mins
     end
 
     # Opens file
-    file_o = open( file_out, "w" )
+    handle_out = open( file_out, "w" )
 
     # Loop over boxes in dimension 1
     for box1=1:nb_box[1]
@@ -352,16 +351,16 @@ function writeHistogram2D( file_out::T1, histogram::Vector{T2}, nb_box::T3, mins
         for box2=1:nb_box[2]
             # Writes data to file
             # - Center of box in dimension 1
-            Base.write( file_o, string( box1*delta_box[1] + mins_[1], " ") )
+            Base.write( handle_out, string( box1*delta_box[1] + mins_[1], " ") )
             # - Center of box in dimension 2
-            Base.write( file_o, string( box2*delta_box[2] + mins_[2], " ") )
+            Base.write( handle_out, string( box2*delta_box[2] + mins_[2], " ") )
             # - Value of the histogram
-            Base.write( file_o, string( histogram[box1,box2], "\n") )
+            Base.write( handle_out, string( histogram[box1,box2], "\n") )
         end
     end
 
     # Close output file
-    close(file_o)
+    close(handle_out)
 
     # Returns true if all went well
     return true
