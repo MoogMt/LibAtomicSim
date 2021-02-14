@@ -573,48 +573,4 @@ function gauss( amplitudes::Vector{T1}, positions::Array{T2,2}, widths::Vector{T
 end
 #-------------------------------------------------------------------------------
 
-# Histogram handling
-#-------------------------------------------------------------------------------
-# Simple histogram where we define min, max and number of boxes
-function histogram( data::Vector{T1}, min_data::T2, max_data::T3, nb_box_data::T4 ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 <: Int }
-    # Argument
-    # - data : Vector of real (nb_data), with the data to put in histogram
-    # - min_data: minimum value of the histogram
-    # - max_data: maximum value of the histogram
-    # - nb_box: number of boxes of the histogram
-    # Output
-    # - dx: centers of the histogram boxes
-    # - hist: normed values of the histogram of the data
-
-    # Number of data points
-    nb_data = size(data)[1]
-
-    # Computing the size of the boxes
-    delta_data = ( max_data - min_data )/nb_box_data
-
-    # Initialize histogram data
-    hist = zeros(Real, nb_box_data + 1 )
-
-    # Initialize boxes center positions
-    dx = zeros(Real, nb_box_data + 1 )
-
-    # Computing box centers
-    for box=1:nb_box_data
-        dx[i] = box*delta_ + min_data
-    end
-
-    # Loop over data point
-    for i=1:nb_data
-        point = round(Int, ( abs(distances_to_plan[i]) - min_data )/delta_data + 1 )
-        hist[ point ] = hist[point] + 1
-    end
-
-    # Normalization of the histogram
-    hist /= sum( hist )
-
-    # Returns the center of boxes and histogram
-    return dx, hist
-end
-#-------------------------------------------------------------------------------
-
 end

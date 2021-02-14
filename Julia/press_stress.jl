@@ -52,13 +52,4 @@ function readPressure( file_path::T1 ) where { T1 <: AbstractString }
     return pressure
 end
 
-# function diagStressTensor( stress_tensor_matrix::Array{T1,3} ) where { T1 <: Real }
-#     nb_step=size(stress_tensor_matrix)[1]
-#     vals=zeros(nb_step,3)
-#     for step=1:nb_step
-#         vals[i,:] = diagStressTensor(stress_tensor_matrix[i,:,:])
-#     end
-#     return vals
-# end
-
 end

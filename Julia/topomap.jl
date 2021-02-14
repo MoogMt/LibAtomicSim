@@ -70,7 +70,7 @@ end
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
-function monteCarloProject( n_dim::T1, n_iterations::T2, cost_coeff::T3, move_coef::T4, thermalEnergy::T5, distance_matrix::Array{T6,2} ) where { T1 <: Int,  T2 <: Int, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
+function monteCarloProjection( n_dim::T1, n_iterations::T2, cost_coeff::T3, move_coef::T4, thermalEnergy::T5, distance_matrix::Array{T6,2} ) where { T1 <: Int,  T2 <: Int, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
     nb_structure=size(distance_matrix)[1]
     # Randomly put points on the plan
     point_pos=rand(nb_structure,n_dim)
