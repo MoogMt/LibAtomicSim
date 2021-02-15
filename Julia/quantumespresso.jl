@@ -1,4 +1,4 @@
-include("utils.jl")
+module quantumespresso
 
 #===================#
 # QE Output reading #
@@ -60,3 +60,5 @@ function relaxMag(file::AbstractString)
   return mag[size(mag)[1]]
 end
 #------------------------------------------------------------------------------#
+
+end
