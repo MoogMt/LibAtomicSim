@@ -141,13 +141,13 @@ function getNbLines( file_path::T1 ) where { T1 <: AbstractString }
     # Loop as long as you can read the file
     while ! eof( handle_in )
         # Read one line
-        readline( handle_in )
+        test=readline( handle_in )
         # Add one line to counter
         count_ += 1
     end
 
     # Close the file
-    close(handle_in)
+    close( handle_in )
 
     # Returns the number of lines in the file
     return count_
@@ -263,7 +263,7 @@ function skipLines( handle::T1, nb_line::T2 ) where { T1 <: IO, T2 <: Int  }
     # Loop over the number of line to skip
     for i=1:nb_line
         # Reading line, results goes into emptyness
-        readline( handle )
+        test=readline( handle )
     end
 
     # Returns true if all went well
@@ -343,17 +343,14 @@ function spaces( string1::T1, nb::T2 ) where { T1 <: AbstractString, T2 <: Int }
     # Output
     # - string2: the string with added spaces
 
-    # Copy the original string
-    string2 = copy( string1 )
-
     # Loop over the number of spaces to add
     for i=1:nb
         # Add space to string
-        string2 = string( string2, " " )
+        string1 = string( string1, " " )
     end
 
     # returns the modified string
-    return string2
+    return string1
 end
 #-------------------------------------------------------------------------------
 

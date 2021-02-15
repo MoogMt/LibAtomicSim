@@ -128,41 +128,70 @@ end
 
 # Reading XYZ files
 #------------------------------------------------------------------------------
+# Reads a single structure from *.xyz file into AtomList
 function readStructureAtomList( file_path::T1 ) where { T1 <: AbstractString }
+  # Argument
+  # - file_path: path to the *.xyz file
+  # Output
+  # - atoms: AtomList containing the structure
+  # OR false if something went wrong
 
-  #-----------------------------------------------
+  # Check if the file exists
   if ! isfile(file_path)
+    # If the file does not exists, sends a message and return false
     print("No file found at: ",file_path,"\n")
     return false
   end
-  #-----------------------------------------------
 
-  # Reading
-  #------------------------------------------------------
+  # Opens file
   file_in = open( file_path )
-  nb_atoms=parse( Int64, split( readline( file_in ) )[1] )
+
+  # Get the number of atoms in the structure as the first element of the first line
+  # + cast String into Int
+  nb_atoms = parse(Int64, split( readline( file_in ) )[1] )
+
+  # Skipping comment line
   temp=readline( file_in )
+
+  # Initialize AtomList for output
   atoms = atom_mod.AtomList( nb_atoms )
+
+  # Loop over atoms
   for atom=1:nb_atoms
+    # Reads line and split with " " deliminator
     keywords=split( readline(file_in) )
+
+    # First element is the atom name
     atoms.names[atom] = keywords[1]
+
+    # The atom index is the number of atom
     atoms.index[atom] = atom
+
+    # Loop over dimensions
     for i=1:3
+      # The element 2-4 are atomic positions, cast them into float and put them in AtomList positions
       atoms.positions[ atom, i ] = parse( Float64, keywords[ i+1 ] )
     end
   end
-  #------------------------------------------------
 
+  # Return AtomList with structure
   return atoms
 end
+# Reads *.xyz file into vector of AtomList for trajectory
 function readFileAtomList( file_path::T1 ) where { T1 <: AbstractString }
+  # Argument
+  # - file_path: path to the *.xyz file
+  # Output
+  # - traj: vector of AtomList, contains the atomic trajectory
+  # OR false if something went wrong with the file
 
-  #-----------------------------------------------
+  # Get the number of steps in the trajectory
   nb_step = getNbSteps( file_path )
-  if nb_step == false
+  # If the file is empty or does not exists, sends a message and returns false
+  if nb_step == false || nb_step == 0
+    # I
     return false
   end
-  #-----------------------------------------------
 
   #-----------------------------------------------
   if nb_step == 1
