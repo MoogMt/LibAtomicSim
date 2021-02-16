@@ -22,32 +22,46 @@ function getNbSteps( file_path::T1 ) where { T1 <: AbstractString }
 
     # Check that the file exists
     if ! isfile( file_path )
-        # If it does not, returns false
+        # If it does not, sends a message and returns false
         print( "No pdb file found at ", file_path," !\n" )
         return false
     end
 
+    # Initialize step counter (two counter to ensure against file corruption)
     nb_step  = 0
     nb_step2 = 0
+
+    # Opens input file
     handle_in = open( file_path )
+
+    # Loop as long as possible over file lines
     while !eof( handle_in )
+        # Read current line and parse with " " deliminator
         keyword1 = split(readline(handle_in))[1]
+
+        # first counter is triggered by the END keyword
         if keyword1 == "END"
             nb_step += 1
+        # second counter is triggered by "CRYST1" keyword
         elseif keyword1 == "CRYST1"
             nb_step2 +=1
         end
     end
-    close( handle_in )
-    #-----------------------------------------
 
+    # Close input file
+    close( handle_in )
+
+    # Check that both counter exists (file is not corrupted)
     if nb_step == nb_step2
+        # Returns number of steps
         return nb_step
     else
+        # If problem, sends a message and returns false
         print("PDB file at ",file_path," is probably corrupted.\n")
         return false
     end
 end
+# Get number of atoms
 function getNbAtoms( file_path::T1 ) where { T1 <: AbstractString }
 
     #-----------------------------------------

@@ -183,11 +183,17 @@ function histogramNormed( data::Vector{T1}, nb_box::T2) where { T1 <: Real , T2 
     # Computes the histogram of the data using min and max of the data
     hist = histogram( data, nb_box )
 
-    # Normalize histogram
-    hist = hist./sum(hist)
+    # Check that the histogram is not empty
+    if sum(hist) == 0
+        # Normalize histogram
+        hist = hist ./ sum( hist )
 
-    # Returns histogram
-    return hist
+        # Returns the histogram
+        return hist
+    else
+        # Returns zeros
+        return zeros(Real,nb_box)
+    end
 end
 # Creates a simple normed histogram by giving data as vector, min, max values and number of boxes
 function histogramNormed( data::Vector{T1}, nb_box::T2, min_hist::T3, max_hist::T4 ) where { T1 <: Real , T2 <: Int, T3 <: Real, T4 <: Real }
@@ -201,11 +207,17 @@ function histogramNormed( data::Vector{T1}, nb_box::T2, min_hist::T3, max_hist::
     # Computes the histogram of the data
     hist = histogram( data, nb_box, min_hist, max_hist )
 
-    # Normalize histogram
-    hist = hist ./ sum( hist )
+    # Check that the histogram is not empty
+    if sum(hist) == 0
+        # Normalize histogram
+        hist = hist ./ sum( hist )
 
-    # Returns the histogram
-    return hist
+        # Returns the histogram
+        return hist
+    else
+        # Returns zeros
+        return zeros(Real,nb_box)
+    end
 end
 # Creates a simple normed histogram by giving data as vector, min, max values and number of boxes
 function histogramNormedWeighted( data::Vector{T1}, nb_box::T2, min_hist::T3, max_hist::T4, weights::Vector{T5} ) where { T1 <: Real , T2 <: Int, T3 <: Real, T4 <: Real, T5 <: Real }
@@ -220,11 +232,16 @@ function histogramNormedWeighted( data::Vector{T1}, nb_box::T2, min_hist::T3, ma
     # Computes the histogram of the data
     hist = histogramWeighted( data, nb_box, min_hist, max_hist, weights )
 
-    # Normalize histogram
-    hist = hist ./ sum( hist )
+    # Check that the histogram is not empty
+    if sum( hist) != 0
+        # Normalize histogram
+        hist = hist ./ sum( hist )
 
-    # Returns the histogram
-    return hist
+        # Returns the histogram
+        return hist
+    else
+        return zeros(nb_box)
+    end
 end
 # Writes histogram to file, using path of the file, assumes uniform histogram
 function writeHistogram( file_out::T1, histogram::Vector{T2}, min_::T4, max_::T5 ) where { T1 <: AbstractString, T2 <: Real, T3 <: Int, T4 <: Real, T5 <: Real }
