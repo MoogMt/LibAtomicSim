@@ -134,6 +134,27 @@ function histogram( data::Vector{T1}, nb_box::T2, min_hist::T3, max_hist::T4 ) w
     # Return histogram
     return hist
 end
+# Creates a simple histogram by giving data as vector, the number of box, min and max of the boxes and weights for the boxes
+function histogramWeighted( data::Vector{T1}, nb_box::T2, min_hist::T3, max_hist::T4, weights::Vector{T5} ) where { T1 <: Real , T2 <: Int, T3 <: Real, T4 <: Real, T5 <: Real }
+    # Argument
+    # - data: vector of real, contains the data
+    # - nb_box: number of histogram boxes
+    # - min_ : minimum of the boxes
+    # - max_ : maximum of the boxes
+    # Output
+    # - histogram: Vector with Int, containing number of occurences of data within each boxes
+
+    # Compute histogram
+    hist = histogram( data, nb_box, min_hist, max_hist )
+
+    # Apply weights
+    for box=1:nb_box
+        hist[box] = hist[box]*weights[box]
+    end
+
+    # Return histogram
+    return hist
+end
 # Creates a simple histogram by giving data as vector, the number of box
 # - uses min and max of the data
 function histogram( data::Vector{T1}, nb_box::T2) where { T1 <: Real , T2 <: Int }
@@ -168,8 +189,7 @@ function histogramNormed( data::Vector{T1}, nb_box::T2) where { T1 <: Real , T2 
     # Returns histogram
     return hist
 end
-# Creates a simple normed histogram by giving data as vector, the number of box
-# - uses min and max of the data
+# Creates a simple normed histogram by giving data as vector, min, max values and number of boxes
 function histogramNormed( data::Vector{T1}, nb_box::T2, min_hist::T3, max_hist::T4 ) where { T1 <: Real , T2 <: Int, T3 <: Real, T4 <: Real }
     # Argument
     # - data: Vector of real, containing data
@@ -180,6 +200,25 @@ function histogramNormed( data::Vector{T1}, nb_box::T2, min_hist::T3, max_hist::
 
     # Computes the histogram of the data
     hist = histogram( data, nb_box, min_hist, max_hist )
+
+    # Normalize histogram
+    hist = hist ./ sum( hist )
+
+    # Returns the histogram
+    return hist
+end
+# Creates a simple normed histogram by giving data as vector, min, max values and number of boxes
+function histogramNormedWeighted( data::Vector{T1}, nb_box::T2, min_hist::T3, max_hist::T4, weights::Vector{T5} ) where { T1 <: Real , T2 <: Int, T3 <: Real, T4 <: Real, T5 <: Real }
+    # Argument
+    # - data: Vector of real, containing data
+    # - nb_box: Int, number of boxes of the histogram
+    # - min_, max_: min and max of the histogram boxes
+    # - weights: vector(Real,nb_box) contains the weight for each boxes
+    # Output
+    # - hist: histogram of the data, normed so that sum(histogram=1)
+
+    # Computes the histogram of the data
+    hist = histogramWeighted( data, nb_box, min_hist, max_hist, weights )
 
     # Normalize histogram
     hist = hist ./ sum( hist )

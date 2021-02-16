@@ -587,7 +587,7 @@ function readPositionsCrash( path_file::T1, species::Vector{T2}, nb_species::Vec
     names_ = atom_mod.buildNames( species, nb_species )
 
     # Compute number of steps in the file
-    nb_step = Int( trunc( nb_lines/nb_atoms ) ) - 1
+    nb_step = Int( trunc( nb_lines/nb_atoms ) ) 
     # If the number of step is problematic, returns false
     if nb_step < 1
         return false

@@ -1,25 +1,32 @@
 module pdb
 
-export getNbSteps, readStructure, readTraj
-
-export writePdb, writePdbPlumed
+# Loading necessary modules from LibAtomSim
 using utils
 using atom_mod
 using cell_mod
 using periodicTable
 
-# Reading file
-#==============================================================================#
-function getNbSteps( file_path::T1 ) where { T1 <: AbstractString }
+# Exporting modules functions
+export getNbSteps, readStructure, readTraj
+export writePdb, writePdbPlumed
 
-    #-----------------------------------------
+# Get number of atoms and steps
+#-------------------------------------------------------------------------------
+# Get number of steps of the *.pdb file
+function getNbSteps( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file_path: path of the *.pdb file
+    # Output
+    # - nb_step: number of step
+    # OR false if something went wrong with file
+
+    # Check that the file exists
     if ! isfile( file_path )
-        print("No pdb file found at ",file_path," !\n")
+        # If it does not, returns false
+        print( "No pdb file found at ", file_path," !\n" )
         return false
     end
-    #-----------------------------------------
 
-    #-----------------------------------------
     nb_step  = 0
     nb_step2 = 0
     handle_in = open( file_path )
@@ -66,7 +73,9 @@ function getNbAtoms( file_path::T1 ) where { T1 <: AbstractString }
 
     return nb_atoms
 end
-#----------------------------------------------------
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
 # Reads a .pdb file containing a single structure
 function readAtomList( file_path::T1 ) where { T1 <: AbstractString }
 
@@ -165,7 +174,6 @@ function readAtomMolList( file_path::T1 ) where { T1 <: AbstractString }
 
     return atoms, cell
 end
-#----------------------------------------------------
 function readTrajAtomListFixedCell( file_path::T1 ) where { T1 <: AbstractString }
 
     nb_step = getNbSteps( file_path )
@@ -261,10 +269,10 @@ function readTrajAtomList( file_path::T1 ) where { T1 <: AbstractString }
 
     return traj, cells
 end
-#==============================================================================#
+#-------------------------------------------------------------------------------
 
-# Write file
-#==============================================================================#
+# Writing file
+#-------------------------------------------------------------------------------
 function addJustifyRight( max_column::T1, string_target::T2, string_toadd::T3 ) where  { T1 <: Int, T2 <: AbstractString, T3 <: AbstractString }
     string_target = utils.spaces( string_target, max_column-length(string_target)-length(string_toadd) )
     return string( string_target, string_toadd)
@@ -379,7 +387,6 @@ function writeMODEL( handle_out::T1, name_model::T2 )  where { T1 <: IO, T2 <: A
     write( handle_out, string("MODEL ",name_model))
     return true
 end
-#------------------------------------------------------------------------------#
 function writePdb( file::T1, atoms::T2, cell::T3 ) where { T1 <: AbstractString , T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param }
 
     # Writes a PDB file according to standard format (2011)
@@ -986,7 +993,6 @@ function writePdbPivClustering( file::T1, traj::Vector{T2}, cells::Vector{T3} ) 
 
     return true
 end
-#------------------------------------------------------------------------------#
 function writePdbPlumed( atoms::T1, cell::T2, file::T3 ) where { T1 <: atom_mod.AtomMolList, T2 <: cell_mod.Cell_param, T3 <: AbstractString }
 
   out=open(file,"w")
@@ -1106,6 +1112,5 @@ function writePdbPlumed( atoms::T1, cell::T2, file::T3 ) where { T1 <: atom_mod.
 
   return
 end
-#==============================================================================#
-
+#-------------------------------------------------------------------------------
 end

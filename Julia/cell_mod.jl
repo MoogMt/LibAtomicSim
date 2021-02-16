@@ -968,12 +968,15 @@ function distance( v1::Vector{T1}, v2::Vector{T2}, cell_matrix::Array{T3,2} ) wh
     # Output
     # - distance between v1 and v2, real positive scalar
 
+    # Compute inverse of the cell
+    inverse_cell =  inv(cell_matrix)
+
     # Converts positions from cartesian to reduced
-    v1_scaled = getTransformedPosition( v1, cell_matrix )
-    v2_scaled = getTransformedPosition( v2, cell_matrix )
+    v1_scaled = getTransformedPosition( v1, inverse_cell )
+    v2_scaled = getTransformedPosition( v2, inverse_cell )
 
     # Initialize distance in scaled space
-    ds=zeros(3)
+    ds = zeros(3)
 
     # Compute Distance in scaled space with PBC
     for i=1:3
@@ -982,17 +985,17 @@ function distance( v1::Vector{T1}, v2::Vector{T2}, cell_matrix::Array{T3,2} ) wh
     end
 
     # Descaling distance
-    ds=getTransformedPosition(ds,cell_matrix)
+    ds = getTransformedPosition(ds,cell_matrix)
 
     # Returns distance
-    return sqrt(dot(ds,ds))
+    return sqrt( dot( ds, ds ) )
 end
 # Computes the distance between two atoms, works for all cells (but slower) - redundant
 function distance( v1::Vector{T1}, v2::Vector{T2}, cell_matrix::Array{T3,2}, inv_cell_matrix::Array{T4,2} ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 <: Real }
 
     # Converts cartesian coordinates to reduced coordinates
-    v1_scaled=getTransformedPosition(v1,inv_cell_matrix)
-    v2_scaled=getTransformedPosition(v2,inv_cell_matrix)
+    v1_scaled=getTransformedPosition(v1, inv_cell_matrix )
+    v2_scaled=getTransformedPosition(v2, inv_cell_matrix )
 
     # Initialize distance in reduced coordinates
     ds=zeros(3)
