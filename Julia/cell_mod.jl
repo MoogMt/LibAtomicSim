@@ -344,8 +344,11 @@ function params2Matrix( cells_params::Vector{T1} ) where { T1 <: Cell_param }
     # Get number of step of trajectory
     nb_step = size(cells_params)[1]
 
+    # Number of dimensions
+    ndim = 3
+
     # Initialize output
-    cells_ = zeros(Real, 3, 3, nb_step )
+    cells_ = zeros(Real, nb_step, ndim, ndim )
 
     # Loop over time
     #----------------------------
