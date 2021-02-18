@@ -9,7 +9,7 @@ module utils
 # TODO: Export all functions
 
 export writeBasicData, getNbLines, getAllFilesWithExtension, getFileName, getFilesName
-
+export swap!
 
 # Basic IO handling
 #-------------------------------------------------------------------------------
@@ -567,6 +567,126 @@ function gauss( amplitudes::Vector{T1}, positions::Array{T2,2}, widths::Vector{T
 
     # Returns vector with values
     return values
+end
+#-------------------------------------------------------------------------------
+
+# Generates points in spherical blobs
+#-------------------------------------------------------------------------------
+function createBlobs( n_points::Vector{T1} , centers::Array{T2,2}, spread::Vector{T3} ) where { T1 <: Int, T2 <: Real, T3 <: Real }
+    # Argument
+    # - n_points: number of points in each blobs (vector, int)
+    # - centers: centers of the blobs      ( real, array ( nb_blobs, nb_dim ) )
+    # - spread: spread of the various blob ( real, array ( nb_blobs, nb_dim ) )
+    # Output:
+    # - points: positions of the points generated in all blobs
+
+    # Get number of blocs
+    n_blobs = size( n_points )[1]
+
+    # Number of total points
+    n_points_total = sum( n_points )
+
+    # Dimension of the space
+    n_dim = size(centers)[2]
+
+    # Vector with points
+	points=zeros( n_points_total, n_dim )
+
+    # Compute square of the spreads of the blobs
+	spread_2 = spread.*spread
+
+    # Loop over blobs
+	for blob=1:n_blobs
+        # Compute the offset for the index of the position of the points
+		start_count=sum(n_points[1:blob-1])
+
+        # Loop over the number of points of the blob
+		for point=1:n_points[i]
+            # First try to put the point somewhere
+			try_ = ( rand( n_dim ) .- 0.5 ) * 2 * spread[blob]
+
+            # Loop as long as the point is not within the spread of the blobs
+			while sum( try_ .* try_ ) > spread_2[blob]
+				try_ = ( rand( n_dim ) .- 0.5 ) * 2 * spread[blob]
+			end
+
+            # Once point is successfully positioned, adds position to the list
+			points[ start_count + point, :] = centers[blob,:] .+ try_
+		end
+	end
+
+    # Returns the array of all the points of the blobs
+	return points
+end
+#-------------------------------------------------------------------------------
+
+# Generates points in a ring shape
+#-------------------------------------------------------------------------------
+function createRing( n_points::T1, centers::Vector{T2}, small_radius::T3, width::T4 ) where { T1 <: Int, T2 <: Real, T3 <: Real, T4 <: Real }
+	n_dim=size(centers)[1]
+	points=zeros(Real, n_points,n_dim)
+	R=0
+	angles=ones(Real, n_dim-1)
+	for i=1:n_points
+		# Randomize a distnace to the center
+		R = small_radius+rand()*width
+		angles=rand(n_dim-1)*pi
+		angles[n_dim-1]=rand()*2*pi
+		for j=1:n_dim-1
+			points[i,j]=R*cos(angles[j])
+		end
+		points[i,n_dim]=R
+		for j=2:n_dim
+			for k=1:j-1
+				points[i,j] = points[i,j]*sin(angles[k])
+			end
+		end
+	end
+	return points
+end
+#-------------------------------------------------------------------------------
+
+# Swap elements in a data array
+#-------------------------------------------------------------------------------
+# Swap in a vector
+function swap!( vector::Vector{T1}, index1::T2, index2::T3 ) where { T1 <: Real, T2 <: Int, T3 <: Int }
+    # Argument
+    # - data : vector (nb_point)
+    # - index1, index2: index of data to swap
+    # Output
+    # - None
+
+    # Storing data
+    stock = vector[index1]
+
+    # Moves data_index2 into data_index1
+    vector[index1] = vector[index2]
+
+    # Moves data from storage into data_index2
+    vector[index2] = stock
+
+    # Returns nothing
+    return
+end
+# Swap in an array
+function swap!( array::Array{T1,2}, index1::T2, index2::T3 ) where { T1 <: Real, T2 <: Int, T3 <: Int }
+    # Argument
+    # - data : vector (nb_point)
+    # - index1, index2: index of data to swap
+    # Output
+    # - None
+
+    # Storing data
+    stock = array[index1,:]
+
+    # Moves data_index2 into data_index1
+    array[index1,:] = array[index2,:]
+
+    # Moves data from storage into data_index2
+    array[index2,:] = stock
+
+    # Returns nothing
+    return
 end
 #-------------------------------------------------------------------------------
 

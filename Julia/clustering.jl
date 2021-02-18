@@ -1,5 +1,12 @@
 module clustering
 
+using utils
+using contact_matrix
+
+# Description
+#
+
+# Exporting functions
 export computeDistance, computeDistanceMatrix, computeDistanceMatrixAndMax, swap
 export initializeCenter, voronoiAssign, voronoiAssignSingle, voronoiAssignAll
 export computeCost, updateCenters, sortMatrix
@@ -7,118 +14,8 @@ export kmedoidClustering, computeClusteringCoefficients
 export dauraClustering
 export gaussianKernel, maxArray, simpleSequence, maxVector
 export densityPeakClusteringTrain
-export createBlob
 
-function createBlob( n_point::T1 ) where { T1 <: Int }
-	points=zeros(n_point)
-	return points
-end
-
-function createBlobs( n_points::Vector{T1} , centers::Array{T2,2}, spread::Vector{T3} ) where { T1 <: Int, T2 <: Real, T3 <: Real }
-	n_blobs=size(n_points)[1]
-	n_points_total=sum(n_points)
-	n_dim = size(centers)[2]
-	points=zeros(sum(n_points_total),n_dim)
-	spread_2 = spread.*spread
-	for i=1:n_blobs
-		start_count=sum(n_points[1:i-1])
-		for j=1:n_points[i]
-			try_ = (rand(n_dim).-0.5)*2*spread[i]
-			while sum(try_.*try_) > spread_2[i]
-				try_ = (rand(n_dim).-0.5)*2*spread[i]
-			end
-			points[start_count+j,:] = centers[i,:] .+ try_
-		end
-	end
-	return points
-end
-
-function createRing( n_points::T1, centers::Vector{T2}, small_radius::T3, width::T4 ) where { T1 <: Int, T2 <: Real, T3 <: Real, T4 <: Real }
-	n_dim=size(centers)[1]
-	points=zeros(Real, n_points,n_dim)
-	R=0
-	angles=ones(Real, n_dim-1)
-	for i=1:n_points
-		# Randomize a distnace to the center
-		R = small_radius+rand()*width
-		angles=rand(n_dim-1)*pi
-		angles[n_dim-1]=rand()*2*pi
-		for j=1:n_dim-1
-			points[i,j]=R*cos(angles[j])
-		end
-		points[i,n_dim]=R
-		for j=2:n_dim
-			for k=1:j-1
-				points[i,j] = points[i,j]*sin(angles[k])
-			end
-		end
-	end
-	return points
-end
-
-function computeDistance( data::Array{T1}, data_point::Vector{T2}, index::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Int }
-	return sum( ( data[ index, :  ] - data_point[:] ).*( data[ index, :  ] - data_point[:] ) )
-end
-function computeDistance( data::Array{T1}, index1::T2, index2::T3 ) where { T1 <: Real, T2 <: Int, T3 <: Int }
-	return sum( ( data[ index1, : ]-data[ index2 , : ] ).*( data[ index1, : ]-data[ index2 , : ] ) )
-end
-function computeDistance( data::Array{T1}, n_dim::T2 , max::Vector{T3}, min::Vector{T4}, index1::T5, index2::T6 ) where { T1 <: Real,T2 <: Int,  T3 <: Real, T4 <: Real, T5 <: Int, T6 <: Int }
-    dist=0
-    for i=1:n_dim
-        dist += ( ((data[index1,i]-min[i])/(max[i]-min[i])) - ((data[index2,i]-min[i])/(max[i]-min[i])) )*( ((data[index1,i]-min[i])/(max[i]-min[i])) - ((data[index2,i]-min[i])/(max[i]-min[i])) )
-    end
-	return dist
-end
-function computeDistanceMatrix( data::Array{T1} ) where { T1 <: Real }
-    size_data=size(data)[1]
-    matrix=zeros(size_data,size_data)
-    for i=1:size_data
-        for j=1:size_data
-            matrix[i,j] = computeDistance( data, i, j )
-        end
-    end
-    return matrix
-end
-function computeDistanceMatrix( data::Array{T1}, max::T2, min::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Real }
-    size_data=size(data)[1]
-    matrix=zeros(size_data,size_data)
-    for i=1:size_data
-        for j=1:size_data
-			matrix[i,j] = sqrt( ( ((data[i]-min)/(max-min)) - ((data[j]-min)/(max-min)) )*( ((data[i]-min)/(max-min)) - ((data[j]-min)/(max-min)) ) )
-        end
-    end
-    return matrix
-end
-function computeDistanceMatrix( data::Array{T1}, n_dim::T2, max::Vector{T3}, min::Vector{T4} ) where { T1 <: Real, T2 <: Int, T3 <: Real, T4 <: Real }
-    size_data=size(data)[1]
-    matrix=zeros(size_data,size_data)
-    for i=1:size_data
-        for j=1:size_data
-            matrix[i,j] = computeDistance( data, n_dim, max, min, i, j )
-        end
-    end
-    return matrix
-end
-function computeDistanceMatrixAndMax( data::Array{T1}, n_dim::T2, max::Vector{T3}, min::Vector{T4} ) where { T1 <: Real, T2 <: Int, T3 <: Real, T4 <: Real }
-    size_data=size(data)[1]
-	max_matrix=0
-    matrix=zeros(size_data,size_data)
-    for i=1:size_data
-        for j=1:size_data
-            matrix[i,j] = computeDistance( data, n_dim, max, min, i, j )
-			if matrix[i,j] > max_matrix
-				max_matrix = matrix[i,j]
-			end
-        end
-    end
-    return matrix, max_matrix
-end
-function swap( table::Vector{T1}, index1::T2, index2::T3 ) where { T1 <: Real, T2 <: Int, T3 <: Int }
-    stock=table[index1]
-    table[index1]=table[index2]
-    table[index2]=stock
-    return
-end
+#============================================================================#
 function initializeCenters( n_structures::T1 , distance_matrix::Array{T2,2}  , n_clusters::T3  ) where { T1 <: Int, T2 <: Real , T3 <: Int}
     # Bookkeep
     available=ones(Int,n_structures)
@@ -162,7 +59,10 @@ function initializeCenters( n_structures::T1 , distance_matrix::Array{T2,2}  , n
 
     return cluster_centers
 end
+#============================================================================#
+
 # Voronoi assignment of points
+#============================================================================#
 function voronoiAssign( data::Array{T1}, n_clusters::T2 , cluster_centers::Vector{T3}, data_points::Array{T4} ) where { T1 <: Real, T2 <: Int, T3 <: Int, T4 <: Real , T5 <: Real, T6 <: Real }
 	nb_data=size(data)[1]
 	dim_data=size(data)[2]
@@ -243,6 +143,9 @@ function voronoiAssignAll( n_structures::T1 , distance_matrix::Array{T2,2}, nb_c
     end
     return
 end
+#============================================================================#
+
+#============================================================================#
 function computeCost( n_structures::T1, distance_matrix::Array{T2,2}, cluster_centers::Vector{T3} , cluster_indexs::Vector{T4} ) where { T1 <: Int, T2 <: Real, T3 <: Int, T4 <: Int }
     cost=0
     for i=1:n_structures
@@ -250,6 +153,9 @@ function computeCost( n_structures::T1, distance_matrix::Array{T2,2}, cluster_ce
     end
     return cost
 end
+#============================================================================#
+
+#============================================================================#
 function updateCenters( distance_matrix::Array{T1,2} , n_clusters::T2, cluster_centers::Vector{T3}, cluster_sizes::Vector{T4}, assignments::Array{T5,2} ) where { T1 <: Real, T2 <: Int, T3 <: Int, T4 <: Int , T5 <: Int }
     for cluster=1:n_clusters
         new_center = cluster_centers[ cluster ]
@@ -264,7 +170,7 @@ function updateCenters( distance_matrix::Array{T1,2} , n_clusters::T2, cluster_c
         cluster_centers[ cluster ] = new_center
     end
 end
-
+#============================================================================#
 
 # K-menoid
 #============================================================================#
@@ -305,9 +211,12 @@ function kmedoidClustering( n_structures::T1 , distance_matrix::Array{T2,2}, n_c
     return cluster_indexs_best, cluster_centers_best, cluster_sizes_best
 end
 #==============================================================================#
+
+
 # Inspired by PIV_clustering
 # by G.A. Gallet and F. Pietrucci, 2014
 # J.Chem.Phys., 139 , 074101, 2013
+#============================================================================#
 function computeClusteringCoefficients( distance_matrix::Array{T1,2}, n_clusters::T2 , cluster_sizes::Vector{T3} , assignments::Array{T4,2} , cut_off::T5 ) where { T1 <: Real, T2 <: Int, T3 <: Int, T4 <: Int , T5 <: Real }
     clustering_coefficients=zeros(n_clusters)
     if cut_off <= 0.0
@@ -330,8 +239,7 @@ function computeClusteringCoefficients( distance_matrix::Array{T1,2}, n_clusters
     end
     return clustering_coefficients
 end
-
-
+#============================================================================#
 
 # Daura Clustering
 #==============================================================================#
@@ -428,31 +336,6 @@ function gaussianKernel( matrix_distance::Array{T1,2} , cut_off_distance::T2) wh
 end
 #==============================================================================#
 
-# MAX
-#==============================================================================#
-function maxArray( matrix::Array{T1,2} ) where { T1 <: Real }
-    nb_element=size(matrix)[1]
-    max=0
-    for i=1:nb_element
-        for j=i+1:nb_element
-            if matrix[i,j] > max
-                max=matrix[i,j]
-            end
-        end
-    end
-    return max
-end
-function maxVector( vector::Vector{T1} ) where { T1 <: Real }
-    max=0
-    for i=1:size(vector)[1]
-        if max < vector[i]
-            max=vector[i]
-        end
-    end
-    return max
-end
-#==============================================================================#
-
 # Sequence vector
 #==============================================================================#
 function simpleSequence( size_::T1 ) where { T1 <: Int }
@@ -485,38 +368,6 @@ function sortMatrix( x::Vector{T1} ) where { T1 <: Real }
         end
     end
     return index_x
-end
-function sortDescend( vector::Vector{T1} ) where { T1 <: Real }
-    size_vector=size(vector)[1]
-    vector_sorted=copy(vector)
-    index_vector=simpleSequence(size_vector)
-    for i=1:size_vector
-        for j=i+1:size_vector
-            if vector_sorted[i] < vector_sorted[j]
-                stock=vector_sorted[i]
-                stock2=index_vector[i]
-                vector[i]=vector_sorted[j]
-                index_vector[i]=index_vector[j]
-                vector_sorted[j]=stock
-                index_vector[j]=stock2
-            end
-        end
-    end
-    return vector_sorted, index_vector
-end
-function sortDescend( data::Array{T1,2}, index::T2 )  where { T1 <: Real , T2 <: Int }
-	size_data=size(data)[1]
-	n_dim=size(data)[2]
-	for i=1:size_data-1
-		for j=i+1:size_data
-			if data[i,index] < data[j,index]
-				stock = data[i,:]
-				data[i,:] = data[j,:]
-				data[j,:] = stock
-			end
-		end
-	end
-	return
 end
 #==============================================================================#
 
