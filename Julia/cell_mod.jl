@@ -354,7 +354,7 @@ function params2Matrix( cells_params::Vector{T1} ) where { T1 <: Cell_param }
     #----------------------------
     for step=1:nb_step
         # Conversion
-        cells_[:,:,step] = params2Matrix( cells_params[step] )
+        cells_[step,:,:] = params2Matrix( cells_params[step] )
     end
     #----------------------------
 
