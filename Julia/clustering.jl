@@ -4,19 +4,23 @@ using utils
 using contact_matrix
 
 # Description
-#
+# Set of functions used for clustering
 
 # Exporting functions
-export computeDistance, computeDistanceMatrix, computeDistanceMatrixAndMax, swap
-export initializeCenter, voronoiAssign, voronoiAssignSingle, voronoiAssignAll
-export computeCost, updateCenters, sortMatrix
-export kmedoidClustering, computeClusteringCoefficients
+export initializeCenter
+export voronoiAssign, voronoiAssignSingle, voronoiAssignAll
+export computeCost
+export updateCenters
+export kmedoidClustering
+export computeClusteringCoefficients
 export dauraClustering
-export gaussianKernel, maxArray, simpleSequence, maxVector
-export densityPeakClusteringTrain
+export gaussianKernel
+export densityPeakClusteringTrain, densityPeakClusteringFirstStepDistanceMatrix, densityPeakClusteringFirstStep, densityPeakClusteringSecondStep
 
-#============================================================================#
-function initializeCenters( n_structures::T1 , distance_matrix::Array{T2,2}  , n_clusters::T3  ) where { T1 <: Int, T2 <: Real , T3 <: Int}
+
+# Initialize centers of the clustering
+#-------------------------------------------------------------------------------
+function initializeCenters( n_structures::T1 , distance_matrix::Array{T2,2}, n_clusters::T3  ) where { T1 <: Int, T2 <: Real , T3 <: Int}
     # Bookkeep
     available=ones(Int,n_structures)
 
@@ -59,7 +63,7 @@ function initializeCenters( n_structures::T1 , distance_matrix::Array{T2,2}  , n
 
     return cluster_centers
 end
-#============================================================================#
+#-------------------------------------------------------------------------------
 
 # Voronoi assignment of points
 #============================================================================#
@@ -333,41 +337,6 @@ function gaussianKernel( matrix_distance::Array{T1,2} , cut_off_distance::T2) wh
         end
     end
     return rho
-end
-#==============================================================================#
-
-# Sequence vector
-#==============================================================================#
-function simpleSequence( size_::T1 ) where { T1 <: Int }
-    vector=zeros(Int, size_)
-    for i=1:size_
-        vector[i] = i
-    end
-    return vector
-end
-#==============================================================================#
-
-# Sort
-#==============================================================================#
-function sortMatrix( x::Vector{T1} ) where { T1 <: Real }
-    sizex=size(x)[1]
-    index_x=zeros(sizex)
-    for i=1:sizex
-        index_x[i]=i
-    end
-    for i=1:sizex
-        for j=i:sizex
-            if x[i] > x[j]
-                stock=x[i]
-                stocki=index_x[i]
-                x[i]=x[j]
-                index_x[i]=index_x[j]
-                x[j]=stock
-                index_x[j]=stocki
-            end
-        end
-    end
-    return index_x
 end
 #==============================================================================#
 

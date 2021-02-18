@@ -8,8 +8,10 @@ module utils
 
 # TODO: Export all functions
 
-export writeBasicData, getNbLines, getAllFilesWithExtension, getFileName, getFilesName
+export writeBasicData
+export getNbLines, getAllFilesWithExtension, getFileName, getFilesName
 export swap!
+export simpleSequence
 
 # Basic IO handling
 #-------------------------------------------------------------------------------
@@ -687,6 +689,28 @@ function swap!( array::Array{T1,2}, index1::T2, index2::T3 ) where { T1 <: Real,
 
     # Returns nothing
     return
+end
+#-------------------------------------------------------------------------------
+
+# Simple sequence vector creation
+#-------------------------------------------------------------------------------
+function simpleSequence( size_::T1 ) where { T1 <: Int }
+    # Argument
+    # - size_ : size of the sequence
+    # Output:
+    # - vector: vector with the simple Sequence
+
+    # Initialize vector
+    vector = zeros(Int, size_ )
+
+    # Loop over the size of the sequence
+    for point=1:size_
+        # Each point of the vector has the index value
+        vector[point] = point
+    end
+
+    # Return vector
+    return vector
 end
 #-------------------------------------------------------------------------------
 

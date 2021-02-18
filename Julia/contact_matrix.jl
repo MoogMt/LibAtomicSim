@@ -194,76 +194,177 @@ end
 
 # Read Distance matrix files
 #-------------------------------------------------------------------------------
+# Read a single step of the matrix
 function readStepMatrix( handle_in::T1 , nb_atoms::T2) where { T1 <: IO, T2 <: Int }
-    matrix=zeros(nb_atoms,nb_atoms)
-    for i=1:nb_atoms
+	# Argument
+	# - handle_in: IO handler for the input file
+	# - nb_atoms: number of atoms in the file
+	# Output
+	# - matrix: returns the matrix for the current step
+
+	# Initialize matrix for the step
+	matrix=zeros(nb_atoms,nb_atoms)
+
+	# Loop over atoms 1
+    for point1=1:nb_atoms
+		# Read the line, parse with " "
         keywords = split( readline( handle_in ) )
-        for j=1:nb_atoms
-            matrix[i,j] = parse( Float64, keywords[j] )
+
+		# Loop over atoms 2
+        for point2=point1+1:nb_atoms
+			# Cast data from string into float
+            matrix[point1,point2] = parse( Float64, keywords[point2] )
+
+			# Use the fact that the matrix is symmetric
+			matrix[point2,point1] = matrix[point1,point2]
         end
     end
+
+	# Returns the matrix step
     return matrix
 end
+# Read matrix for a specific target step
 function readMatrix( file::T1, target_step::T2 ) where { T1 <: AbstractString, T2 <: Int }
-    handle_in = open( file )
-    # Getting info
+	# Argument
+	# - file: path of the input file (string)
+	# - target_step: int, the target step
+	# Output
+	# - matrix: matrix of the target step
+
+	# Opens the input file
+	handle_in = open( file )
+
+    # Read and partse first line with " "
     keywords = split( readline( file ) )
+
+	# Get number of step as the first element of the line
     nb_step  = parse(Int, keywords[1] )
+
+	# Get number of atoms as the second element of the line
     nb_atoms = parse(Int, keywords[2] )
+
+	# If the target_step is larger than nb_step, return false and an error message
     if step > nb_step
         print("The trajectory is only ", nb_step, " long, you're asking for step ", target_step,".\n")
         print("Stopping now!\n")
         return false
     end
-    # Reading
-    matrix=zeros(nb_atoms,nb_atoms)
+
+    # Initialize matrix
+    matrix = zeros(Real, nb_atoms, nb_atoms )
+
+	# Loop over step
     for step=1:nb_step
+		# If the step is the targeted one, read and store the matrix of the current step
         if step == target_step
             matrix[ :, : ]  = readStepMatrix( handle_in, nb_atoms )
+			# Break the loop
+			break
+		# Else read in empty
         else
             readStepMatrix( handle_in, nb_atoms )
         end
     end
+
+	# Closes input file
     close(file)
+
+	# Returns target step matrix
     return matrix
 end
+# Read a whole matrix file
 function readMatrix( file::T1 ) where { T1<: AbstractString }
+	# Argument
+	# - file: path to the input file
+	# Output
+	# - matrix: tensor (nb_step, nb_atoms, nb_atoms) with distance matrix
+
+	# Opens input file
     handle_in = open( file )
-    # Getting info
+
+    # Reads and parse the first line with " "
     keywords = split( readline( file ) )
+
+	# Get the number of steps
     nb_step  = parse(Int, keywords[1] )
+
+	# Get number of atoms of the matrix
     nb_atoms = parse(Int, keywords[2] )
-    # Reading
-    matrix=zeros(nb_step,nb_atoms,nb_atoms)
+
+    # Initialize tensor
+    matrix = zeros(Real, nb_step, nb_atoms, nb_atoms )
+
+	# Loop over steps
     for step=1:nb_step
+		# Read matrix for each step
         matrix[ step, :, : ]  = readStepMatrix( handle_in, nb_atoms )
     end
+
+	# Closes input file
     close(file)
+
+	# Return tensor with matrix for each step
     return matrix
 end
 #-------------------------------------------------------------------------------
 
 # Writting distance matrix files
 #-------------------------------------------------------------------------------
+# Write matrix for a given step
 function writeStepMatrix( handle_out::T1, matrix::Array{T2,2} ) where { T1 <: IO , T2 <: Real }
-    nb_atoms=size(matrix)[1]
+	# Argument
+	# - handle_out: IO handler of the output file
+	# - matrix: matrix
+	# Output
+	# - Bool, whether writting was successful
+
+	# Get number of atoms in the file corresponding of the matrix
+	nb_atoms = size( matrix )[1]
+
+	# Loop over atoms 1
     for atom1=1:nb_atoms
+		# Loop over atoms  2
         for atom2=1:nb_atoms
+			# Writes data into file
             write( handle_out, string( matrix[ atom1, atom2 ], " " ) )
         end
+		# Writes end of line
         write( handle_out , "\n")
     end
+
+	# Returns true if writting is successful
     return true
 end
-function writeMatrix( file_out::T1, matrix::Array{T2,3} ) where { T1 <: AbstractString, T2 <: Real }
-    handle_out = open( file_out, "w" )
+# Write Matrices
+function writeMatrices( file_out::T1, matrix::Array{T2,3} ) where { T1 <: AbstractString, T2 <: Real }
+	# Argument
+	# - file_out: path to the output file
+	# - matrix: tensor with all data to write into file
+	# Output
+	# - Bool, return true if writting is successful
+
+	# Opens the output file
+	handle_out = open( file_out, "w" )
+
+	# Get the number of step in the trajectory
     nb_step = size( matrix )[1]
+
+	# Get the size of the matrix to write to file
     nb_atoms = size( matrix )[2]
+
+	# Writes first line containing basic data to file
     Base.write( handle_out, string( nb_step, " ", nb_atoms, "\n" ) )
+
+	# Loop over steps
     for step=1:nb_atoms
+		# Write Matrix for current step
         writeStepMatrix( handle_out, matrix[step,:,:] )
     end
+
+	# Closes output file
     close( handle_out )
+
+	# Returns true if the writting was successful
     return true
 end
 #-------------------------------------------------------------------------------
