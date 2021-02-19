@@ -237,15 +237,14 @@ function computeTimestep( input_path::T1 ) where { T1 <: AbstractString }
 end
 #==============================================================================#
 
-# Read Output files
-#==============================================================================#
+
 # Reading ENERGIES file
 #-----------------------------------------
 # Contains: Temperature, Potential Energy, Total Energy, MSD and Computing time for each step
 # Structure:
 # 1 line per step, per column:
 # time, temperature, potential energy, total energy, MSD, Computing time
-#-----------------------------------------
+#----------------------------------------------------------------------------
 col_time = 1
 col_temp = 3
 col_poten = 4
@@ -450,9 +449,12 @@ function writeEnergies( file_path::T1, temp::Vector{T2}, epot::Vector{T3}, etot:
     close(file_output)
     return true
 end
-#------------------------------------------------------------------------------#
+#----------------------------------------------------------------------------
+
+
+#------------------------
 # Reading STRESS file
-#----------------------------------------------
+#------------------------------------------------------------------------------#
 # Contains: Stress tensor for each step (with a possible stride)
 # Structure:
 # 4 lines per step
@@ -461,7 +463,7 @@ end
 # Sxx Sxy Sxz
 # Syx Syy Syz
 # Szx Szy Szz
-#----------------------------------------------
+#------------------------------------------------------------------------------#
 stress_block_size=4
 stress_dim=3
 function getNbStepStress( file_path::T1 ) where { T1 <: AbstractString }
@@ -710,6 +712,9 @@ function writeStress( file_path::T1, stress_tensor::Array{T2,3} ) where { T1 <: 
     close(file_out)
     return true
 end
+#------------------------------------------------------------------------------#
+
+
 # Read FTRAJECTORY file
 #-------------------------------------------------------------------------------
 # Contains: positions, velocity and forces in atomic units for each step
@@ -967,6 +972,7 @@ function writeFtraj( file_path::T1, positions::Array{T2,3}, velocities::Array{T3
     return true
 end
 #-------------------------------------------------------------------------------
+
 
 #-------------------------------------------------------------------------------
 function buildingDataBase( folder_target::T1, file_stress::T2, file_pressure::T3, file_traj::T4, file_ftraj::T5, file_energy::T6, timestep_target::T7 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString, T4 <: AbstractString, T5 <: AbstractString, T6 <: AbstractString, T7 <: Real }
@@ -1358,8 +1364,6 @@ function cpmdArcheology( folder_target::T1 , output_suffix::T2 ) where { T1 <: A
 
     # Reading steps
     step_number=1
-
-
 
     return true
 end
