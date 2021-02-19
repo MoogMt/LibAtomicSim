@@ -5,13 +5,22 @@ module utils
 # anywhere else
 # - basic I/O handling files:
 # - basic String handling
+# - vector and matrix checking and constructions and swaps
+# - switching functions constructions
+# - gaussian functions
+# - creates point clouds
 
-# TODO: Export all functions
-
-export writeBasicData
-export getNbLines, getAllFilesWithExtension, getFileName, getFilesName
-export swap!
-export simpleSequence
+# Export functions
+export writeData, writeBasicData
+export getNbLines
+export getAllFilesWithExtension, getFileName, getFilesName
+export copyLine2file, skipLines, readParseLine
+export ifLongerCut, char2int, spaces
+export nbStepStriding, strideData!
+export checkDimVec, checkMatDim, sequenceMatrixH, simpleSequence, swap!
+export switchingFunction
+export gauss
+export createBlobs, createRing
 
 # Basic IO handling
 #-------------------------------------------------------------------------------
@@ -233,29 +242,6 @@ function getFilesName( files::Vector{T1} ) where { T1 <: AbstractString }
     # Return the names
     return names
 end
-# Copies set of element to a file
-function copyLine2file( line_element::Vector{T1}, file_io::T2 ) where { T1 <: AbstractString, T2 <: IO }
-    # Argumente
-    # - line_element: Vector of Strings you want to write to file
-    # - file_io: handler of the otuput file
-    # Output
-    # - Bool: if the writting is successful or not
-
-    # Number of elements in the vector to write
-    nb_elements = size(line_element)[1]
-
-    # Loop over the elements
-    for i=1:nb_elements
-        # Write file elements to file
-        write( file_io, string( line_element[i], " " ) )
-    end
-
-    # Write end of line to file
-    write( file_io, string("\n") )
-
-    # Returns true if all was ok
-    return true
-end
 # Reads a given number of lines without getting the data
 function skipLines( handle::T1, nb_line::T2 ) where { T1 <: IO, T2 <: Int  }
     # Argument
@@ -470,6 +456,65 @@ function sequenceMatrixH( nb_element::T1 ) where { T1 <: Int }
     # Returns the sequence matrix
     return matrix
 end
+# Simple sequence vector creation
+function simpleSequence( size_::T1 ) where { T1 <: Int }
+    # Argument
+    # - size_ : size of the sequence
+    # Output:
+    # - vector: vector with the simple Sequence
+
+    # Initialize vector
+    vector = zeros(Int, size_ )
+
+    # Loop over the size of the sequence
+    for point=1:size_
+        # Each point of the vector has the index value
+        vector[point] = point
+    end
+
+    # Return vector
+    return vector
+end
+# Swap in a vector
+function swap!( vector::Vector{T1}, index1::T2, index2::T3 ) where { T1 <: Real, T2 <: Int, T3 <: Int }
+    # Argument
+    # - data : vector (nb_point)
+    # - index1, index2: index of data to swap
+    # Output
+    # - None
+
+    # Storing data
+    stock = vector[index1]
+
+    # Moves data_index2 into data_index1
+    vector[index1] = vector[index2]
+
+    # Moves data from storage into data_index2
+    vector[index2] = stock
+
+    # Returns nothing
+    return
+end
+# Swap in an array
+function swap!( array::Array{T1,2}, index1::T2, index2::T3 ) where { T1 <: Real, T2 <: Int, T3 <: Int }
+    # Argument
+    # - data : vector (nb_point)
+    # - index1, index2: index of data to swap
+    # Output
+    # - None
+
+    # Storing data
+    stock = array[index1,:]
+
+    # Moves data_index2 into data_index1
+    array[index1,:] = array[index2,:]
+
+    # Moves data from storage into data_index2
+    array[index2,:] = stock
+
+    # Returns nothing
+    return
+end
 #-------------------------------------------------------------------------------
 
 # Switching Functions
@@ -572,8 +617,9 @@ function gauss( amplitudes::Vector{T1}, positions::Array{T2,2}, widths::Vector{T
 end
 #-------------------------------------------------------------------------------
 
-# Generates points in spherical blobs
+# Point cloud shape generation
 #-------------------------------------------------------------------------------
+# Generates points in spherical blobs
 function createBlobs( n_points::Vector{T1} , centers::Array{T2,2}, spread::Vector{T3} ) where { T1 <: Int, T2 <: Real, T3 <: Real }
     # Argument
     # - n_points: number of points in each blobs (vector, int)
@@ -620,10 +666,7 @@ function createBlobs( n_points::Vector{T1} , centers::Array{T2,2}, spread::Vecto
     # Returns the array of all the points of the blobs
 	return points
 end
-#-------------------------------------------------------------------------------
-
 # Generates points in a ring shape
-#-------------------------------------------------------------------------------
 function createRing( n_points::T1, centers::Vector{T2}, small_radius::T3, width::T4 ) where { T1 <: Int, T2 <: Real, T3 <: Real, T4 <: Real }
 	n_dim=size(centers)[1]
 	points=zeros(Real, n_points,n_dim)
@@ -645,72 +688,6 @@ function createRing( n_points::T1, centers::Vector{T2}, small_radius::T3, width:
 		end
 	end
 	return points
-end
-#-------------------------------------------------------------------------------
-
-# Swap elements in a data array
-#-------------------------------------------------------------------------------
-# Swap in a vector
-function swap!( vector::Vector{T1}, index1::T2, index2::T3 ) where { T1 <: Real, T2 <: Int, T3 <: Int }
-    # Argument
-    # - data : vector (nb_point)
-    # - index1, index2: index of data to swap
-    # Output
-    # - None
-
-    # Storing data
-    stock = vector[index1]
-
-    # Moves data_index2 into data_index1
-    vector[index1] = vector[index2]
-
-    # Moves data from storage into data_index2
-    vector[index2] = stock
-
-    # Returns nothing
-    return
-end
-# Swap in an array
-function swap!( array::Array{T1,2}, index1::T2, index2::T3 ) where { T1 <: Real, T2 <: Int, T3 <: Int }
-    # Argument
-    # - data : vector (nb_point)
-    # - index1, index2: index of data to swap
-    # Output
-    # - None
-
-    # Storing data
-    stock = array[index1,:]
-
-    # Moves data_index2 into data_index1
-    array[index1,:] = array[index2,:]
-
-    # Moves data from storage into data_index2
-    array[index2,:] = stock
-
-    # Returns nothing
-    return
-end
-#-------------------------------------------------------------------------------
-
-# Simple sequence vector creation
-#-------------------------------------------------------------------------------
-function simpleSequence( size_::T1 ) where { T1 <: Int }
-    # Argument
-    # - size_ : size of the sequence
-    # Output:
-    # - vector: vector with the simple Sequence
-
-    # Initialize vector
-    vector = zeros(Int, size_ )
-
-    # Loop over the size of the sequence
-    for point=1:size_
-        # Each point of the vector has the index value
-        vector[point] = point
-    end
-
-    # Return vector
-    return vector
 end
 #-------------------------------------------------------------------------------
 
