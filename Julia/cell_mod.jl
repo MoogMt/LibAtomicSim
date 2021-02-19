@@ -9,11 +9,19 @@ using graph
 using LinearAlgebra
 
 # Export useful functions
-#TODO: check that all functions are here
-export Cell_param, Cell
-export Cell
-export wrap, dist1D, distance
+export Cell_param, Cell, CellAll
+export matrix2Params, params2Matrix
+export invertCell
+export getVolume
+export wrap
+export unWrapStructureOrtho!, unWrapStructureOrthoOnce!
+export getTransformedPosition, cartesian2Reduced, reduced2Cartesian
+export distsq1D, distanceOrtho, distanceReduced, distance
 export velocityFromPosition
+export compressParams
+export isInfiniteChain, checkInfiniteChain, findUnlinked
+export computeMoveVector, growCell, makeSuperCell
+export toOrthoByCut
 
 # Description
 # Set of structures that are useful to deal with cell, that is handling the periodic
@@ -284,8 +292,6 @@ function matrix2Params( cell_matrix::Array{T1,2} )  where { T1 <: Real }
     return Cell_param( length, angles )
 end
 # Converts a cell trajectory in matrix form into a vector of cell params
-# NB: We may want to create an additionnal object if not here, then in traj, to
-# avoid dealing with an array of structure and have a structure of array instead
 function matrix2Params( cell_matrices::Array{T1,3} ) where { T1 <: Real }
     # Arguments:
     # - cell_matrices: cell matrix in tensor form, time is assumed to be the third component of the matrix
@@ -668,7 +674,6 @@ end
 #-------------------------------------------------------------------------------
 
 # Functions dealing with Cartesian <-> Reduced coordinates
-# NB: TEST THOSE FUNCTIONS
 #-------------------------------------------------------------------------------
 # Transforms the position of an atom (real vector) using the matrix given in parameter
 # - From cartesian to reduced with the inverse cell matrix
@@ -1063,7 +1068,7 @@ end
 
 # Compressing cell function
 # NB: Not sure it works, and will create serious issues for molecular systems
-# in already reduced states
+# in already compressed states
 #---------------------------------------------------------------------------
 # Compress the cell using cell_param by a given factor
 # - works for orthorombic cell

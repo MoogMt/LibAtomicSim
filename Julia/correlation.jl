@@ -4,10 +4,7 @@ module correlation
 using Statistics
 
 # Export functions
-export autocorr
-export autocorrAvg
-export autocorrAvgSig
-export autocorrNorm
+export autocorr, autocorrAvg, autocorrAvgSig, autocorrNorm
 
 # Autocorrelation functions
 #-------------------------------------------------------------------------------

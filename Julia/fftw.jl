@@ -1,30 +1,93 @@
 module fftw
 
+# Loading necessary module from Julia default repository
 using FFTW
 
+# Description
+# - Allows easier computations of FFTW and DCT
+
+# Export all functions
+export doFourierTransform, doFourierTransformShift
+export doDCT, doDCTShift
+
+# Computes Fast Fourrier Transform
+#-------------------------------------------------------------------------------
+# Simple FFT + Associated functions
 function doFourierTransform( signal::Vector{T1}, dt::Real ) where { T1 <: Real, T2 <: Real }
-    freq=fftfreq(size(signal)[1],1/dt)
-    intensity= abs.(fft(signal))
+    # Argument
+    # - signal: values of the signal (real, vector, nb_step)
+    # - dt: timestep of the signal
+    # Output
+    # - freq: vector of real with frequencies associated with FFT
+    # - intensity: intensity of the FFT
+
+    # Computes frequencies
+    freq = fftfreq( size( signal )[1], 1/dt )
+
+    # Computes FFTW of the signal
+    intensity = abs.( fft( signal ) )
+
+    # Returns frequencies of FFT and FFT of the signal
     return  freq[ freq .> 0 ], intensity[ freq .> 0 ]
 end
-
 function doFourierTransformShift( signal::Vector{T1}, dt::T2 ) where { T1 <: Real, T2 <: Real }
-    freq=fftfreq(size(signal)[1],1/dt) |> fftshift
+    # Argument
+    # - signal: values of the signal (real, vector, nb_step)
+    # - dt: timestep of the signal
+    # Output
+    # - freq: vector of real with frequencies associated with FFT
+    # - intensity: intensity of the FFT
+
+    # Computes frequencies
+    freq = fftfreq( size( signal )[1], 1/dt ) |> fftshift
+
+    # Computes FFTW of the signal
     intensity= abs.(fft(signal)) |> fftshift
+
+    # Returns frequencies of FFT and FFT of the signal
     return  freq[ freq .> 0 ], intensity[ freq .> 0 ]
 end
+#-------------------------------------------------------------------------------
 
+# Computes Discrete Cosine Transform
+#-------------------------------------------------------------------------------
+# Simple DCT + associated frequency
 function doDCT( signal::Vector{T1}, dt::T2 ) where { T1 <: Real, T2 <: Real }
-    freq=fftfreq(size(signal)[1],1/dt)
-    intensity=abs.(dct(signal))
-    return  freq[ freq .> 0 ], intensity[ freq .> 0 ]
-end
+    # Argument
+    # - signal: values of the signal (real, vector, nb_step)
+    # - dt: timestep of the signal
+    # Output
+    # - freq: vector of real with frequencies associated with DCT
+    # - intensity: intensity of the DCT
 
-function doDCTShift( signal::Vector{T1}, dt::T2 ) where { T1 <: Real, T2 <: Real }
-    freq=fftfreq(size(signal)[1],1/dt) |> fftshift
-    intensity=abs.(dct(signal)) |> fftshift
+    # Computes frequencies
+    freq=fftfreq(size(signal)[1],1/dt)
+
+    # Computes DCT of the signal
+    intensity=abs.(dct(signal))
+
+    # Returns frequencies of DCT and DCT of the signal
     return  freq[ freq .> 0 ], intensity[ freq .> 0 ]
 end
+# Simple DCT + associated frequency shifted to > 0
+function doDCTShift( signal::Vector{T1}, dt::T2 ) where { T1 <: Real, T2 <: Real }
+    # Argument
+    # - signal: values of the signal (real, vector, nb_step)
+    # - dt: timestep of the signal
+    # Output
+    # - freq: vector of real with frequencies associated with DCT
+    # - intensity: intensity of the DCT
+
+    # Computes frequencies
+    freq      = fftfreq( size( signal )[1], 1/dt ) |> fftshift
+
+    # Computes DCT of the signal
+    intensity = abs.( dct( signal ) ) |> fftshift
+
+    # Returns frequencies of DCT and DCT of the signal
+    return  freq[ freq .> 0 ], intensity[ freq .> 0 ]
+end
+#-------------------------------------------------------------------------------
 
 end
 

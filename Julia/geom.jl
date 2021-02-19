@@ -6,8 +6,10 @@ using LinearAlgebra
 # Description
 # Modules that contains useful functions to deal with basic geometric issues
 
-# TODO:
-# Add more functions and check what already exists if necessary
+# Export all functions
+export distance
+export dist2Line, pointFromLine
+export angleAlKash
 
 # Compute the distance between two vectors
 #-----------------------------------------------------------------------------

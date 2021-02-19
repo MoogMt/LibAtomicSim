@@ -15,10 +15,10 @@ using graph
 # while a heavyside function is used to get the adjacency matrix
 
 # Export functions
-
-export computeDistanceMatrix, computeAdjacencyMatrix
-export readMatrix
-export writeMatrix
+export computeDistanceMatrix
+export computeAdjacencyMatrix
+export readStepMatrix, readMatrix
+export writeStepMatrix, writeMatrix
 
 # Building Distance Matrix
 # - contains distances between all atoms/points in the structure/set

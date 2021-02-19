@@ -5,12 +5,16 @@ using utils
 using geom
 using periodicTable
 
-# Export useful functions
-# TODO: check that they are all exported
-export AtomList, AtomMolList
-export switchAtoms!, moveAtom!, sortAtomsByZ!
-export getNbAtoms, getNbStep, getNbMol, moveAtom
-export getPositionsAsArray
+# Export all functions
+export atomList2Traj
+export switchAtoms!
+export sortAtomsByZ!
+export moveAllAtom, moveAtom!
+export getNbAtoms, getNbMolecules, getNbStep
+export getTypeIndex, getSpecies, getStartSpecie, getStartSpecies, getNbElementSpecie, getNbElementSpecies
+export computeVelocities
+export buildNames
+export distanceNoPBC
 
 # Description:
 # Set of structures and associated function that deals with trajectory in termes of
@@ -75,12 +79,36 @@ mutable struct AtomTraj
     positions::Array{Real,3}      # Positions of the atoms
     #-------------------------------
 
+    # Construction function
     #----------------------------------------------------------------------
     function AtomTraj()
         # Argument
         # - None
         # Output
         # - Creates a trajectory
+
+        # Creates default empty AtomTraj
+        new( [], zeros(Int,0), zeros(Real,0) )
+    end
+    function AtomTraj( names::Vector{T1}, index::Vector{T2}, positions::Vector{T3} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real }
+        # Argument
+        # - names: vector of string with the name of atoms
+        # - index: vector of int, with the index of atoms
+        # - positions: array of real (nb_atoms,3), with the positions of atoms
+        # Output
+        # - Creates AtomTraj
+
+        # If sizes of all vectors/array match, creates an AtomTraj
+        if size(names)[1] == size(index)[1] && size(names)[1] == size(positions)[1]
+            new( names, index, positions )
+        # If not, sends an error message and returns false
+        else
+            print("Sizes do not match: \n")
+            print("names: ", size(names)[1], "\n" )
+            print("index: ", size(index)[1], "\n" )
+            print("positions: ", size(positions)[1], "\n" )
+            return false
+        end
     end
     #----------------------------------------------------------------------
 end
@@ -135,9 +163,10 @@ mutable struct AtomMolList
 end
 #-------------------------------------------------------------------------------
 
-# Create a trajectory as a vector of AtomList from a list of positions, names and index
+# Conversions
 #-------------------------------------------------------------------------------
-function makeTrajAtomList( positions::Array{T1,3}, names::Vector{T2}, index::Array{T3} ) where { T1 <: Real, T2 <: AbstractString, T3 <: Int }
+# converts AtomList to AtomTraj
+function atomList2Traj( positions::Array{T1,3}, names::Vector{T2}, index::Array{T3} ) where { T1 <: Real, T2 <: AbstractString, T3 <: Int }
     # Arguments:
     # - positions: Array contains poisitions of atoms (nb_step,nb_atoms,3)
     # - names: vector of string with names of atoms
@@ -163,6 +192,31 @@ function makeTrajAtomList( positions::Array{T1,3}, names::Vector{T2}, index::Arr
 
     # Return trajectory as a vector of AtomList
     return traj
+end
+# Converts AtomList to Array
+function atomList2Array( traj::Vector{T1} ) where { T1 <: AtomList }
+    # Argument
+    # - traj: vector of AtomList that describes the trajectory
+    # Output
+    # - positions: Array containing atomic positions real, size (nb_atoms,3)
+
+    # Get number of steps of the trajectory
+    nb_step=size(traj)[1]
+
+    # Get the number of atoms in the structure
+    nb_atoms=size(traj[1].names)[1]
+
+    # Initialize positions
+    positions=zeros(nb_step,nb_atoms,3)
+
+    # Loop over step
+    for step=1:nb_step
+        # Extracting position at each step
+        positions[step,:,:] = traj[step].positions[:,:]
+    end
+
+    # Returns positions
+    return positions
 end
 #-------------------------------------------------------------------------------
 
@@ -340,32 +394,7 @@ function moveAllAtom!( atoms::T1 , move::Vector{T2} ) where { T1 <: atom_mod.Ato
 end
 #-------------------------------------------------------------------------------
 
-# Extract positions of an AtomList
-#-------------------------------------------------------------------------------
-function getPositionsAsArray( traj::Vector{T1} ) where { T1 <: AtomList }
-    # Argument
-    # - traj: vector of AtomList that describes the trajectory
-    # Output
-    # - positions: Array containing atomic positions real, size (nb_atoms,3)
 
-    # Get number of steps of the trajectory
-    nb_step=size(traj)[1]
-
-    # Get the number of atoms in the structure
-    nb_atoms=size(traj[1].names)[1]
-
-    # Initialize positions
-    positions=zeros(nb_step,nb_atoms,3)
-
-    # Loop over step
-    for step=1:nb_step
-        # Extracting position at each step
-        positions[step,:,:] = traj[step].positions[:,:]
-    end
-
-    # Returns positions
-    return positions
-end
 #-------------------------------------------------------------------------------
 
 # Functions to get the number of steps/atoms from
@@ -619,6 +648,29 @@ function getStartSpecie( atoms::T1, specie::T2 ) where { T1 <: AtomList, T2 <: A
     # Return the first occurence of the target specie
     return start_specie
 end
+# Get the first occurences of a given specie in a trajectory
+function getStartSpecie( traj::Vector{T1}, specie::T2 ) where { T1 <: AtomList, T2 <: AbstractString }
+    # Argument
+    # - traj: Vector of AtomList, positions
+    # - specie: string with name of the target specie
+    # Output
+    # - start_specie: vector of int, corresponding to the first index occurence of the target specie
+
+    # Get the number of steps
+    nb_step = getNbStep( traj )
+
+    # Initialize
+    start_specie = zeros(Int, nb_step )
+
+    # Loop over steps
+    for step = 1:nb_step
+        # For each step stores the first occurence of the target_specie
+        start_specie[ step ] = getStartSpecie( traj[step], specie )
+    end
+
+    # Return the first occurence of the specie over all the steps of trajectory
+    return start_specie
+end
 # Get the first occurence of all species
 function getStartSpecies( atoms::T1, species::Vector{T2} ) where { T1 <: AtomList, T2 <: AbstractString }
     # Argument
@@ -651,29 +703,6 @@ function getStartSpecies( atoms::T1, species::Vector{T2} ) where { T1 <: AtomLis
 
     # Return the first occurences of all species
     return start_species
-end
-# Get the first occurences of a given specie in a trajectory
-function getStartSpecie( traj::Vector{T1}, specie::T2 ) where { T1 <: AtomList, T2 <: AbstractString }
-    # Argument
-    # - traj: Vector of AtomList, positions
-    # - specie: string with name of the target specie
-    # Output
-    # - start_specie: vector of int, corresponding to the first index occurence of the target specie
-
-    # Get the number of steps
-    nb_step = getNbStep( traj )
-
-    # Initialize
-    start_specie = zeros(Int, nb_step )
-
-    # Loop over steps
-    for step = 1:nb_step
-        # For each step stores the first occurence of the target_specie
-        start_specie[ step ] = getStartSpecie( traj[step], specie )
-    end
-
-    # Return the first occurence of the specie over all the steps of trajectory
-    return start_specie
 end
 # Get the first occurences for each step of several target species for a trajectory
 function getStartSpecies( traj::Vector{T1}, species::Vector{T2} ) where { T1 <: AtomList, T2 <: AbstractString }
@@ -727,6 +756,29 @@ function getNbElementSpecie( atoms::T1, specie::T2 ) where { T1 <: AtomList, T2 
     # Return the counter of number of specie
     return nb_element_specie
 end
+# Get the number of element of a given specie in a traj (vector of AtomList)
+function getNbElementSpecie( traj::Vector{T1}, specie::T2 ) where { T1 <: AtomList, T2 <: AbstractString }
+    # Argument:
+    # - traj: vector of AtomList describing a trajectory
+    # - specie: target specie (string)
+    # Output
+    # nb_element_specie: number of element of the target specie over time in the trajectory
+
+    # Get number of step
+    nb_step = getNbStep( traj )
+
+    # Initialize output
+    nb_element_specie = zeros(nb_step)
+
+    # Loop over time
+    for step = 1:nb_step
+        # Get the number of element of the target specie
+        nb_element_specie[step]  = getNbElementSpecie( traj[step], specie )
+    end
+
+    # Return the number of element of the target specie over time
+    return nb_element_specie
+end
 # Get the number of element for a set of species in an AtomList file
 function getNbElementSpecies( atoms::T1, species::Vector{T2} ) where { T1 <: AtomList, T2 <: AbstractString }
     # Argument
@@ -758,29 +810,6 @@ function getNbElementSpecies( atoms::T1, species::Vector{T2} ) where { T1 <: Ato
 
     # returns number of element per species
     return nb_element_species
-end
-# Get the number of element of a given specie in a traj (vector of AtomList)
-function getNbElementSpecie( traj::Vector{T1}, specie::T2 ) where { T1 <: AtomList, T2 <: AbstractString }
-    # Argument:
-    # - traj: vector of AtomList describing a trajectory
-    # - specie: target specie (string)
-    # Output
-    # nb_element_specie: number of element of the target specie over time in the trajectory
-
-    # Get number of step
-    nb_step = getNbStep( traj )
-
-    # Initialize output
-    nb_element_specie = zeros(nb_step)
-
-    # Loop over time
-    for step = 1:nb_step
-        # Get the number of element of the target specie
-        nb_element_specie[step]  = getNbElementSpecie( traj[step], specie )
-    end
-
-    # Return the number of element of the target specie over time
-    return nb_element_specie
 end
 # Get the number of each element over time in a vector of AtomList
 function getNbElementSpecies( traj::Vector{T1}, species::Vector{T2} ) where { T1 <: AtomList, T2 <: AbstractString }
