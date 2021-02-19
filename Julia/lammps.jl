@@ -1,4 +1,4 @@
-module cpmd
+module lammps
 
 # Loading necessary modules from LibAtomSim
 using conversion
@@ -12,66 +12,117 @@ export writeLammpsInput
 
 # Writting from a collection of molecules
 #-------------------------------------------------------------------------------
-function writeLammpsInput( molecules::Vector{T1}, file::T2 ) where { T1 <: atom_mod.AtomMolList, T2 <: AbstractString }
-  # Variables
-  # - number of atomic species
-  nb_types=size(getNames(molecules))[1]
-  # - number of atoms
-  nb_atoms=getAtomsNb(molecules)
-  # Opening File
-  out=open(file,"w+")
-  # Introduction
-  #--------------------------------------------------
-  write(out,"LAMMPS data file, timestep = 0\n")
-  write(out,"\n")
-  #--------------------------------------------------
-  # Number of atoms and types
-  #--------------------------------------
-  write(out,string(nb_atoms, " atoms\n"))
-  write(out,string(nb_types, " atom types\n"))
-  #---------------------------------------
-  # Delimiting the cell
-  #-----------------------------------------------------------
-  write(out,"\n")
-  X=getX(molecules)
-  write(out,string(getMin(X)," ",getMax(X)," xlo xhi\n"))
-  empty!(X)
-  Y=getY(molecules)
-  write(out,string(getMin(Y)," ",getMax(Y)," ylo yhi\n"))
-  empty!(Y)
-  Z=getZ(molecules)
-  write(out,string(getMin(Z)," ",getMax(Z)," zlo zhi\n"))
-  empty!(Z)
-  #-----------------------------------------------------------
-  # Masses
-  #---------------------------------------------
-  write(out,"\n")
-  write(out,"Masses\n")
-  write(out,"\n")
-  masses=getMasses(molecules)
-  labels=getLabels(molecules)
-  for i=1:nb_types
-    write(out,string(labels[i]," ",masses[i],"\n"))
-  end
-  #----------------------------------------------
-  write(out,"\n")
-  write(out,"Atoms\n")
-  write(out,"\n")
-  # style of atoms in data file: atom-ID molecule-ID atom-type q x y z
-  atom_nb=1
-  for i=1:size(molecules)[1]
-    atoms = getAtoms(molecules[i])
-    for j=1:size(atoms)[1]
-      write(out,string(atom_nb," "))
-      write(out,string(i," "))
-      write(out,string(getLabel(atoms[j])," "))
-      write(out,string(getCharge(atoms[j])," "))
-      write(out,string(getX(atoms[j])," ",getY(atoms[j])," ",getZ(atoms[j]) ))
-      write(out,"\n")
-      atom_nb=atom_nb+1
+function writeLammpsInput( molecules::Vector{T1}, file_path::T2 ) where { T1 <: atom_mod.AtomMolList, T2 <: AbstractString }
+    # Argument
+    # - molecules: AtomMolList containing information about atoms and molecules
+    # - file_path: path to the output file
+    # Output
+    # - Bool: whether the writting was successful
+
+    # Get number of types
+    nb_types = size( getNames( molecules ) )[1]
+
+    # Get number of atoms
+    nb_atoms = getAtomsNb( molecules )
+
+    # Opening output file
+    handle_out = open( file_path, "w+" )
+
+    # Writes first line of file
+    write( handle_out, "LAMMPS data file, timestep = 0\n" )
+
+    # Writes empty line
+    write( handle_out, "\n" )
+
+    # write number of atoms
+    write( handle_out, string( nb_atoms, " atoms\n" ) )
+
+    # Write number of different atomic types
+    write( handle_out, string( nb_types, " atom types\n" ) )
+
+    # Write empty line
+    write( handle_out,"\n")
+
+    # Get X,Y,Z positions
+    X = getX( molecules )
+    Y = getY( molecules )
+    Z = getZ( molecules )
+
+    # Writes minimum and maximum values in each direction
+    write( handle_out, string( getMin(X), " ", getMax(X), " xlo xhi\n" ) )
+    write( handle_out, string( getMin(Y), " ", getMax(Y), " ylo yhi\n" ) )
+    write( handle_out, string( getMin(Z), " ", getMax(Z), " zlo zhi\n" ) )
+
+    # Empty cartesian positions (X,Y,Z)
+    empty!( X )
+    empty!( Y )
+    empty!( Z )
+
+    # Writes empty line again
+    write(out,"\n")
+
+    # Write "Masses", start masses section
+    write(out,"Masses\n")
+
+    # Writes empty line again
+    write(out,"\n")
+
+    # Get masses of atoms
+    masses=getMasses(molecules)
+
+    # Get labels of atoms
+    labels=getLabels(molecules)
+
+    # Loop over types
+    for type=1:nb_types
+        # Write the masses for each atoms label
+        write( handle_out, string( labels[type], " ", masses[type], "\n" ) )
     end
-  end
-  close(out)
+
+    # Writes empty line again
+    write(out,"\n")
+
+    # Write "ATOMS", start Atoms section
+    write(out,"Atoms\n")
+
+    # Writes empty line again
+    write(out,"\n")
+
+    # Start atom counter to 1
+    atom_nb=1
+
+    # Get number of molecules
+    nb_molecules = size(molecules)[1]
+
+    # Loop over molecules
+    for molecule=1:nb_molecules
+        # Get the atoms from a given molecule
+        atoms = getAtoms( molecules[molecule] )
+
+        # Loop over atoms
+        for atom=1:size(atoms)[1]
+            # Writes atom index
+            write( handle_out, string( atom_nb, " " ) )
+            # Writes molecule index
+            write( handle_out, string( molecule, " " ) )
+            # Write atom label
+            write( handle_out, string( getLabel( atoms[j] ), " " ) )
+            # Write atom charge
+            write( handle_out, string( getCharge (atoms[j] )," " ) )
+            # Write atomic positions
+            write( handle_out, string( getX( atoms[j] ), " ", getY( atoms[j] ), " ", getZ( atoms[j] ) ) )
+            # Writes end of line
+            write( handle_out, "\n")
+            # Increments atom number
+            atom_nb = atom_nb + 1
+        end
+    end
+
+    # Closing output file
+    close(handle_out)
+
+    # Returns true if writting was successful
+    return true
 end
 #-------------------------------------------------------------------------------
 

@@ -11,6 +11,9 @@ using pdb
 # Loading necessary module from general repository
 using LinearAlgebra
 
+# Description
+# - Functions that deal with *.res files
+
 # Cell information
 #-------------------------------------------------------------------------------
 # Read cell info from .res file using IO handler for the input file

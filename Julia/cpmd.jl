@@ -1,5 +1,6 @@
 module cpmd
 
+# Load necessary
 using conversion
 using utils
 using filexyz
@@ -9,7 +10,7 @@ using atom_mod
 # Description
 # Set of fucntions used to deal with CPMD specific input and output files
 
-# NB  Much left to do:
+# TODO  Much left to do:
 # We need to do a proper input structure for the CPMD input reading/writting
 # so that we can check consistency.
 # The restart writting is not general enough and requires an FTRAJEC
@@ -18,9 +19,9 @@ using atom_mod
 # and therefore we might want to make a clean up function for that...
 # Also we should be careful with the conversion from a.u. to angstrom for the
 # positions in the FTRAJ file;
-
 # In any case, many (many) more stuff to do in the future
 
+# Exporting function
 export readInputTimestep, readIntputStrideStress, readIntputStrideTraj
 export readEnergiesFile, readStress, readTraj
 export getNbStepEnergies, getNbStepStress, getNbStepAtomsFtraj
@@ -29,7 +30,7 @@ export buildingDataBase
 
 # Read input
 # Reads the input file of a CPMD simuation
-#==============================================================================#
+#--------------------------------------------------------------------------------
 function readInputTimestep( file_input_path::T1 ) where { T1 <: AbstractString }
     # Check existence
     #-----------------------------------
@@ -235,7 +236,7 @@ function computeTimestep( input_path::T1 ) where { T1 <: AbstractString }
     end
     return stride_traj*timestep
 end
-#==============================================================================#
+#--------------------------------------------------------------------------------
 
 
 # Reading ENERGIES file
