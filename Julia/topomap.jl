@@ -1,71 +1,179 @@
 module topomap
 
-# Load module 
+# Load module
 using utils
 
+# Description
+# - functions used to construct topological maps
+
+# Read topological map frame matrix
 #-------------------------------------------------------------------------------
 function readFrameToFrameMatrix( file_path::T1 ) where { T1 <: AbstractString }
-    if ! isfile(file_path)
+    # Argument
+    # - file_path: path to the input file
+    # Output
+    # - distance_matrix: matrix of distance between all structures
+    # OR false if something is wrong
+
+    # Check that the file exists
+    if ! isfile( file_path )
+        # If not sends a message and return false, false false
         print("File: ", file_path, " not found!\n")
-        return false, false, false
+        return false
     end
+
+    # Opens file
     handle_in = open( file_path )
-    keywords=split( readline( handle_in ) )
+
+    # Reads line and parse it with " "
+    keywords = split( readline( handle_in ) )
+
+    # Get number of structures
     nb_structure = parse(Int, keywords[1] )
+
+    # Get maximum distance as second element of the first line (parse to Float)
     dist_max = parse(Float64, keywords[2] )
-    distance_matrix=zeros(nb_structure,nb_structure)
-    for i=1:nb_structure
-        print("Reading FRAME_TO_FRAME.MATRIX - progress: ",i/nb_structure*100,"%\n" )
-        line= split( readline( handle_in ) )
-        for j=1:nb_structure
-            distance_matrix[i,j] = parse(Float64, line[j] )
-            distance_matrix[j,i] = distance_matrix[i,j]
+
+    # Initialize distance matrix
+    distance_matrix = zeros(Real, nb_structure, nb_structure )
+
+    # Loop over structures 1
+    for structure1=1:nb_structure
+        # Prints progress
+        print("Reading FRAME_TO_FRAME.MATRIX - progress: ",structure1/nb_structure*100,"%\n" )
+
+        # Read and parse line with " "
+        line = split( readline( handle_in ) )
+
+        # Loop over structures 2
+        for structure2=1:nb_structure
+            # Read and cast distance as float
+            distance_matrix[structure1,structure2] = parse(Float64, line[structure2] )*dist_max
+
+            # Use the fact that the matrix is symmetric
+            distance_matrix[structure2,structure1] = distance_matrix[structure1,structure2]
         end
     end
+
+    # Close file
     close(handle_in)
-    return distance_matrix, dist_max, nb_structure
+
+    # Returns distance matrix
+    return distance_matrix
 end
 #-------------------------------------------------------------------------------
 
+# Compute cost
 #-------------------------------------------------------------------------------
-function computeCost( distance_matrix::Array{T1,2}, positions::Array{T2}, cost_coeff::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Real }
-    n_structures=size(distance_matrix)[1]
-    cost=0.
-    n_dim=size(positions)[2]
-    for i=1:n_structures-1
-        for j=i+1:n_structures
+function computeCost( distance_matrix::Array{T1,2}, positions::Array{T2,2}, cost_coeff::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Real }
+    # Arguments
+    # - distance_matrix: distance_matrix
+    # - positions: array with positions in the 2D projection plan
+    # - cost_coef: coefficient of the cost the k in k*(x-x0), real
+    # Output
+    # - cost: errors between actual distances and projection distnaces
+
+    # Get the number of structures
+    n_structures = size(distance_matrix)[1]
+
+    # Dimension of the projection
+    n_dim = size(positions)[2]
+
+    # Initialize cost at 0
+    cost=0.0
+
+    # Loop over structures 1
+    for structure1=1:n_structures-1
+        # Loop over structure2
+        for structure2=structure1+1:n_structures
+            # Initialize distance to 0
             dist = 0
+
+            # Loop over dimensions
             for k=1:n_dim
-                dist += ( positions[i,k] - positions[j,k] )*( positions[i,k] - positions[j,k] )
+                # Computes distance between positions in the 2D plane for each dimension
+                dist_loc = ( positions[i,k] - positions[j,k] )
+
+                # Compute the square and and adds it to the distance
+                dist += dist_loc*dist_loc
             end
-            dist=sqrt(dist)
-            cost += 0.5*cost_coeff*( dist - distance_matrix[i,j] )*( dist - distance_matrix[i,j] )
+
+            # Compute the square root of the distance
+            dist = sqrt(dist)
+
+            # Compute distance between the distances between
+            # points in projection and points in real space
+            dist = dist - distance_matrix[i,j]
+
+            # Add the cost for the couple point
+            cost += 0.5*cost_coeff*dist*dist
         end
     end
+
+    # Return the total cost of the projection
     return cost
 end
+#-------------------------------------------------------------------------------
+
+# Compute errors
+#-------------------------------------------------------------------------------
 function computeErrors( positions::Array{T1,2}, distances_matrix::Array{T2,2} ) where { T1 <: Real, T2 <: Real }
+    # Argument
+    # - positions: positions of points in the projection plane
+    # - distances_matrix: matrix of actual distances between points
+    # Output
+    # - mean_err: mean error
+    # - max_err: maximum error on the set
+
+    # Get number of points
     nb_points   = size(positions)[1]
+
+    # Get dimension
     n_dimension = size(positions)[2]
+
+    # Initialize max, mean counter
     max_err  = 0
     mean_err = 0
+
+    # Initialize counter
     count_ = 0
+
+    # Loop over structures1
     for structure=1:nb_points-1
+        # Loop over structures2
         for structure2=structure+1:nb_points
+            # Initialize distance at 0
             distance=0
+
+            # Loop over dimensions
             for i=1:n_dimension
+                # Compute distance in dimension i
                 dist = positions[ structure, i ] - positions[ structure2, i ]
+
+                # Square distance
                 distance += dist*dist
             end
-            distance=sqrt(distance)
+
+            # Compute square root of distances
+            distance = sqrt( distance )
+
+            # Compute error in the projection
             err = abs( distance - distances_matrix[ structure, structure2 ] )
+
+            # Add error to the average
             mean_err += err
-            count_ += 1
+
+            # If err is superior to max value, change the value to max
             if err > max_err
                 max_err = err
             end
+
+            # Increments of count
+            count_ += 1
         end
     end
+
+    # Returns mean error and max error
     return mean_err/count_, max_err
 end
 #-------------------------------------------------------------------------------
