@@ -13,8 +13,8 @@ using utils
 # - Functions to write an .xyz file into a given filepath from an AtomList structure
 
 # Exporting functions
-export getNbSteps
-export readFastFile, readStep, readXYZ
+export getNbSteps, getNbStepAtoms
+export readStructureAtomList, readFileAtomList
 export writeXYZ
 
 # TODO
