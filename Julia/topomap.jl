@@ -6,6 +6,13 @@ using utils
 # Description
 # - functions used to construct topological maps
 
+# Exporting functions
+export readFrameToFrameMatrix
+export computeCost
+export computeErrors
+export monteCarloProjection
+export writeMap, writeErrors, writePlotter
+
 # Read topological map frame matrix
 #-------------------------------------------------------------------------------
 function readFrameToFrameMatrix( file_path::T1 ) where { T1 <: AbstractString }

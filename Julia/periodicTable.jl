@@ -1,5 +1,13 @@
 module periodicTable
 
+# Description
+# Functions that helps transform Z number to element name and vice
+# versa
+
+# Exporing functions
+export z2Names
+export names2Z
+
 zNames=[ "H",                                                                                                                                                                                     "He",
         "Li", "Be",                                                                                                                                                  "B",  "C",  "N",  "O",  "F", "Ne",
         "Na", "Mg",                                                                                                                                                 "Al", "Si",  "P",  "S", "Cl", "Ar",

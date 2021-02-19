@@ -1,5 +1,6 @@
 module exp_data
 
+# Load necessary modules from LibAtomicSim
 using atom_mod
 using cell_mod
 using filexyz
@@ -7,6 +8,17 @@ using pdb
 using fftw
 using correlation
 using conversion
+
+# Description
+# - Functions used to compute experimental data from simulations
+
+# Exporting functions
+export vdosFromPosition
+export computeGr
+export computeFQ
+export computeBarycenter
+export computeMSD
+export computeRMSD
 
 # TODO:
 # Recheck everything for consistency

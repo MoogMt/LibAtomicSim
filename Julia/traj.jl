@@ -5,13 +5,13 @@ using periodicTable
 using atom_mod
 using cell_mod
 
-export Traj
+export Traj, TrajNVT
 
 # Description:
 # Set of structures and associated functions to deal with trajectory, to be used
 # for all input/ouput functions for Molecular dynamics softwares (GROMACS, LAMMPS,
 # CPMD, CP2K, whatever) to manipulate data as structures of array instead of
-# array of structures. 
+# array of structures.
 
 # TODO: a whole lot, including
 # - more structure for specific trajectory
@@ -19,6 +19,7 @@ export Traj
 
 # Structures
 #----------------------------------------------------------
+# Structure to be used for general simulations
 mutable struct Traj
     # Descroption
     # Structure that contains simultaneously all information in  array form
@@ -217,6 +218,7 @@ mutable struct Traj
     end
     #---------------------------------------------------------------------------
 end
+# Structure to be used for NVT simulations
 mutable struct TrajNVT
     # Description:
     # Useful structure when one wants to deal with NVT calculation, in which you don't need

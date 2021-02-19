@@ -11,6 +11,14 @@ using Bootstrap
 # -> Histogram
 # -> 2D Histogram
 
+# Exporting functions
+export blockAverage
+export bootstrap
+export histogram, histogramWeighted, histogramNormed, histogramNormedWeighted
+export writeHistogram
+export histogram2D, histogram2DNormed
+export writeHistogram2D
+
 # Block averages
 #------------------------------------------------------------------------------
 # Compute block averages with a given size of blocks

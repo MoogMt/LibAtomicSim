@@ -1,5 +1,8 @@
 module plumed
 
+# Description
+# Set of functions used for Plumed
+
 # Rational Switching Functions
 #------------------------------------------------------------------------------------------------
 # Forms:
@@ -69,10 +72,14 @@ function writePlumedInput( handle_out::T1, swf::T2 ) where { T1 <: IO, T2 <: swi
     Base.write( handle_out, string( "NN=",swf.n," ") )
     return true
 end
+#------------------------------------------------------------------------------------------------
+
+
 # Same as above, but with m=2*n so that the evaluation is faster with the trick:
 #                     1
 # -> swf(r) = -----------------------
 #               1 + [(x-d_0)/r_0]^n
+#------------------------------------------------------------------------------------------------
 mutable struct switchingRational
     #------------------------------------------
     # Parameters of the structure
@@ -179,7 +186,7 @@ end
 
 
 #------------------------------------------------------------------------------------------------
-switchingFunction=Union{ switchingFullRational, switchingRational, switchingSimpleRational }
+switchingFunction = Union{ switchingFullRational, switchingRational, switchingSimpleRational }
 function writeSwitchFunction( handle_out::T1, number::T2, swf::T3 ) where { T1<:IO, T2 <: Int, T3 <: switchingFunction }
     Base.write( handle_out, string( "SWITCH", number,"={ " ) )
     writePlumedInput( handle_out, swf )
@@ -221,7 +228,7 @@ function writeActDispatch( handle_out::T1, act::T2 ) where { T1 <: IO, T2 <: pat
     Base.write( handle_out, string("\n") )
     return true
 end
-plumedAct=Union{ pathZS }
+plumedAct = Union{ pathZS }
 #------------------------------------------------------------------------------------------------
 
 # INPUT handling
@@ -342,8 +349,6 @@ function writeOutputInstruction( handle_out::T1 , args::Vector{T2}, stride::T3, 
     return true
 end
 #------------------------------------------------------------------------------------------------
-
-
 
 # COLVAR handling
 #------------------------------------------------------------------------------------------------

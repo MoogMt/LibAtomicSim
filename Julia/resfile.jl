@@ -14,6 +14,12 @@ using LinearAlgebra
 # Description
 # - Functions that deal with *.res files
 
+# Exporting function
+export extractCellInfo
+export getNbAtoms
+export extractAtomsInfo
+export readRes
+
 # Cell information
 #-------------------------------------------------------------------------------
 # Read cell info from .res file using IO handler for the input file
@@ -136,7 +142,6 @@ function getNbAtoms( file_path::T1 ) where { T1 <: AbstractString }
     return nb_lines-4
 end
 #-------------------------------------------------------------------------------*
-
 
 # Extracting atomic informations from file
 #-------------------------------------------------------------------------------*

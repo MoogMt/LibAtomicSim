@@ -6,6 +6,12 @@ using conversion
 # Descriptions
 # - functions used to deal with stress tensor and pressure
 
+# Exporting functions
+export computePressure
+export diagStressTensor
+export writePressure
+export readPressure
+
 # Functions
 #-------------------------------------------------------------------------------
 # Compute pressure from stress tensor
