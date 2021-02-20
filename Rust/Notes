@@ -1,0 +1,3 @@
+cargo check: builds a code without generating an executable, useful when building libraries.
+
+u32: built in type
