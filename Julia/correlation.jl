@@ -3,6 +3,10 @@ module correlation
 # Loading necessary modules from default repository
 using Statistics
 
+# Description
+# - Sets of functions dealing with correlation/autocorrelation of
+# a given signal
+
 # Export functions
 export autocorr, autocorrAvg, autocorrAvgSig, autocorrNorm
 

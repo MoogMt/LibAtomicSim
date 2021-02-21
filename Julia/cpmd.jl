@@ -1,6 +1,6 @@
 module cpmd
 
-# Load necessary
+# Load necessary modules from LibAtomicSim
 using conversion
 using utils
 using filexyz
@@ -10,17 +10,6 @@ using atom_mod
 # Description
 # Set of fucntions used to deal with CPMD specific input and output files
 
-# TODO  Much left to do:
-# We need to do a proper input structure for the CPMD input reading/writting
-# so that we can check consistency.
-# The restart writting is not general enough and requires an FTRAJEC
-# FTRAJEC are very very painful to read for long trajectory for some reason they
-# seem to pause for very long times, likely when encoutering an >>>>>
-# and therefore we might want to make a clean up function for that...
-# Also we should be careful with the conversion from a.u. to angstrom for the
-# positions in the FTRAJ file;
-# In any case, many (many) more stuff to do in the future
-
 # Exporting function
 export readInputTimestep, readIntputStrideStress, readIntputStrideTraj
 export readEnergiesFile, readStress, readTraj
@@ -28,212 +17,282 @@ export getNbStepEnergies, getNbStepStress, getNbStepAtomsFtraj
 export writeEnergies, writeStress, writeFtraj
 export buildingDataBase
 
-# Read input
-# Reads the input file of a CPMD simuation
+# TODO  Much left to do:
+# - Make a cleaning function that deletes the ">>>>>>>>" that occurs
+# when doing restarts
+# - Check the conversions are ok (CPMD use atomic units )
+
+# Read input file / Extract informations from it
 #--------------------------------------------------------------------------------
-function readInputTimestep( file_input_path::T1 ) where { T1 <: AbstractString }
-    # Check existence
-    #-----------------------------------
-    if ! isfile( file_input_path )
-        print("No input file at ",file_input_path,"\n")
+# Extract timestep of simulation from input file
+function getTimestep( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file_path: path to the input file of CPMD
+    # Output
+    # - timestep converted to fs
+    # OR false if something is wrong with file
+
+    # Check existence of file
+    if ! isfile( file_path )
+        # If the file doesn't exists, returns false and sends a message
+        print( "No input file at ", file_input_path, "\n" )
         return false
     end
-    #-----------------------------------
 
-    # Read input
-    #-----------------------------------
-    lines = utils.getLines( file_input_path )
-    #-----------------------------------
+    # Read whole input file
+    lines = utils.getLines( file_input_path ) # NB: We can probably do better than this...
 
-    # Extract timestep
-    #-----------------------------------
-    timestep=0
+    # Get number of lines of input file
     nb_lines=size(lines)[1]
+
+    # Initialize timestep to 0
+    timestep=0
+
+    # Loop over lines
     for line_nb=1:nb_lines
-        keywords=split(lines[line_nb])
+        # Parse current line with " " deliminator
+        keywords = split( lines[line_nb] )
+
+        # Check that the line is not empty
         if size(keywords)[1] > 0
+            # Check the TIMESTEP Keyword
             if keywords[1] == "TIMESTEP"
-                timestep=parse(Float64,split(lines[line_nb+1])[1])
+                # The First element of the next line is the timestep value in
+                # atomic units, casts string to float
+                timestep = parse(Float64, split( lines[line_nb+1] )[1] )
             end
         end
     end
-    #-----------------------------------
 
-    # Conversion to fs
+    # Returns timestep and converts it from atomic units to fs
     return conversion.hatime2fs*timestep
 end
-function readIntputStrideStress( file_input_path::T1 ) where { T1 <: AbstractString }
+# Extract the stress tensor stride from CPMD input file
+function getStrideStress( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file_path: path to the input file of CPMD
+    # Output
+    # - stride_stres: stride of the print of the STRESS file
+    # OR false if something went wrong with the file
 
-    # Check file existence
-    #-----------------------------------
-    if ! isfile( file_input_path )
+    # Check that file exists
+    if ! isfile( file_path )
+        # If not, sends message and returns false
         print("No input file at ",file_input_path,"\n")
         return false
     end
-    #-----------------------------------
 
-    # Read input
-    #-----------------------------------
+    # Read whole input file
     lines = utils.getLines( file_input_path )
-    #-----------------------------------
 
-    # Extract stride of STRESS tensor
-    #-----------------------------------
+    # Get number of lines of the input file
+    nb_lines = size( lines )[1]
+
+    # Initialize stress tensor 0
     stride_stress = 0
-    nb_lines=size(lines)[1]
+
+    # Loop over lines
     for line_nb=1:nb_lines
+        # Parse line with " " deliminator
         keywords=split(lines[line_nb])
+
+        # Check that line is not empty
         if size(keywords)[1] > 0
+            # Check that first and second elements of the lines are "STRESS" and "TENSOR"
             if keywords[1] == "STRESS" && keywords[2] == "TENSOR"
-                stride_stress = parse(Float64,split(lines[line_nb+1])[1])
+                # If so, first element of the next line is the stride
+                # Reads it and cast it from String to Float
+                stride_stress = parse(Float64, split( lines[line_nb + 1] )[1] )
             end
         end
     end
-    #-----------------------------------
 
+    # Returns stride of the stress tensor
     return stride_stress
 end
-function readIntputStrideTraj( file_input_path::T1 ) where { T1 <: AbstractString }
+# Extract the TRAJ stride from CPMD input file
+function getStrideTraj( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file_path: path to the CPMD input file
+    # Output
+    # - stride-traj: stride to write the TRAJ file
 
-    # Check file existence
-    #-----------------------------------
-    if ! isfile( file_input_path )
+    # Check that file exists
+    if ! isfile( file_path )
+        # If not, sends a message and return false
         print("No input file at ",file_input_path,"\n")
         return false
     end
-    #-----------------------------------
 
-    # Read input
-    #-----------------------------------
+    # Read whole input file
     lines = utils.getLines( file_input_path )
-    #-----------------------------------
 
-    # Extract stride of STRESS tensor
-    stride_traj = 0
-    #-----------------------------------
+    # Get number of lines of the input file
     nb_lines=size(lines)[1]
+
+    # Initialize stride traj to 0
+    stride_traj = 0
+
+    # Loop over lines
     for line_nb=1:nb_lines
+        # Parse current line with " " deliminator
         keywords=split(lines[line_nb])
+
+        # Check that line is not empty
         if size(keywords)[1] > 0
+            # Check that the first element of the line is "TRAJECTORY"
             if keywords[1] == "TRAJECTORY"
-                stride_traj = parse(Float64,split(lines[line_nb+1])[1])
+                # If so, the stride of TRAJ is the first element of the next line
+                stride_traj = parse(Float64, split( lines[ line_nb + 1 ] )[1] )
             end
         end
     end
-    #-----------------------------------
 
+    # Return the stride of the trajectory
     return stride_traj
 end
-function copyInputParams( file_input::T1, handle_out::T2 ) where { T1 <: AbstractString, T2 <: IO }
-    #--------------------------------------
-    if ! isfile( file_input_path )
-        print("No input file found at ",file_input," !\n")
-        return false
-    end
-    #--------------------------------------
+#--------------------------------------------------------------------------------
 
-    #--------------------------------------
-    file_in  = open( file_input_path )
-    while ! eof( file_in )
-        keywords = utils.getLineElements( file_in )
-        if keywords[1] == "&ATOMS"
-            break
-        else
-            # copying line
-            #-----------------------------------------------
-            utils.copyLine2file( keywords, handle_out )
-            #------------------------------------------------
-        end
-    end
-    close( file_in  )
-    #--------------------------------------
+#--------------------------------------------------------------------------------
+# Write Velocities in the input file (for a soft restart), using IO handler
+function writeVelocities( handle_out::T1, velocities::Array{T2,2} ) where { T1 <: IO, T2 <: Real }
+    # Arguments
+    # - file_out: IO handler of the output file
+    # - velocities: velocities of the file (atomic units)
+    # Output
+    # - Bool, whether writting was successful
 
-    return true
-end
-function copyInputParams( file_input_path::T1, file_output_path::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
-    file_out = open( file_out_path, "w" )
-    test = copyInput( file_input_path, file_out )
-    close(file_out)
-    return test
-end
-function copyInputParams( handle_in::T1, handle_out::T2 ) where { T1 <: IO, T2 <: IO }
+    # Write "VELOCITIES" signal
+    write( handle_out, string("VELOCITIES\n") )
 
-    while ! eof( handle_in )
-        keywords = utils.getLineElements( handle_in )
-        if size(keywords)[1] > 0
-            if keywords[1] == "&ATOMS"
-                break
-            else
-                # copying line
-                #-----------------------------------------------
-                utils.copyLine2file( keywords, handle_out )
-                #------------------------------------------------
-            end
-        else
-            write( handle_out, string("\n") )
-        end
-    end
+    # Get number of atoms
+    nb_atoms = size(velocities)[1]
 
-    return true
-end
-function copyInputParams( handle_in::T1, file_output_path::T2 ) where { T1 <: IO, T2 <: AbstractString }
-    file_out = open( file_output_path, "w")
-    test = copyInputParams( handle_in, file_out )
-    close(file_out)
-    return test
-end
-function writeVelocities( file_out::T1, velocities::Array{T2,2} ) where { T1 <: IO, T2 <: Real }
-    write( file_out, string("VELOCITIES\n") )
-    nb_atoms=size(velocities)[1]
-    write( file_out, string(nb_atoms," "))
+    # Write number of atoms
+    write( handle_out, string( nb_atoms, " " ) )
+
+    # Loop over atoms
     for atom=1:nb_atoms
-        write( file_out, string(atom," ") )
+        # Write all atomic index
+        write( handle_out, string( atom ," ") )
     end
-    write( file_out, string("\n") )
+
+    # Write end of line
+    write( handle_out, string("\n") )
+
+    # Loop over atoms
     for atom=1:nb_atoms
+        # Loop over dimension
         for i=1:3
-            write( file_out, string(velocities[atom,i]," ") )
+            # Write velocities of atom in dimension i
+            write( handle_out, string( velocities[atom,i], " " ) )
         end
-        write(file_out,string("\n"))
+        # Write end of line for atom
+        write( handle_out, string( "\n" ) )
     end
-    write(file_out,string("END VELOCITIES\n"))
+
+    # Write "END VELOCITIES" signal
+    write( handle_out, string("END VELOCITIES\n") )
+
+    # Returns true if we reach this point
     return true
 end
-function writeVelocities( file_out::T1, velocities::Array{T2,2}, nb_atoms_nb::Vector{T3} ) where { T1 <: IO, T2 <: Real, T3 <: Int }
-    write( file_out, string("VELOCITIES\n") )
-    write( file_out, string( size(nb_atoms_nb)[1], " " ) )
-    for atom in nb_atoms_nb
-        write( file_out, string( atom, " " ) )
+# Write Velocities in the input file (for a soft restart), using IO handler
+function writeVelocities( handle_out::T1, velocities::Array{T2,2}, atoms_indexes::Vector{T3} ) where { T1 <: IO, T2 <: Real, T3 <: Int }
+    # Arguments
+    # - handle_out: IO handler for input file
+    # - velocities: array (nb_atoms,3) contains the velocities of atoms
+    # - atoms_indexes: atoms of the index of the atom to write the velocities in
+    # the input file
+    # Output
+    # - Bool, whether writting was successful
+
+    # Write VELOCITIES signal (start)
+    write( handle_out, string("VELOCITIES\n") )
+
+    # Write number of atoms to file
+    write( handle_out, string( size(nb_atoms_nb)[1], " " ) )
+
+    # Loop over target atom indexes
+    for atom_index in atom_indexes
+        # Write atom index
+        write( handle_out, string( atom_index, " " ) )
     end
-    write( file_out, string("\n") )
-    for atom in nb_atoms_nb
+
+    # Writes end of line
+    write( handle_out, string("\n") )
+
+    # Loop over atom indexes
+    for atom_index in atoms_indexes
+        # Loop over dimensions
         for i=1:3
-            write( file_out, string(velocities[atom,i]," ") )
+            # Write velocities of atom_index in dimension i to file
+            write( handle_out, string( velocities[atom_index,i], " " ) )
         end
-        write(file_out,string("\n"))
+        # Write end of line
+        write( handle_out, string( "\n" ) )
     end
+
+    # Write "END VELOCITIES" signal
     write("END VELOCITIES\n")
+
+    # Returns true if we reach this point
     return true
 end
-function writePositions( file_out::T1, positions::Array{T2,2} ) where { T1 <: IO, T2 <: Real }
+# Writes positions to the input file
+function writePositions( handle_out::T1, positions::Array{T2,2} ) where { T1 <: IO, T2 <: Real }
+    # Argument
+    # - handle_out: IO handler of the input file
+    # - positions: array (nb_atoms,3) contains positions of the atoms
+    # Output
+    # - Bool: whether writting was successful
+
+    # Get number of atoms
     nb_atoms=size(positions)[1]
+
+    # Loop over atoms
     for atom=1:nb_atoms
+        # Loop over dimensions
         for i=1:3
-            write(file_out,string( positions[atom,i]," " ))
+            # Write atomic position in dimension i
+            write( handle_out, string( positions[atom,i], " " ) )
         end
-        write(file_out,string("\n"))
+
+        # Write end of line
+        write( handle_out, string( "\n" ) )
     end
+
+    # Returns true if all went ok
     return true
 end
-function computeTimestep( input_path::T1 ) where { T1 <: AbstractString }
-    timestep = readInputTimestep( input_path )
+#--------------------------------------------------------------------------------
+
+# Compute actual timestep of the output file
+#--------------------------------------------------------------------------------
+function computeTimestep( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file_path: path of the input file of CPMD
+    # Output
+    # - apparent timestep of the output file
+    # OR return false if something went wrong
+
+    # Get the timestep of the simulation using input file
+    timestep = readInputTimestep( file_path )
+
+    # Check that the timestep reading was ok
     if timestep == false
         return false
     end
-    stride_traj = readIntputStrideTraj( input_path )
+
+    # Get the trajectory stride using input file
+    stride_traj = readIntputStrideTraj( file_path )
+
+    # Check that the stride traj reading was ok
     if stride_traj == false
         return false
     end
+
+    # Returns the timestep
     return stride_traj*timestep
 end
 #--------------------------------------------------------------------------------
@@ -246,60 +305,96 @@ end
 # 1 line per step, per column:
 # time, temperature, potential energy, total energy, MSD, Computing time
 #----------------------------------------------------------------------------
-col_time = 1
-col_temp = 3
-col_poten = 4
-col_entot = 5
-col_msd   = 7
-col_comp =  8
+col_time  = 1    # Time elapsed in simulation
+col_temp  = 3    # Temperature
+col_poten = 4    # Potential Energy
+col_entot = 5    # Total Energy
+col_msd   = 7    # MSD
+col_comp  = 8    # Computing time for SCF
+#----------------------------------------------------------------------------
+# Get number of step in ENERGIES file
 function getNbStepEnergies( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file_path: path to the ENERGIES file
+    # Output
+    # - nb_step: number of step in ENERGIES file
+    # OR return false if something went wrong
+
+    # Check that the file exists
     if ! isfile( file_path )
+        # If not sends a message and returns false
         print("No ENERGIES file at ",file_path,"\n")
         return false
     end
+
+    # Initialize nb_step at 0
     nb_step=0
+
+    # Opens input file
     file_in = open( file_path )
+
+    # Loop over lines, as long as possible
     while ( ! eof(file_in) )
-        temp=readline(file_in)
+        # readline in empty
+        readline( file_in )
+
+        # Increments step counter
         nb_step += 1
     end
+
+    # Number of step
     return nb_step
 end
+# Reads ENERGIES file
 function readEnergies( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file_path: path to the ENERGIES file
+    # Output
+    # - temp: Temperature
+    # - epot: Potential Energy
+    # - etot: Total Energy
+    # - msd: Mean Square Displacement
+    # - comp: Computational step for SCF
+    # OR return false, false, false, false, false
 
-    # Check file
-    #----------------------------------------
+    # Get number of steps in the file
     nb_step = getNbStepEnergies( file_path )
+
+    # If something went wrong reading the number of steps, returns false
     if nb_step == false
         return false, false, false, false, false
     end
-    #----------------------------------------
 
-    # Array Init
-    #----------------------------------------
-    temp = zeros( nb_step )
-    epot = zeros( nb_step )
-    etot = zeros( nb_step )
-    msd  = zeros( nb_step )
-    comp = zeros( nb_step )
-    #----------------------------------------
+    # Initialize data vector
+    temp = zeros( nb_step ) # Temperature
+    epot = zeros( nb_step ) # Potential Energy
+    etot = zeros( nb_step ) # Total Energy
+    msd  = zeros( nb_step ) # MSD
+    comp = zeros( nb_step ) # Computational time for SCF
 
-    # Getting data from lines
-    #----------------------------------------------
-    file_in = open(file_path )
+    # Opens input file (ENERGIES)
+    handle_in = open(file_path )
+
+    # Loop over steps
     for step=1:nb_step
-        line=split( readline(file_in) )
-        temp[step]=parse(Float64,line[col_temp])
-        epot[step]=parse(Float64,line[col_poten])
-        etot[step]=parse(Float64,line[col_entot])
-        msd[step]=parse(Float64,line[col_msd])
-        comp[step]=parse(Float64,line[col_comp])
-    end
-    close(file_in)
-    #----------------------------------------------
+        # Read line and parse with " " deliminator
+        line = split( readline(file_in) )
 
+        # Parse data and attribute data to each vector
+        temp[step] = parse(Float64, line[ col_temp  ] ) # Temp
+        epot[step] = parse(Float64, line[ col_poten ] ) # Potential Energy
+        etot[step] = parse(Float64, line[ col_entot ] ) # Total energy
+        msd[step]  = parse(Float64, line[ col_msd   ] ) # MSD
+        comp[step] = parse(Float64, line[ col_comp  ] ) # Computational time
+    end
+
+    # Close input file
+    close(file_in)
+
+    # Returns the vectors with data
     return  temp, epot, etot, msd, comp
 end
+# Reads ENERGIES file with a given stride
 function readEnergies( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T2 <: Int  }
 
     # Check file

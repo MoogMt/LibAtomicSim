@@ -1,3 +1,88 @@
 cargo check: builds a code without generating an executable, useful when building libraries.
 
 u32: built in type
+
+shadow: we can reuse the same name of the variable
+if we did not use declare it as a mutable variable
+
+// Allowed
+let spaces = "    ";
+let spaces = spaces.len();
+
+
+// Not allowed
+let mut spaces = "  ";
+spaces = spaces.len();
+
+// Integer
+Lengths(bits)    Signed Unsigned
+8                i8     u8
+16               i16    u16
+32               i32    u32
+64               i64    u64
+128              i128   u128
+arch             isize  usize
+
+Can store data from -(2^(n-1)) to (2^(n_1)-1)
+
+For floats:
+let y: f32 = 3.0; // f32
+
+// Decomposition of tuple
+let x: (i32, f64, u8) = (500, 6.4, 1);
+let five_hundred = x.0;
+let six_point_four = x.1;
+let one = x.2;
+
+
+let a: [i32; 5] = [1, 2, 3, 4, 5];
+
+let a = [3; 5];
+
+let a = [1, 2, 3, 4, 5];
+let first = a[0];
+let second = a[1];
+
+
+// Exemple of function with output
+fn five() -> i32 {
+    5
+}
+
+fn main() {
+    let x = five();
+
+    println!("The value of x is: {}", x);
+}
+
+
+// Example of loop
+fn main() {
+    let mut counter = 0;
+
+    let result = loop {
+        counter += 1;
+
+        if counter == 10 {
+            break counter * 2;
+        }
+    };
+
+    println!("The result is {}", result);
+}
+
+// While loop
+while number != 0 {
+      println!("{}!", number);
+      number -= 1;
+      }
+
+// For loop
+for element in a.iter() {
+    println!("the value is: {}", element);
+    }
+
+// For Loop 2
+    for number in (1..4).rev() {
+        println!("{}!", number);
+    }
