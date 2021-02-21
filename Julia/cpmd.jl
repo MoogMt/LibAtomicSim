@@ -22,6 +22,57 @@ export buildingDataBase
 # when doing restarts
 # - Check the conversions are ok (CPMD use atomic units )
 
+# ENERGIES file
+#-----------------------------------------
+# Contains: Temperature, Potential Energy, Total Energy, MSD and Computing time for each step
+# Structure:
+# 1 line per step, per column:
+# time, temperature, potential energy, total energy, MSD, Computing time
+#----------------------------------------------------------------------------
+col_time  = 1    # Time elapsed in simulation
+col_temp  = 3    # Temperature
+col_poten = 4    # Potential Energy
+col_entot = 5    # Total Energy
+col_msd   = 7    # MSD
+col_comp  = 8    # Computing time for SCF
+#----------------------------------------------------------------------------
+
+# STRESS file
+#------------------------------------------------------------------------------#
+# Contains: Stress tensor for each step (with a possible stride)
+# Structure:
+# 4 lines per step
+# line 1: Comment (indicates step number)
+# line 2-4: stress tensor in matrix form
+# Sxx Sxy Sxz
+# Syx Syy Syz
+# Szx Szy Szz
+#------------------------------------------------------------------------------#
+stress_block_size = 4
+stress_dim        = 3
+#------------------------------------------------------------------------------#
+
+# FTRAJECTORY
+#-------------------------------------------------------------------------------
+# Contains: positions, velocity and forces in atomic units for each step
+# Structure:
+# 1 line per atom per step
+# Per line:
+# atom_number time x y z vx vy vz fx fy fz
+#-------------------------------------
+# Time in timestep (accounts for stride_traj)
+# Positions in Bohr
+# Velocities in Bohr/tHart
+# Forces in Ha/Bohr
+#--------------------------------------
+# When restarting run, a misc line that needs to be ignored
+# <<<<<<  NEW DATA  >>>>>>
+#-------------------------------------
+col_start_velocity = 4
+col_start_position = 1
+col_start_force    = 7
+#------------------------------------------------------------------------------#
+
 # Read input file / Extract informations from it
 #--------------------------------------------------------------------------------
 # Extract timestep of simulation from input file
@@ -297,22 +348,8 @@ function computeTimestep( file_path::T1 ) where { T1 <: AbstractString }
 end
 #--------------------------------------------------------------------------------
 
-
-# Reading ENERGIES file
-#-----------------------------------------
-# Contains: Temperature, Potential Energy, Total Energy, MSD and Computing time for each step
-# Structure:
-# 1 line per step, per column:
-# time, temperature, potential energy, total energy, MSD, Computing time
-#----------------------------------------------------------------------------
-col_time  = 1    # Time elapsed in simulation
-col_temp  = 3    # Temperature
-col_poten = 4    # Potential Energy
-col_entot = 5    # Total Energy
-col_msd   = 7    # MSD
-col_comp  = 8    # Computing time for SCF
-#----------------------------------------------------------------------------
 # Get number of step in ENERGIES file
+#----------------------------------------------------------------------------
 function getNbStepEnergies( file_path::T1 ) where { T1 <: AbstractString }
     # Argument
     # - file_path: path to the ENERGIES file
@@ -345,7 +382,11 @@ function getNbStepEnergies( file_path::T1 ) where { T1 <: AbstractString }
     # Number of step
     return nb_step
 end
-# Reads ENERGIES file
+#----------------------------------------------------------------------------
+
+# Reading ENERGIES file
+#----------------------------------------------------------------------------
+# Reads ENERGIES file simply
 function readEnergies( file_path::T1 ) where { T1 <: AbstractString }
     # Argument
     # - file_path: path to the ENERGIES file
@@ -396,138 +437,224 @@ function readEnergies( file_path::T1 ) where { T1 <: AbstractString }
 end
 # Reads ENERGIES file with a given stride
 function readEnergies( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T2 <: Int  }
+    # Argument
+    # - file_path: path to the ENERGIES files
+    # - stride_ : stride to the ENERGIES files
+    # Output
+    # - temp: Temperature
+    # - epot: Potential Energy
+    # - etot: Total Energy
+    # - msd: Mean Square Displacement
+    # - comp: Computational step for SCF
+    # OR return false, false, false, false, false
 
-    # Check file
-    #----------------------------------------
+    # Get number of step of the file
     nb_step_origin =  getNbStepEnergies( file_path )
+
+    # If there was a problem reading number of step, returns false
     if nb_step_origin == false
         return false, false, false, false, false
     end
-    #----------------------------------------
 
-    # Array Init
-    #----------------------------------------
+    # Compute number of step of the vector output
     nb_step = utils.nbStepStriding( nb_step_origin, stride_ )
-    temp = zeros( nb_step )
-    epot = zeros( nb_step )
-    etot = zeros( nb_step )
-    msd  = zeros( nb_step )
-    comp = zeros( nb_step )
-    #----------------------------------------
 
-    # Getting data from lines
-    #----------------------------------------------
-    file_in = open(file_path)
+    # Initialize data vectors
+    temp = zeros( nb_step ) # Temperature
+    epot = zeros( nb_step ) # Potential Energy
+    etot = zeros( nb_step ) # Total Energy
+    msd  = zeros( nb_step ) # MSD
+    comp = zeros( nb_step ) # Computational time of SCF
+
+    # Opens input file
+    handle_in = open( file_path )
+
+    # Initialize step counter
     count_=1
+
+    # Loop over steps
     for step=1:nb_step_origin
+        # Reading each line, and parsing with " " deliminator
         line=split( readline(file_in) )
+
+        # Check that the line is within the one of the stride
         if (step-1) % stride_ == 0
-            temp[count_] = parse( Float64, line[col_temp] )
-            epot[count_] = parse( Float64, line[col_poten] )
-            etot[count_]  = parse( Float64, line[col_entot] )
-            msd[count_]   = parse( Float64, line[col_msd] )
-            comp[count_]  = parse( Float64, line[col_comp] )
+            # Read data into vector
+            temp[count_] = parse( Float64, line[col_temp]  ) # Temperature
+            epot[count_] = parse( Float64, line[col_poten] ) # Potential Energy
+            etot[count_] = parse( Float64, line[col_entot] ) # Total Energy
+            msd[count_]  = parse( Float64, line[col_msd]   ) # MSD
+            comp[count_] = parse( Float64, line[col_comp]  ) # Computational time of SCF
+
+            # Increments counter
             count_ += 1
         end
     end
-    close(file_in)
-    #----------------------------------------------
 
+    # Close input file
+    close(file_in)
+
+    # Return vector data
     return  temp, epot, etot, msd, comp
 end
+# Reads ENERGIES file with a given stride with a given number of step ignored
 function readEnergies( file_path::T1, stride_::T2, nb_ignored::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int  }
+    # Argument
+    # - file_path: path to the ENERGIES file (string)
+    # - stride_: stride to read the data with
+    # - nb_ignored: number of ignored steps in the begining of the file
+    # Output
+    # - temp: Temperature
+    # - epot: Potential Energy
+    # - etot: Total Energy
+    # - msd: Mean Square Displacement
+    # - comp: Computational step for SCF
+    # OR return false, false, false, false, false
 
-    # Check file
-    #----------------------------------------
+    # Get number of step in the ENERGIES file
     nb_step_origin =  getNbStepEnergies( file_path )
+
+    # If something went wrong while reading the number of step, returns false
     if nb_step_origin == false
         return false, false, false, false, false
     end
-    #----------------------------------------
 
-    # Array Init
-    #----------------------------------------
-    nb_step = utils.nbStepStriding( nb_step_origin-nb_ignored, stride_ )
-    temp = zeros(nb_step)
-    epot = zeros(nb_step)
-    etot = zeros(nb_step)
-    msd  = zeros(nb_step)
-    comp = zeros(nb_step)
-    #----------------------------------------
+    # Initialize data vectors
+    nb_step = utils.nbStepStriding( nb_step_origin - nb_ignored, stride_ )
 
-    # Getting data from lines
-    #----------------------------------------------
-    file_in = open(file_path)
-    count_=1
+    # Initialize data vectors
+    temp = zeros( nb_step ) # Temperature
+    epot = zeros( nb_step ) # Potential energy
+    etot = zeros( nb_step ) # Total energy
+    msd  = zeros( nb_step ) # MSD
+    comp = zeros( nb_step ) # Computational time of SCF step
+
+    # Opens input file
+    handle_in = open( file_path )
+
+    # Initialize step counter
+    count_ = 1
+
+    # Loop over the first nb_ignored step
     for step=1:nb_ignored
-        temp=readline(file_in)
+        # Read current line, in empty
+        readline( handle_in )
     end
-    for step=1:nb_step_origin-nb_ignored
-        line=split( readline(file_in) )
-        if (step-1) % stride_ == 0 && step
-            temp[count_] = parse( Float64, line[col_temp] )
-            epot[count_] = parse( Float64, line[col_poten] )
-            etot[count_]  = parse( Float64, line[col_entot] )
-            msd[count_]   = parse( Float64, line[col_msd] )
-            comp[count_]  = parse( Float64, line[col_comp] )
+
+    # Loop over steps minus those ignored
+    for step=1:nb_step_origin - nb_ignored
+        # Reading line, parsing with " " deliminator
+        line=split( readline( handle_in ) )
+
+        # Check that the current step is among those of the stride
+        if (step-1) % stride_ == 0
+            temp[count_] = parse( Float64, line[col_temp]  ) # Temperature
+            epot[count_] = parse( Float64, line[col_poten] ) # Potential energy
+            etot[count_] = parse( Float64, line[col_entot] ) # Total energy
+            msd[count_]  = parse( Float64, line[col_msd]   ) # MSD
+            comp[count_] = parse( Float64, line[col_comp]  ) # Computation time of SCF
+
+            # Increments step counter
             count_ += 1
         end
     end
-    close(file_in)
-    #----------------------------------------------
 
+    # Close input file
+    close(file_in)
+
+    # Return data arrays
     return  temp, epot, etot, msd, comp
 end
+# Reads ENERGIES file with a given stride with a given number of step ignored and a maximum number of steps
 function readEnergies( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T4 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int, T4 <: Int  }
+    # Argument
+    # - file_path: path to the ENERGIES file (string)
+    # - stride_: stride to read the data with
+    # - nb_ignored: number of ignored steps in the begining of the file
+    # - nb_max: number of maximum step
+    # Output
+    # - temp: Temperature
+    # - epot: Potential Energy
+    # - etot: Total Energy
+    # - msd: Mean Square Displacement
+    # - comp: Computational step for SCF
+    # OR return false, false, false, false, false
 
-    # Check file
+    # Get the number of steps in the original file
     nb_step_origin =  getNbStepEnergies( file_path )
+
+    # If there is a problem with the reading of number of step, return false
     if nb_step_origin == false
         return false, false, false, false, false
     end
 
-    # Array Init
-    #---------------------------------------
-    nb_step = utils.nbStepStriding( nb_step_origin-nb_ignored, stride_ )
-    if nb_max > nb_step
-        print("nb_max is too large, maximum value is ",nb_step,"\n")
-    end
-    if nb_max <= 0
-        print("nb_max must be positive!\n")
-    end
-    temp=zeros(nb_max)
-    epot=zeros(nb_max)
-    etot=zeros(nb_max)
-    msd=zeros(nb_max)
-    comp=zeros(nb_max)
-    #----------------------------------------
+    # compute number of steps after striding
+    nb_step = utils.nbStepStriding( nb_step_origin - nb_ignored, stride_ )
 
-    # Getting data from lines
-    #----------------------------------------------
-    file_in = open(file_path)
-    for step=1:nb_ignored
-        temp=readline(file_in)
+    # If number of step is larger than the max number of steps
+    if nb_max > nb_step
+        nb_step = nb_max
     end
-    count_=1
+
+    # If the number of step is negative, return false
+    if nb_max <= 0
+        print( "nb_max must be positive!\n" )
+        return false
+    end
+
+    # Initialization of data vectors
+    temp = zeros(nb_max) # temperature
+    epot = zeros(nb_max) # potential energy
+    etot = zeros(nb_max) # total energy
+    msd  = zeros(nb_max) # MSD
+    comp = zeros(nb_max) # Computation Time in SCF
+
+    # Opening input file
+    handle_in = open( file_path )
+
+    # Looping over the step to ignore
+    for step=1:nb_ignored
+        # Read in empty all lines to ignore
+        readline( handle_in )
+    end
+
+    # Initialize counter to 1
+    count_ = 1
+
+    # Loop over steps
     for step=1:nb_step_origin - nb_ignored
-        line=split( readline(file_in) )
+        # Reading and parsing line with " " deliminator
+        line = split( readline( handle_in ) )
+
+        # Checking that step is amongst those of the stride
         if (step-1) % stride_ == 0
-            temp[count_] = parse( Float64, line[col_temp] )
-            epot[count_] = parse( Float64, line[col_poten] )
-            etot[count_]  = parse( Float64, line[col_entot] )
-            msd[count_]   = parse( Float64, line[col_msd] )
-            comp[count_]  = parse( Float64, line[col_comp] )
+            temp[count_] = parse(Float64, line[col_temp]  )
+            epot[count_] = parse(Float64, line[col_poten] )
+            etot[count_] = parse(Float64, line[col_entot] )
+            msd[count_]  = parse(Float64, line[col_msd]   )
+            comp[count_] = parse(Float64, line[col_comp]  )
+
+            # If the step counter is larger than the maximum number of steps
+            # Breaking loop
             if count_ >= nb_max
                 break
             end
+
+            # Increments counter
             count_ += 1
         end
     end
-    close(file_in)
-    #----------------------------------------------
 
+    # Closing input file
+    close(file_in)
+
+    # Return data vectors
     return  temp, epot, etot, msd, comp
 end
+#----------------------------------------------------------------------------
+
+# Write ENERGIES file
+#----------------------------------------------------------------------------
 function writeEnergies( file_path::T1, temp::Vector{T2}, epot::Vector{T3}, etot::Vector{T4}, msd::Vector{T5}, comp::Vector{T6} ) where { T1 <: AbstractString, T2 <: Real, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
     nb_step=size(temp)[1]
     file_output = open( file_path, "w" )
@@ -547,21 +674,8 @@ function writeEnergies( file_path::T1, temp::Vector{T2}, epot::Vector{T3}, etot:
 end
 #----------------------------------------------------------------------------
 
-
-#------------------------
 # Reading STRESS file
-#------------------------------------------------------------------------------#
-# Contains: Stress tensor for each step (with a possible stride)
-# Structure:
-# 4 lines per step
-# line 1: Comment (indicates step number)
-# line 2-4: stress tensor in matrix form
-# Sxx Sxy Sxz
-# Syx Syy Syz
-# Szx Szy Szz
-#------------------------------------------------------------------------------#
-stress_block_size=4
-stress_dim=3
+#----------------------------------------------------------------------------
 function getNbStepStress( file_path::T1 ) where { T1 <: AbstractString }
     # Check if file exists
     if ! isfile( file_path )
@@ -584,6 +698,10 @@ function getNbStepStress( file_path::T1 ) where { T1 <: AbstractString }
     # Returns number of blocks
     return Int(nb_line/stress_block_size)
 end
+#------------------------------------------------------------------------------#
+
+
+#------------------------------------------------------------------------------#
 function readStress( file_path::T1 ) where { T1 <: AbstractString }
 
     # Checking file exists
@@ -793,6 +911,10 @@ function readStress( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T4 ) wh
 
     return stress
 end
+#------------------------------------------------------------------------------#
+
+
+#------------------------------------------------------------------------------#
 function writeStress( file_path::T1, stress_tensor::Array{T2,3} ) where { T1 <: AbstractString, T2 <: Real }
     nb_step=size(stress_tensor)[1]
     file_out = open( file_path, "w" )
@@ -810,26 +932,8 @@ function writeStress( file_path::T1, stress_tensor::Array{T2,3} ) where { T1 <: 
 end
 #------------------------------------------------------------------------------#
 
-
 # Read FTRAJECTORY file
-#-------------------------------------------------------------------------------
-# Contains: positions, velocity and forces in atomic units for each step
-# Structure:
-# 1 line per atom per step
-# Per line:
-# atom_number time x y z vx vy vz fx fy fz
-#-------------------------------------
-# Time in timestep (accounts for stride_traj)
-# Positions in Bohr
-# Velocities in Bohr/tHart
-# Forces in Ha/Bohr
-#--------------------------------------
-# When restarting run, a misc line that needs to be ignored
-# <<<<<<  NEW DATA  >>>>>>
-#-------------------------------------
-col_start_velocity=4
-col_start_position=1
-col_start_force=7
+#------------------------------------------------------------------------------#
 function getNbStepAtomsFtraj( file_path::T1 ) where { T1 <: AbstractString }
 
     if ! isfile( file_path )
@@ -861,6 +965,10 @@ function getNbStepAtomsFtraj( file_path::T1 ) where { T1 <: AbstractString }
 
     return Int(nb_line/nb_atoms), nb_atoms
 end
+#------------------------------------------------------------------------------#
+
+# Read FTRAJECTORY file
+#------------------------------------------------------------------------------#
 function readFtraj( file_path::T1 ) where { T1 <: AbstractString }
 
     # Getting number of line of file and checking existence of file
@@ -1045,6 +1153,9 @@ function readFtraj( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T4 ) whe
 
     return positions, velocities, forces
 end
+#-------------------------------------------------------------------------------
+
+#-------------------------------------------------------------------------------
 function writeFtraj( file_path::T1, positions::Array{T2,3}, velocities::Array{T3,3}, forces::Array{T4,3} ) where { T1 <: AbstractString, T2 <: Real, T3 <: Real, T4 <: Real }
     nb_step = size(positions)[1]
     nb_atoms = size(positions)[2]
@@ -1415,6 +1526,7 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_path::T2 ) where { T1 
 end
 #-------------------------------------------------------------------------------
 
+#-------------------------------------------------------------------------------
 function cpmdArcheology( folder_target::T1 , output_suffix::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
 
     #---------------------------------------------------------
@@ -1463,5 +1575,7 @@ function cpmdArcheology( folder_target::T1 , output_suffix::T2 ) where { T1 <: A
 
     return true
 end
+#-------------------------------------------------------------------------------
+
 
 end
