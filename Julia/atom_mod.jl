@@ -5,6 +5,11 @@ using utils
 using geom
 using periodicTable
 
+# Export structures
+export AtomList
+export AtomTraj
+export AtomMolList
+
 # Export all functions
 export atomList2Traj
 export switchAtoms!

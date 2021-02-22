@@ -8,8 +8,10 @@ using graph
 # Import necessary modules from Julia default repo
 using LinearAlgebra
 
-# Export useful functions
+# Export structures
 export Cell_param, Cell, CellAll
+
+# Export useful functions
 export matrix2Params, params2Matrix
 export invertCell
 export getVolume
@@ -1309,7 +1311,7 @@ function growCell( cell::T1, n_grow::Vector{T2} ) where { T1 <: Cell_param, T2 <
     return growCell( params2Matrix(cell), n_grow )
 end
 # Making a supercell using the n_grow indexes to decide in which direction to grow
-function makeSuperCell( atoms::T1, cell_matrix::Array{T2,2}, n_grow::Vector{T3} ) where { T1 <: AtomList, T2 <: Real, T3 <: Int }
+function makeSuperCell( atoms::T1, cell_matrix::Array{T2,2}, n_grow::Vector{T3} ) where { T1 <: atom_mod.AtomList, T2 <: Real, T3 <: Int }
     # Get number of atoms in the original cell
     nb_atoms_base = size(atoms.names)[1]
 
