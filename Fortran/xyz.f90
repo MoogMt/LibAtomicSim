@@ -17,7 +17,7 @@ subroutine getnbatoms( file_path , str_len, handle_nb, nb_atoms )
   integer, intent(in) :: handle_nb                ! number of the file handle
   character(len=str_len), intent(in) :: file_path ! String containing the input file name
   ! Output
-  integer, intent(out) :: nb_atoms ! number of atoms 
+  integer, intent(out) :: nb_atoms                ! number of atoms 
 
   ! Opens input file
   open( handle_nb, file=file_path, status="old" )
@@ -36,18 +36,16 @@ subroutine getnbatomssteps( file_path, str_len, handle_nb, nb_atoms, nb_steps )
   ! All intents have to be explicitely written
   implicit none
 
-  ! Arguments
-  integer, intent(in) :: str_len
-  integer, intent(in) :: handle_nb 
-  character(len=str_len), intent(in) :: file_path
-
+  ! Arguments 
+  integer, intent(in) :: str_len                  ! length of the string of the path/name of the input file
+  integer, intent(in) :: handle_nb                ! handler number for the file handling
+  character(len=str_len), intent(in) :: file_path ! name or path of the input file
   ! Output 
-  integer, intent(out) :: nb_steps
-  integer, intent(out) :: nb_atoms
-
+  integer, intent(out) :: nb_steps                ! number of steps in the trajectory
+  integer, intent(out) :: nb_atoms                ! number of atoms in the trajectory
   ! Local variables
-  integer :: sel
-  integer :: err  
+  integer :: sel                                  ! frame counter, counts the lines within a single trajectory frame
+  integer :: err                                  ! error handler for the file manipulation
 
   ! Get number of atoms
   getnbatoms( file_path, str_len, handle_nb, nb_atoms )
@@ -89,7 +87,7 @@ end subroutine getnbatomssteps
 ! Read an xyz traj and returns positions
 !--------------------------------------------------------------
 subroutine readxyztraj( file_path, str_len, handle_nb, n_steps, n_atoms, traj )
-
+  ! All variables intent have to be declared
   implicit none
 
   ! Arguments
@@ -107,7 +105,7 @@ subroutine readxyztraj( file_path, str_len, handle_nb, n_steps, n_atoms, traj )
   integer:: atom, step
 
   ! Get number of atoms and steps in the trajectory
-  call getnbatomssteps(file_path,str_len,n_atoms,n_steps)
+  call getnbatomssteps( file_path, str_len, handle_nb, n_atoms, n_steps )
 
   ! Allocate tensor for atom positions in traj
   allocate( positions(n_steps, n_atoms, 3) )
@@ -116,21 +114,20 @@ subroutine readxyztraj( file_path, str_len, handle_nb, n_steps, n_atoms, traj )
   open( handle_nb, file=file_path, status="old" )
   do step=1,n_steps
     ! Read the number of atom line
-    read(handle_nb, * )
+    read( handle_nb, * )
 
     ! Read the comment line
-    read(handle_nb, * )
+    read( handle_nb, * )
 
     ! Loop over atoms
     do atom=1,n_atoms
       ! Read line for each atom with atom name and atom positions 
-      read(handle_nb,*) dummy_name, traj(step,atom,1),traj(step,atom,2),traj(step,atom,3)
+      read( handle_nb, * ) dummy_name, positions( step, atom, 1 ), positions( step, atom, 2 ), positions( step, atom, 3 )
     enddo
   enddo
 
   ! Close input file
-  close(handle_nb)
-
+  close( handle_nb )
 end subroutine readxyztraj
 !--------------------------------------------------------------
 
