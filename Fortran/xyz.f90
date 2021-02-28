@@ -48,7 +48,7 @@ subroutine getnbatomssteps( file_path, str_len, handle_nb, nb_atoms, nb_steps )
   integer :: err                                  ! error handler for the file manipulation
 
   ! Get number of atoms
-  getnbatoms( file_path, str_len, handle_nb, nb_atoms )
+  call getnbatoms( file_path, str_len, handle_nb, nb_atoms )
 
   ! Init output variable
   nb_steps=0
@@ -86,7 +86,7 @@ end subroutine getnbatomssteps
 
 ! Read an xyz traj and returns positions
 !--------------------------------------------------------------
-subroutine readxyztraj( file_path, str_len, handle_nb, n_steps, n_atoms, traj )
+subroutine readxyztraj( file_path, str_len, handle_nb, n_steps, n_atoms, positions )
   ! All variables intent have to be declared
   implicit none
 

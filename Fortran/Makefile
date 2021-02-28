@@ -4,7 +4,7 @@ SHELL = /bin/sh
 FC = gfortran
 FFLAGS= -ffree-form
 
-ALL = utils xyz
+ALL = utils conversion xyz
 
 $(ALL):
 	-$(FC) -c $@.f90
