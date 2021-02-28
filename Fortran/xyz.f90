@@ -108,7 +108,7 @@ subroutine readxyztraj( file_path, str_len, handle_nb, n_steps, n_atoms, traj )
   call getnbatomssteps( file_path, str_len, handle_nb, n_atoms, n_steps )
 
   ! Allocate tensor for atom positions in traj
-  allocate( positions(n_steps, n_atoms, 3) )
+  allocate( positions(3, n_atoms, n_steps) )
 
   ! Opens input file
   open( handle_nb, file=file_path, status="old" )
@@ -122,7 +122,7 @@ subroutine readxyztraj( file_path, str_len, handle_nb, n_steps, n_atoms, traj )
     ! Loop over atoms
     do atom=1,n_atoms
       ! Read line for each atom with atom name and atom positions 
-      read( handle_nb, * ) dummy_name, positions( step, atom, 1 ), positions( step, atom, 2 ), positions( step, atom, 3 )
+      read( handle_nb, * ) dummy_name, positions( 1, atom, step ), positions( 2, atom, step ), positions( 3, atom, step )
     enddo
   enddo
 
