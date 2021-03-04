@@ -93,25 +93,26 @@ mutable struct AtomTraj
         # - Creates a trajectory
 
         # Creates default empty AtomTraj
-        new( [], zeros(Int,0), zeros(Real,0) )
+        new( [], zeros(Int,0), zeros(Real,3,0,0) )
     end
     function AtomTraj( names::Vector{T1}, index::Vector{T2}, positions::Vector{T3} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real }
         # Argument
         # - names: vector of string with the name of atoms
         # - index: vector of int, with the index of atoms
-        # - positions: array of real (nb_atoms,3), with the positions of atoms
+        # - positions: array of real (3,nb_atoms,nb_step), with the positions of atoms
         # Output
         # - Creates AtomTraj
 
         # If sizes of all vectors/array match, creates an AtomTraj
-        if size(names)[1] == size(index)[1] && size(names)[1] == size(positions)[1]
+        if size(names)[1] == size(index)[1] && size(names)[1] == size(positions)[2]
             new( names, index, positions )
+
         # If not, sends an error message and returns false
         else
             print("Sizes do not match: \n")
             print("names: ", size(names)[1], "\n" )
             print("index: ", size(index)[1], "\n" )
-            print("positions: ", size(positions)[1], "\n" )
+            print("positions: ", size(positions)[2], "\n" )
             return false
         end
     end
@@ -140,7 +141,7 @@ mutable struct AtomMolList
         # - A default AtomMolList object
 
         # Creates object
-        new( Vector{AbstractString}( undef, 0 ),Vector{Int}(undef, 0 ) ,Vector{AbstractString}(undef, 0 ), Vector{Int}(undef, nb_atoms ), Array{Real}(undef, 0, 3 ) )
+        new( Vector{AbstractString}( undef, 0 ),Vector{Int}(undef, 0 ) ,Vector{AbstractString}(undef, 0 ), Vector{Int}(undef, nb_atoms ), Array{Real}(undef, 3, 0 ) )
     end
     # Create default AtomMolList with a given number of atoms
     function AtomMolList( nb_atoms::T1 ) where { T1 <: Int }
@@ -148,7 +149,7 @@ mutable struct AtomMolList
         # - nb_atoms: number of atoms of the AtomMolList object
         # Output
         # - An AtomMolList object
-        new( Vector{AbstractString}(undef, nb_atoms ),Vector{Int}(undef, nb_atoms ) ,Vector{AbstractString}(undef, nb_atoms ), Vector{Int}(undef, nb_atoms ), Array{Real}(undef, nb_atoms, 3 ) )
+        new( Vector{AbstractString}(undef, nb_atoms ),Vector{Int}(undef, nb_atoms ) ,Vector{AbstractString}(undef, nb_atoms ), Vector{Int}(undef, nb_atoms ), Array{Real}(undef, 3, nb_atoms ) )
     end
     # Create AtomMolList
     function AtomMolList( atom_names::Vector{T1}, atom_index::Vector{T2}, mol_names::Vector{T3}, mol_index::Vector{T4}, positions::Array{T5,2} ) where { T1 <: AbstractString, T2 <: Int, T3 <: AbstractString, T4 <: Int, T5 <: Real }
@@ -162,7 +163,7 @@ mutable struct AtomMolList
         # - An AtomMolList object
 
         # Creates the AtomMolList object
-        new( Vector{AbstractString}(undef, nb_atoms ),Vector{Int}(undef, nb_atoms ) ,Vector{AbstractString}(undef, nb_atoms ), Vector{Int}(undef, nb_atoms ), Array{Real}(undef, nb_atoms, 3 ) )
+        new( Vector{AbstractString}(undef, nb_atoms ),Vector{Int}(undef, nb_atoms ) ,Vector{AbstractString}(undef, nb_atoms ), Vector{Int}(undef, nb_atoms ), Array{Real}(undef, 3, nb_atoms ) )
     end
     #---------------------------------------------------
 end
@@ -181,18 +182,18 @@ function atomList2Traj( positions::Array{T1,3}, names::Vector{T2}, index::Array{
 
 
     # Get number of steps of trajectory
-    nb_step = size(positions)[1]
+    nb_step = size( positions )[3]
 
     # Get number of atoms
-    nb_atoms = size(positions)[2]
+    nb_atoms = size( positions )[2]
 
     # Initialize output
-    traj = Vector{ AtomList }( undef, nb_step)
+    traj = Vector{ AtomList }( undef, nb_step )
 
     # Loop over steps
     for step=1:nb_step
         # construct AtomList for each step
-        traj[step] = AtomList( names, index, positions[step,:,:])
+        traj[step] = AtomList( names, index, positions[ :, :, step ] )
     end
 
     # Return trajectory as a vector of AtomList
@@ -206,13 +207,13 @@ function atomList2Array( traj::Vector{T1} ) where { T1 <: AtomList }
     # - positions: Array containing atomic positions real, size (nb_atoms,3)
 
     # Get number of steps of the trajectory
-    nb_step=size(traj)[1]
+    nb_step = size( traj )[1]
 
     # Get the number of atoms in the structure
-    nb_atoms=size(traj[1].names)[1]
+    nb_atoms = size( traj[1].names )[1]
 
     # Initialize positions
-    positions=zeros(nb_step,nb_atoms,3)
+    positions = zeros( 3, nb_atoms, nb_step )
 
     # Loop over step
     for step=1:nb_step
@@ -236,19 +237,19 @@ function switchAtoms!( atoms::T1 , index1::T2, index2::T3 ) where { T1 <: AtomLi
     # - None
 
     # Stores data from 1
-    index_    = atoms.index[ index1 ]
-    name_     = atoms.names[ index1 ]
-    position_ = atoms.positions[ index1, : ]
+    index_    = atoms.index[        index1 ]
+    name_     = atoms.names[        index1 ]
+    position_ = atoms.positions[ :, index1 ]
 
     # Moving data from 2 to 1
-    atoms.index[ index1 ]        = atoms.index[ index2 ]
-    atoms.names[ index1 ]        = atoms.names[ index2 ]
-    atoms.positions[ index1, : ] = atoms.positions[ index2, : ]
+    atoms.index[        index1 ] = atoms.index[        index2 ]
+    atoms.names[        index1 ] = atoms.names[        index2 ]
+    atoms.positions[ :, index1 ] = atoms.positions[ :, index2 ]
 
     # Moving data from storage to2 2
-    atoms.index[index2]       = index_
-    atoms.names[index2]       = name_
-    atoms.positions[index2,:] = position_
+    atoms.index[        index2 ] = index_
+    atoms.names[        index2 ] = name_
+    atoms.positions[ :, index2 ] = position_
 
     return
 end
@@ -273,25 +274,25 @@ function switchAtoms!( atoms::T1 , index1::T2, index2::T3 ) where { T1 <: AtomMo
     # - None
 
     # Stores data from atom index 1
-    a_index   = atoms.atom_index[index1]
-    a_name    = atoms.atom_names[index1]
-    m_index   =  atoms.mol_index[index1]
-    m_name    =  atoms.mol_names[index1]
-    positions =  atoms.positions[index1,:]
+    a_index   = atoms.atom_index[    index1 ]
+    a_name    = atoms.atom_names[    index1 ]
+    m_index   =  atoms.mol_index[    index1 ]
+    m_name    =  atoms.mol_names[    index1 ]
+    positions =  atoms.positions[ :, index1 ]
 
     # Moves data from atom index2 into atom index1
-    atoms.atom_index[index1]  = atoms.atom_index[index2]
-    atoms.atom_names[index1]  = atoms.atom_names[index2]
-    atoms.mol_index[index1]   = atoms.mol_index[index2]
-    atoms.mol_names[index1]   = atoms.mol_names[index2]
-    atoms.positions[index1,:] = atoms.positions[index2,:]
+    atoms.atom_index[  index1 ] = atoms.atom_index[   index2 ]
+    atoms.atom_names[  index1 ] = atoms.atom_names[   index2 ]
+    atoms.mol_index[   index1 ] = atoms.mol_index[    index2 ]
+    atoms.mol_names[   index1 ] = atoms.mol_names[    index2 ]
+    atoms.positions[ :,index1 ] = atoms.positions[ :, index2 ]
 
     # Moves data from storage to atom index2
-    atoms.atom_index[index2]  = a_index
-    atoms.atom_names[index2]  = a_name
-    atoms.mol_index[index2]   = m_index
-    atoms.mol_names[index2]   = m_name
-    atoms.positions[index2,:] = positions
+    atoms.atom_index[  index2 ]  = a_index
+    atoms.atom_names[  index2 ]  = a_name
+    atoms.mol_index[   index2 ]  = m_index
+    atoms.mol_names[   index2 ]  = m_name
+    atoms.positions[ :,index2 ] = positions
 
     return
 end
@@ -372,7 +373,7 @@ function moveAllAtom( atoms::T1 , move::Vector{T2} ) where { T1 <: atom_mod.Atom
     for atom=1:size(atoms.positions)[1]
         # Loop over dimensions
         for i=1:3
-            atoms2.positions[atom,i] += move[i]
+            atoms2.positions[ i, atom ] += move[i]
         end
     end
 
@@ -391,102 +392,11 @@ function moveAllAtom!( atoms::T1 , move::Vector{T2} ) where { T1 <: atom_mod.Ato
     for atom=1:size(atoms.positions)[1]
         # Loop over dimensions
         for i=1:3
-            atoms.positions[atom,i] += move[i]
+            atoms.positions[ i, atom ] += move[i]
         end
     end
 
     return
-end
-#-------------------------------------------------------------------------------
-
-
-#-------------------------------------------------------------------------------
-
-# Functions to get the number of steps/atoms from
-# - an AtomList or vector of AtomList
-# - an AtomMolList or vector of AtomMolList
-#-------------------------------------------------------------------------------
-# Extract the number of atoms from an AtomList
-function getNbAtoms( atoms::T1 ) where { T1 <: AtomList }
-    # Argument
-    # - atoms: Structure described by an AtomList
-    # Return
-    # - number of atoms in the AtomList
-
-    # Returns the number of atoms in AtomList
-    return size( atoms.names )[1]
-end
-# Extract the number of atoms from a vector of AtomList
-# - assumes that this is a trajectory, not a set of structure with different number of atoms
-function getNbAtoms( traj::Vector{T1} ) where { T1 <: AtomList }
-    # Argument
-    # - traj: vector of AtomList, containing atom positions
-    # Output
-    # - number of atoms in the trajectory
-
-    # Return the number of atoms in the trajectory
-    return getNbAtoms( traj[1] )
-end
-# Extract the number of atoms from an AtomMolList
-function getNbAtoms( atoms::T1 ) where { T1 <: AtomMolList }
-    # Argument
-    # - atoms: Structure described by an AtomMolList
-    # Return
-    # - number of atoms in the AtomMolList
-
-    # Returns the number of atoms in AtomMolList
-    return size( atoms.atom_names )[1]
-end
-# Extract the number of atoms from a vector of AtomMolList
-# - assumes that this is a trajectory, not a set of structure with different number of atoms
-function getNbAtoms( traj::Vector{T1} ) where { T1 <: AtomMolList }
-    # Argument
-    # - traj: vector of AtomMolList, containing atom positions
-    # Output
-    # - number of atoms in the trajectory
-
-    # Return the number of atoms in the trajectory
-    return getNbAtoms( traj[1] )
-end
-# Get the maximum number of molecules in an AtomMolList
-function getNbMolecules( atoms::T1 ) where { T1 <: AtomMolList }
-    # Argument
-    # - atoms: AtomMolList containing atomic positions
-    # Output
-    # - number of molecules in the frame
-
-    # Return the number of molecules (maximum index of molecules)
-    return max( atoms.mol_index )
-end
-# Get the maximum number of molecules in a vector of AtomMolList
-function getNbMolecules( traj::Vector{T1} ) where { T1 <: AtomMolList }
-    # Argument
-    # - traj: vector of AtomMolList containing atomic positions of the trajectory
-    # Output
-    # - number of molecules in the trajectory (assuming it does not change)
-
-    # Return the number of molecules (maximum index of molecules)
-    return getNbMolecules( traj[1] )
-end
-# Get the number of steps in the trajectory made up of a vector of AtomList
-function getNbStep( traj::Vector{T1} ) where { T1 <: AtomList }
-    # Argument
-    # - traj: vector of AtomList
-    # Output
-    # number of steps of the vector
-
-    # Return the size of the trajectory
-    return size( traj )[1]
-end
-# Get the number of steps in the trajectory made up of a vector of AtomMolList
-function getNbStep( traj::Vector{T1} ) where { T1 <: AtomMolList }
-    # Argument
-    # - traj: vector of AtomMolList
-    # Output
-    # number of steps of the vector
-
-    # Return the size of the trajectory
-    return size( traj )[1]
 end
 #-------------------------------------------------------------------------------
 
@@ -872,22 +782,22 @@ function buildNames( species::Vector{T1}, nb_species::Vector{T2} ) where { T1 <:
     # - names: names of the species?
 
     # Get number of atoms in the cell
-    nb_atoms=sum(nb_species)
+    nb_atoms = sum( nb_species )
 
     # Get number of species
-    nb_species_=size(nb_species)[1]
+    nb_species_ = size( nb_species )[1]
 
     # Initialize output
-    names=Vector{AbstractString}(undef,nb_atoms)
+    names = Vector{AbstractString}( undef, nb_atoms )
 
     # Loop over species
     for i_spec=1:nb_species_
         # Find where the specie starts in the vector
-        start_ = sum( nb_species[1:i_spec-1])
+        start_ = sum( nb_species[1:i_spec-1] )
         # Loop over atom
         for atom_spec=1:nb_species[i_spec]
             # Affect all the element of the vector in the range to loop-specie
-            names[start_+atom_spec] = species[i_spec]
+            names[ start_ + atom_spec ] = species[ i_spec ]
         end
     end
 
@@ -907,7 +817,7 @@ function distanceNoPBC( atoms::T1, index1::T2, index2::T3 ) where { T1 <: AtomLi
     # - distance between atoms index1 and index2
 
     # Computes and return the distance betweens the atoms
-    return geom.distance( atoms.positions[index1], atoms.positions[index2,:] )
+    return geom.distance( atoms.positions[ :, index1 ], atoms.positions[ :, index2 ] )
 end
 #-------------------------------------------------------------------------------
 

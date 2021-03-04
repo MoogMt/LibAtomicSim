@@ -59,10 +59,10 @@ mutable struct Traj
         # return the default Traj structure
         new( Array{AbstractString,1}( undef, nb_atoms ),              # Atom_names
              Array{Int,1}(            undef, nb_atoms ),              # Atom_index
-             Array{Real,3}(           undef, nb_step, nb_atoms, 3 ),  # Atom_position
-             Array{Real,2}(           undef, nb_step, 3 ),            # Cell_lengths
-             Array{Real,2}(           undef, nb_step, 3 ),            # Cell_angles
-             Array{Real,3}(           undef, nb_step, 3, 3 ),         # Cell_matrix
+             Array{Real,3}(           undef, 3, nb_atoms, nb_step ),  # Atom_position
+             Array{Real,2}(           undef, 3, nb_step ),            # Cell_lengths
+             Array{Real,2}(           undef, 3, nb_step ),            # Cell_angles
+             Array{Real,3}(           undef, 3, 3, nb_step ),         # Cell_matrix
             )
     end
     # Creates a Traj with a single atom using its name, index and position (vector), with no definite cell, defining a default cell instead (lengths=1A, angles=90°)
@@ -75,15 +75,15 @@ mutable struct Traj
         # - Creates a trajectory object for the single atom
 
         # Converting the vector into a tensor form
-        positions = zeros(1,1,3)
-        positions[1,1,:] = atom_positions
+        positions = zeros( 3, 1, 1 )
+        positions[:,1,1] = atom_positions
 
         # Creating cell_matrix
-        cell_matrix = zeros(1,3,3)
-        cell_matrix[1,:,:] = Matrix{Real}(I,3,3)*1.0
+        cell_matrix = zeros(Real, 3, 3, 1 )
+        cell_matrix[:,:,1] = Matrix{Real}(I, 3, 3 )*1.0
 
         # Creating the traj object
-        new( [atom_name], [atom_index], positions, ones(1, 3), ones(1,3)*90, cell_matrix );
+        new( [atom_name], [atom_index], positions, ones(Real,3,1), ones(Real,3,1)*90, cell_matrix );
     end
     # Creates a Traj witha  single atom using its name and positions (vector real), with no definite cell
     function Traj(  atom_name::T1, atom_positions::Vector{T3} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real }
@@ -109,15 +109,15 @@ mutable struct Traj
         nb_atoms = size(positions)[1]
 
         # Converting the vector into a tensor form
-        positions = zeros( 1, nb_atoms, 3 )
-        positions[1,1,:] = atom_positions
+        positions = zeros( 3, nb_atoms, 1 )
+        positions[:,1,1] = atom_positions
 
         # Creating cell_matrix
-        cell_matrix = zeros(1,3,3)
-        cell_matrix[1,:,:] = Matrix{Real}(I,3,3)*1.0
+        cell_matrix = zeros(3,3,1)
+        cell_matrix[:,:,1] = Matrix{Real}(I,3,3)*1.0
 
         # Creating the traj object
-        new( atom_names, atom_indexes, positions, ones(1, 3), ones(1,3)*90, cell_matrix )
+        new( atom_names, atom_indexes, positions, ones(Real, 3, 1 ), ones(Real, 3, 1 )*90.0, cell_matrix )
     end
     # Creates a Traj with an AtomList, with no definite cell, defining a default cell instead (lengths=1A, angles=90°)
     function Traj(  atoms::T1 ) where { T1 <: atom_mod.AtomList }
@@ -142,19 +142,19 @@ mutable struct Traj
         # - Trajectory with a single step and a single position
 
         # Initialize positions to tensor form
-        positions = zeros(1,1,3)
-        positions[1,1,:] = atom_positions
+        positions = zeros(Real, 3, 1, 1 )
+        positions[:,1,1] = atom_positions
 
         # Converts cell lengths to matrix form
-        cell_lengths_ = zeros(1,3)
+        cell_lengths_ = zeros(Real, 3, 1 )
         cell_lengths_ = cell_lengths
 
         # Converts cell angles to matrix form
-        cell_angles_  = zeros(1,3)
+        cell_angles_  = zeros(Real, 3, 1 )
         cell_angles_  = cell_angles
 
         # Converts cell matrix to tensor form
-        cell_matrix_  = zeros(1,3,3)
+        cell_matrix_  = zeros(Real, 3, 3, 1 )
         cell_matrix_  = cell_matrix
 
         new( [atom_name], [atom_index], positions, cell_lengths_, cell_angles_, cell_matrix_ );
@@ -168,7 +168,7 @@ mutable struct Traj
         # - Trajectory with a single step and a single position
 
         # Returns the Trajectory
-        new( atoms.names[1], atoms_index[1], atoms.positions[1,:], cell_params.lengths, cell_params.angles, cell_mod.params2Matrix(cell_params) );
+        new( atoms.names[1], atoms_index[1], atoms.positions[:,1], cell_params.lengths, cell_params.angles, cell_mod.params2Matrix(cell_params) );
     end
     # Creates a Traj from atom_names (vector), index(vector), positions(tensor),  cell lengths (matrix real), cell angles (matrix angles), matrix (real tensor)
     function Traj(  atom_names::Array{T1,1}, atom_index::Array{T2,1}, atom_positions::Array{T3,3}, cell_lengths::Array{T4,2}, cell_angles::Array{T5,2}, cell_matrix::Array{T6,3} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
@@ -194,20 +194,20 @@ mutable struct Traj
             print( "Mismatch in number of atoms between data: \n" )
             print( "atom_names: ", nb_atoms,"\n" )
             print( "atom_index: ", size(atom_index)[1], "\n" )
-            print( "atom_positions: ",size(atom_positions)[3] )
+            print( "atom_positions: ",size(atom_positions)[2] )
             print( "Aborting." )
             # And return false
             return false
         end
 
         # Checking that the various size of array concerning number of step match
-        if nb_step != size(cell_lengths)[1] || nb_step != size(cell_angles)[1] || nb_step != size(cell_matrix)[1]
+        if nb_step != size(cell_lengths)[2] || nb_step != size(cell_angles)[2] || nb_step != size(cell_matrix)[2]
             # If fails, send information about the size of the various arrays
             print( "Mismatch in number of steps between data: \n" )
-            print( "atom_positions: ", nb_step, "\n" )
-            print( "cell_lengths: ", size(cell_lengths)[1], "\n" )
-            print( "cell_angles: ", size(cell_angles)[1], "\n" )
-            print( "cell_matrix: ", size(cell_matrix)[1], "\n" )
+            print( "atom_positions: ", nb_step,               "\n" )
+            print( "cell_lengths: ",   size(cell_lengths)[2], "\n" )
+            print( "cell_angles: ",    size(cell_angles)[2],  "\n" )
+            print( "cell_matrix: ",    size(cell_matrix)[2],  "\n" )
             print( "Aborting." )
             # And return false
             return false

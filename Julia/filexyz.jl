@@ -170,7 +170,7 @@ function readStructureAtomList( file_path::T1 ) where { T1 <: AbstractString }
         # Loop over dimensions
         for i=1:3
             # The element 2-4 are atomic positions, cast them into float and put them in AtomList positions
-            atoms.positions[ atom, i ] = parse( Float64, keywords[ i+1 ] )
+            atoms.positions[ i, atom ] = parse( Float64, keywords[ i+1 ] )
         end
     end
 
@@ -228,7 +228,7 @@ function readFileAtomList( file_path::T1 ) where { T1 <: AbstractString }
             # Loop over dimensions
             for i=1:3
                 # Parse the position as elements 2-4
-                traj[step].positions[ atom, i ] = parse( Float64, keywords[ i+1 ] )
+                traj[step].positions[ i, atom ] = parse( Float64, keywords[ i+1 ] )
             end
         end
     end
@@ -296,7 +296,7 @@ function readFileAtomList( file_path::T1, stride_::T2 ) where { T1 <: AbstractSt
                 # Loop over dimensions
                 for i=1:3
                     # Parse elements 2-4 as atomic positions
-                    traj[count_step].positions[ atom, i ] = parse( Float64, keywords[ i+1 ] )
+                    traj[count_step].positions[ i, atom ] = parse( Float64, keywords[ i+1 ] )
                 end
             end
 
@@ -377,7 +377,7 @@ function readFileAtomList( file_path::T1, stride_::T2, nb_ignored::T3 ) where { 
                 # Loop over dimensions
                 for i=1:3
                     # Elements 2-4 are atomic positions, parsing string into floats
-                    traj[count_step].positions[ atom, i ] = parse( Float64, keywords[ i+1 ] )
+                    traj[count_step].positions[ i, atom ] = parse( Float64, keywords[ i+1 ] )
                 end
             end
             # Increment step counter
@@ -465,7 +465,7 @@ function readFileAtomList( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T
                 # Loop over dimension
                 for i=1:3
                     # The elements 2-4 are casted from String to Float as atomic positions
-                    traj[count_step].positions[ atom, i ] = parse( Float64, keywords[ i+1 ] )
+                    traj[count_step].positions[ i, atom ] = parse( Float64, keywords[ i+1 ] )
                 end
             end
 
@@ -491,6 +491,59 @@ function readFileAtomList( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T
     # Returns Vector of AtomList for the trajectory
     return traj
 end
+# Reads the first step of an *.xyz and returns positions and names
+function readStructure( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file_path: path to the *.xyz file
+    # Output
+    # - positions: matrix (nb_atoms,3) contains the atomic positions
+    # - names: vector (nb_atoms) contains the atoms names
+    # OR false if something went wrong
+
+    # Get number of lines of the file
+    nb_lines = getNbLines( file_path )
+
+    # Check if something is the file exists or is empty
+    if nb_lines == false || nb_lines == 0
+        # If the file does not exists or empty, sends a message and return false
+        print("File at: ",file_path," is either empty or does not exists.\n")
+        return false, false
+    end
+
+    # Opens file
+    handle_in = open( file_path )
+
+    # Get the number of atoms in the structure as the first element of the first line
+    # + cast String into Int
+    nb_atoms = parse(Int64, split( readline( handle_in ) )[1] )
+
+    # Skipping comment line
+    temp=readline( handle_in )
+
+    # Initialize positions output
+    atoms = zeros( nb_atoms, 3)
+
+    # Initialize name of atoms
+    names = vector{AbstractString}(undef, nb_atoms )
+
+    # Loop over atoms
+    for atom=1:nb_atoms
+        # Reads line and split with " " deliminator
+        keywords=split( readline(handle_in) )
+
+        # First element is the atom name
+        names[atom] = keywords[1]
+
+        # Loop over dimensions
+        for i=1:3
+            # The element 2-4 are atomic positions, cast them into float and put them in AtomList positions
+            positions[ i, atom ] = parse( Float64, keywords[ i+1 ] )
+        end
+    end
+
+    # Return positions and names of atoms
+    return positions, names
+end
 #------------------------------------------------------------------------------
 
 # Writing XYZ File To Disk (currently solely from AtomList structures )
@@ -515,11 +568,11 @@ function writeXYZ( file_handle::T1, atoms::T2 ) where { T1 <: IOStream, T2 <: at
     # Loop over atoms
     for atom=1:nb_atoms
         # Write atom name
-        Base.write( file_handle, string( atoms.names[i] , " "  ) )
+        Base.write( file_handle, string( atoms.names[ atom ] , " "  ) )
 
         # Loop over dimensions
-        for j=1:3
-            Base.write( file_handle, string( atoms.positions[i,j] , " " ) )
+        for i=1:3
+            Base.write( file_handle, string( atoms.positions[ i, atom ] , " " ) )
         end
 
         # Write end line
@@ -538,7 +591,7 @@ function writeXYZ( file_handle::T1, traj::Vector{T2} ) where { T1 <: IOStream, T
     # - Bool: whether the file was written successfully
 
     # Get number of steps
-    nb_step=size(traj)[1]
+    nb_step = size(traj)[1]
 
     # Loop over steps
     for step=1:nb_step
@@ -577,12 +630,12 @@ function writeXYZ( file_path::T1, atoms::T2 ) where { T1 <: AbstractString, T2 <
     # Loop over atoms
     for atom=1:nb_atoms
         # Write atom name at the begining of the line
-        write( file_out, string( atoms.names[atom], " " ) )
+        write( file_out, string( atoms.names[ atom ], " " ) )
 
         # Loop over dimensions
         for i=1:3
             # Write atomic positions
-            write( file_out, string( atoms.positions[atom,i] , " ") )
+            write( file_out, string( atoms.positions[ i, atom ] , " ") )
         end
 
         # Write end of line

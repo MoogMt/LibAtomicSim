@@ -49,7 +49,7 @@ mutable struct Cell_param
         # Cell_param that describes the cell
 
         # Construct Object
-        new( ones(Real,3), ones(Real,3)*90.0 );
+        new( ones(Real, 3 ), ones(Real, 3 )*90.0 );
     end
     # Create a orthorombic cell, based on lengths parameters given as a vector
     function Cell_param( lengths::Vector{T1} ) where { T1 <: Real }
@@ -133,7 +133,7 @@ mutable struct Cell
     # Create a default cell (lengths=1,angles=90)
     function Cell()
         # Create Object
-        new( ones(Real,3), ones(3)*90.0, Matrix{Real}(I,3,3)*1.0 )
+        new( ones( Real, 3 ), ones(Real, 3 )*90.0, Matrix{Real}( I, 3, 3 )*1.0 )
     end
     # Create an orthorombic cell using provided lengths
     function Cell( a::T1, b::T2, c::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Real }
@@ -214,7 +214,7 @@ mutable struct CellAll
         # - Creates the CellAll Object or false if the matrix is not invertible
 
         # Create matrix
-        matrix=zeros(3,3)
+        matrix = zeros(Real, 3, 3 )
         matrix[1,1] = a
         matrix[2,2] = b
         matrix[3,3] = c
@@ -225,7 +225,7 @@ mutable struct CellAll
         end
 
         # Create Object
-        new( [a,b,c], ones(3)*90.0, matrix, inv(matrix) )
+        new( [a,b,c], ones(Real, 3 )*90.0, matrix, inv(matrix) )
     end
     # Create lengths using provided lengths and angles (in degrees)
     function CellAll( a::T1, b::T2, c::T3, alpha::T4, beta::T5, gamma::T6 ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 <: Real, T5 <: Real, T6 <: Real }
@@ -237,11 +237,11 @@ mutable struct CellAll
 
         # Converts angles in radians
         alpha2 = alpha*pi/180
-        beta2 = beta*pi/180
+        beta2  = beta*pi/180
         gamma2 = gamma*pi/180
 
         # Creating the cell matrix
-        matrix = zeros(3,3)
+        matrix = zeros(Real, 3, 3 )
         matrix[1,1] = a
         matrix[1,2] = b*cos( gamma2 )
         matrix[1,3] = c*cos( beta2 )
@@ -251,7 +251,7 @@ mutable struct CellAll
         matrix[3,3] = c*volume/sin( gamma2 )
 
         #Check that the matrix is invertible
-        if det(matrix) == 0
+        if det( matrix ) == 0
             return false
         end
 
@@ -273,8 +273,8 @@ function matrix2Params( cell_matrix::Array{T1,2} )  where { T1 <: Real }
     # Computing lengths (no conversion is attempted here)
     #---------------------------------------------------------------------
     length = zeros( Real, 3 )
-    for col=1:3
-        for line=1:3
+    for line=1:3
+        for col=1:3
             length[col] += cell_matrix[line,col]*cell_matrix[line,col]
         end
         length[col] = sqrt( length[col] )
@@ -283,7 +283,7 @@ function matrix2Params( cell_matrix::Array{T1,2} )  where { T1 <: Real }
 
     # Computing angles, converting to degrees
     #---------------------------------------------------------------------
-    tau=180/pi
+    tau = 180.0/pi
     angles = zeros(Real, 3 )
     angles[1] = acos( sum( cell_matrix[:,2].*cell_matrix[:,3] )/(length[2]*length[3]) )*tau
     angles[2] = acos( sum( cell_matrix[:,1].*cell_matrix[:,3] )/(length[1]*length[3]) )*tau
@@ -308,7 +308,7 @@ function matrix2Params( cell_matrices::Array{T1,3} ) where { T1 <: Real }
 
     # Loop over time
     for step=1:nb_step
-        cells_params[step] = matrix2Params( cell_matrices[step,:,:] )
+        cells_params[step] = matrix2Params( cell_matrices[ step, :, :] )
     end
 
     # Return object
@@ -322,11 +322,11 @@ function params2Matrix( cell_params::T1 ) where { T1 <: Cell_param }
     # - matrix: cell_matrix, contains all information about the cell in matrix form
 
     # Initialize output
-    matrix=zeros(3,3)
+    matrix=zeros(Real, 3, 3 )
 
     # Makes a copy of the parameters
-    lengths=copy( cell_params.length)
-    angles=copy(cell_params.angles)*pi/180 # Converts angles from degrees to radians
+    lengths = copy( cell_params.length)
+    angles  = copy( cell_params.angles)*pi/180.0 # Converts angles from degrees to radians
 
     # Compute matrix parameters
     #-----------------------------------------------------
@@ -350,19 +350,19 @@ function params2Matrix( cells_params::Vector{T1} ) where { T1 <: Cell_param }
     # - Tensor contaning the cell trajectory as cell matrices, with time on the third dimension of the tensor
 
     # Get number of step of trajectory
-    nb_step = size(cells_params)[1]
+    nb_step = size( cells_params )[1]
 
     # Number of dimensions
     ndim = 3
 
     # Initialize output
-    cells_ = zeros(Real, nb_step, ndim, ndim )
+    cells_ = zeros(Real, ndim, ndim, nb_step )
 
     # Loop over time
     #----------------------------
     for step=1:nb_step
         # Conversion
-        cells_[step,:,:] = params2Matrix( cells_params[step] )
+        cells_[:,:,step] = params2Matrix( cells_params[step] )
     end
     #----------------------------
 
@@ -474,11 +474,11 @@ function wrap( atoms::T1, cell::Array{T2,2} ) where { T1 <: atom_mod.AtomList, T
     nb_atoms=size(atoms.names)[1]
     for atom=1:nb_atoms
         for i=1:3
-            if atoms.positions[atom,i] < 1
-                atoms.positions[atom,i] += 1
+            if atoms.positions[  i, atom ] < 1
+                atoms.positions[ i, atom ] += 1
             end
-            if atoms.positions[atom,i] > 1
-                atoms.positions[atom,i] -= 1
+            if atoms.positions[  i, atom ] > 1
+                atoms.positions[ i, atom ] -= 1
             end
         end
     end
@@ -499,9 +499,9 @@ function wrap( atoms::T1, cell::T2 ) where { T1 <: atom_mod.AtomList, T2 <: Cell
     # - atoms (transformed): atomic positions, wrapped in the cell, AtomList format
 
     # Loop over all the atoms contained in the frame
-    for i=1:size(atoms.positions)[1]
-        for j=1:3
-            atoms.positions[i,j] = wrap( atoms.positions[i,j],cell.length[j])
+    for atom=1:size(atoms.positions)[1]
+        for i=1:3
+            atoms.positions[j,atom] = wrap( atoms.positions[ i, atom ], cell.length[j] )
         end
     end
 
@@ -517,12 +517,12 @@ function wrap( traj::Vector{T1}, cell::T2 ) where { T1 <: atom_mod.AtomList, T2 
     # - traj (transformed): set of AtomList frames, positions wrapped in the cell
 
     # Get the number of frames
-    nb_frames=size(traj)[1]
+    nb_frames = size(traj)[1]
 
     # Loop over the frames
-    for frame =1:nb_frame
+    for frame=1:nb_frame
         # Wrapping each frame
-        traj[frame] = wrap( traj[frame], cell )
+        traj[ frame ] = wrap( traj[frame], cell )
     end
 
     # Return the wrapped set
@@ -539,7 +539,7 @@ function wrap( molecules::T1, cell::T2 ) where { T1 <: atom_mod.AtomMolList, T2 
     # Loop over frames
     for atom=1:size(molecules.positions)[1]
         for j=1:3
-            molecules.positions[i,j] = wrap( molecules.positions[atom,j], cell.length[j] )
+            molecules.positions[ i, atom ] = wrap( molecules.positions[ i, atom ], cell.length[i] )
         end
     end
 
@@ -559,7 +559,7 @@ function wrap( positions::Array{T1,2}, cell::T2 ) where { T1 <: Real, T2 <: Cell
         # Loop over dimension
         for i=1:3
             # Wrapping in each dimension
-            positions[atom,i] = wrap( positions[atom,i],cell.length[i] )
+            positions[ i, atom ] = wrap( positions[ i, atom ], cell.length[i] )
         end
     end
 
@@ -575,7 +575,7 @@ function wrap( positions::Vector{T1}, cell::T2 ) where { T1 <: Real, T2 <: Cell_
     # Loop over dimensions
     for i=1:3
         # Wrapping over dimensions
-        positions[i] = wrap( positions[i],cell.length[i] )
+        positions[i] = wrap( positions[i], cell.length[i] )
     end
 
     # Return the atomic position
@@ -600,13 +600,13 @@ function unWrapStructureOrtho!( positions::Array{T1,2}, reference::T2, target::T
     # Loop over the dimensions
     for i=1:3
         # Compute distance between target and reference
-        dist = ( positions[reference,i] - positions[target,i] )
+        dist = ( positions[ i, reference ] - positions[ i, target ] )
         # If distance is larger than half the size of the box, unwrap
         if dist > cell.length[i]*0.5
-            positions[target,i] += cell.length[i]
+            positions[ i, target ] += cell.length[i]
         # If distance is smaller than - half the size of the box, unwrap
         elseif dist < -cell.length[i]*0.5
-            positions[target,i] -= cell.length[i]
+            positions[ i, target ] -= cell.length[i]
         end
     end
 
@@ -627,14 +627,14 @@ function unWrapStructureOrtho!( structure::T1, reference::T2, target::T3, cell::
     # Loop over dimensions
     for i=1:3
         # Compute distance between reference and target
-        dist = ( structure.positions[reference,i] - structure.positions[target,i] )
+        dist = ( structure.positions[ i, reference ] - structure.positions[ i, target ] )
 
         # If distance is larger than half the cell, unwrap
         if dist > cell.length[i]*0.5
-            structure.positions[target,i] += cell.length[i]
+            structure.positions[ i, target ] += cell.length[ i ]
         # If distance is smaller than minus half the cell, unwrap
         elseif dist < -cell.length[i]*0.5
-            structure.positions[target,i] -= cell.length[i]
+            structure.positions[ i, target ] -= cell.length[ i ]
         end
     end
 
@@ -671,6 +671,7 @@ function unWrapStructureOrthoOnce!( visited::Vector{T1}, adjacency_table::Vector
         end
     end
 
+    # Stops
     return
 end
 #-------------------------------------------------------------------------------
@@ -690,10 +691,10 @@ function getTransformedPosition( target_vector::Vector{T1}, cell_matrix::Array{T
     # Initialize output
     vector=zeros(3)
 
-    # Loop over dimension 1
-    for i=1:3
-        # Loop over dimension 2
-        for j=1:3
+    # Loop over dimension 2
+    for j=1:3
+        # Loop over dimension 1
+        for i=1:3
             vector[i] += cell_matrix[i,j]*target_vector[j]
         end
     end
@@ -712,15 +713,15 @@ function getTransformedPosition( target_matrix::Array{T1,2}, cell_matrix::Array{
     # - matrix_transformed: Transformed positions in matrix form (nb_atoms,3)
 
     # Get number of atoms
-    nb_atoms = size( target_matrix )[1]
+    nb_atoms = size( target_matrix )[2]
 
     # Initialize output
-    matrix_transformed = zeros( nb_atoms, 3 )
+    matrix_transformed = zeros( 3, nb_atoms )
 
     # Loop over atoms
     for atom=1:nb_atoms
         # Transforms each atomic positions
-        matrix_transformed[ atom, : ] = getTransformedPosition( target_matrix[ atom,: ], cell_matrix )
+        matrix_transformed[ :, atom ] = getTransformedPosition( target_matrix[ :, atom ], cell_matrix )
     end
 
     # Returns the transformed positions
@@ -755,7 +756,7 @@ function cartesian2Reduced( target_matrix::Array{T1,2}, cell_matrix::Array{T2,2}
     # if matrix is not inversible, returns false
 
     # Computes the inverse of the cell matrix
-    inv_cell_matrix=invertCell(cell_matrix)
+    inv_cell_matrix = invertCell( cell_matrix )
 
     # If cell_matrix is not inversible, returns false
     if inv_cell_matrix == false
@@ -763,12 +764,12 @@ function cartesian2Reduced( target_matrix::Array{T1,2}, cell_matrix::Array{T2,2}
     end
 
     # Initialize output (may not be necessary)
-    reduced_positions=copy(target_matrix)
+    reduced_positions = copy(target_matrix)
 
     # Loop over all atoms
     for atom=1:size(target_matrix)[1]
         # Transform each atomic position into reduced form
-        reduced_positions[atom,:] = getTransformedPosition( target_matrix[atom,:], inv_cell_matrix )
+        reduced_positions[ :, atom ] = getTransformedPosition( target_matrix[ :, atom ], inv_cell_matrix )
     end
 
     # Return reduced coordinates of all atoms
@@ -783,12 +784,12 @@ function reduced2Cartesian( positions_reduced::Vector{T1}, cell_matrix::Array{T2
     # - new_positions: cartesian coordinates of the atom corresponding to the reduced
 
     # Initialize output
-    new_positions=zeros(Real,3)
+    new_positions = zeros(Real, 3 )
 
-    # Loop over cartesian coordinates dimension
-    for i=1:3
-        # Loop over reduced coordinates dimension
-        for j=1:3
+    # Loop over reduced coordinates dimension
+    for j=1:3
+        # Loop over cartesian coordinates dimension
+        for i=1:3
             new_positions[i] += positions_reduced[j]*cell_matrix[i,j]
         end
     end
@@ -807,7 +808,7 @@ function reduced2Cartesian( positions_reduced::Array{T1,2}, cell_matrix::Array{T
     # Loop over all the atoms
     for atom=1:size(positions_reduced)[1]
         # Transforms the positions to cartesian
-        positions_reduced[atom,:] = reduced2Cartesian( positions_reduced[atom,:], cell_matrix )
+        positions_reduced[ :, atom ] = reduced2Cartesian( positions_reduced[ :, atom ], cell_matrix )
     end
 
     # Returns the cartesian coordinates
@@ -850,7 +851,7 @@ function distanceOrtho( v1::Vector{T1}, v2::Vector{T2}, cell_length::Vector{T3} 
     # - distance between v1 and v2 (real value, positive)
 
     # Initialize output
-    dist=0
+    dist = 0
 
     # Loop over dimensions
     for i=1:size(v1)[1]
@@ -859,7 +860,7 @@ function distanceOrtho( v1::Vector{T1}, v2::Vector{T2}, cell_length::Vector{T3} 
     end
 
     # Return distance
-    return sqrt(dist)
+    return sqrt( dist )
 end
 # Computes the distance between two atoms in a set of positions (matrix form)
 # - works for orthorombic only
@@ -877,7 +878,7 @@ function distanceOrtho( positions::Array{T1,2}, cell::T2, index1::T3, index2::T4
     # Loop over dimensions
     for i=1:3
         # Compute distance in each dimension
-        dist +=  dist1D( positions[index1,i], positions[index2,i], cell.length[i] )
+        dist +=  dist1D( positions[ i, index1], positions[ i, index2 ], cell.length[i] )
     end
 
     # Returns distance
@@ -919,7 +920,7 @@ function distanceOrtho( atoms::T1, cell::T2, index1::T3, index2::T4 ) where { T1
     # Loop over dimension
     for i=1:3
         # Compute distance squared in all dimensions
-        dist += dist1D( atoms.positions[index1,i], atoms.positions[index2,i], cell.length[i] )
+        dist += dist1D( atoms.positions[ i, index1 ], atoms.positions[ i, index2 ], cell.length[i] )
     end
 
     # Return distance
@@ -964,7 +965,7 @@ function distance( atoms::T1, cell::T2, index1::T3, index2::T4 ) where { T1 <: a
     # Loop over dimensions
     for i=1:3
         # Compute distance squared in each dimensions
-        dis += dist1D( atoms.positions[index1,i],atoms.positions[index2,i], cell.length[i] )
+        dis += dist1D( atoms.positions[ i, index1 ], atoms.positions[ i, index2 ], cell.length[i] )
     end
 
     # Returns the distance between two atoms
@@ -979,7 +980,7 @@ function distance( v1::Vector{T1}, v2::Vector{T2}, cell_matrix::Array{T3,2} ) wh
     # - distance between v1 and v2, real positive scalar
 
     # Compute inverse of the cell
-    inverse_cell =  inv(cell_matrix)
+    inverse_cell = inv( cell_matrix )
 
     # Converts positions from cartesian to reduced
     v1_scaled = getTransformedPosition( v1, inverse_cell )
@@ -995,7 +996,7 @@ function distance( v1::Vector{T1}, v2::Vector{T2}, cell_matrix::Array{T3,2} ) wh
     end
 
     # Descaling distance
-    ds = getTransformedPosition(ds,cell_matrix)
+    ds = getTransformedPosition( ds, cell_matrix )
 
     # Returns distance
     return sqrt( dot( ds, ds ) )
@@ -1004,23 +1005,23 @@ end
 function distance( v1::Vector{T1}, v2::Vector{T2}, cell_matrix::Array{T3,2}, inv_cell_matrix::Array{T4,2} ) where { T1 <: Real, T2 <: Real, T3 <: Real, T4 <: Real }
 
     # Converts cartesian coordinates to reduced coordinates
-    v1_scaled=getTransformedPosition(v1, inv_cell_matrix )
-    v2_scaled=getTransformedPosition(v2, inv_cell_matrix )
+    v1_scaled = getTransformedPosition( v1, inv_cell_matrix )
+    v2_scaled = getTransformedPosition( v2, inv_cell_matrix )
 
     # Initialize distance in reduced coordinates
-    ds=zeros(3)
+    ds = zeros(3)
 
     # Computes Distance with PBC
     for i=1:3
-        ds[i] = v1_scaled[i]-v2_scaled[i]
+        ds[i] = v1_scaled[i] - v2_scaled[i]
         ds[i] = ds[i] - round(ds[i])
     end
 
     # Descaling of distance vector
-    ds=getTransformedPosition(ds,cell_matrix)
+    ds = getTransformedPosition( ds, cell_matrix )
 
     # Returns distance
-    return sqrt(dot(ds,ds))
+    return sqrt( dot( ds, ds ) )
 end
 # Computes the distance between two atoms, works for all cells (but slower), with Cell_param to describe the cell
 function distance( v1::Vector{T1}, v2::Vector{T2}, cell_params::T3 ) where { T1 <: Real, T2 <: Real, T3 <: Cell_param }
@@ -1046,10 +1047,10 @@ function velocityFromPosition( traj::Vector{T1}, dt::T2, dx=1::T3 ) where { T1 <
     # dt: timestep for the trajectory
     # dx: conversion of the distance units (optional)
     # Output:
-    # velocities: array(nb_step,nb_atoms,3) containing velocities of atoms
+    # velocities: array(3,nb_atoms,nb_step) containing velocities of atoms
 
     # Initialize output
-    velocities = zeros( size(traj)[1]-1, size(traj[1].names)[1], 3 )
+    velocities = zeros( 3,  size( traj[1].names )[1], size( traj )[1] - 1 )
 
     # Loop over all step (minus 1, as we can't compute the velocity for the last step)
     for step=1:size(traj)[1]-1
@@ -1058,7 +1059,7 @@ function velocityFromPosition( traj::Vector{T1}, dt::T2, dx=1::T3 ) where { T1 <
             # Loop over dimensions
             for i=1:3
                 # Compute velocity component i for atom at step
-                velocities[step,atom,i] = dx*( traj[step].positions[atom,i] - traj[step+1].positions[atom,i] )/dt
+                velocities[ i, atom, step ] = dx*( traj[ step ].positions[ i, atom ] - traj[ step + 1 ].positions[ i, atom ] )/dt
             end
         end
     end
@@ -1213,10 +1214,10 @@ function findUnlinked( matrix::Array{T1,2},  positions::Array{T2,2} , cell::T3, 
     # - list: Array (nb_pair,2) that contains all pairs of atoms that are unlinked by unwrapping
 
     # Init list of unlinked atoms
-    list=Array{Int}(undef,0,2)
+    list = Array{Int}(undef, 0, 2 )
 
     # Get the size of the molecule
-    size_molecule=size(matrix)[1]
+    size_molecule = size( matrix )[1]
 
     # Loop over atoms in the molecule
     for atom=1:size_molecule
@@ -1225,24 +1226,24 @@ function findUnlinked( matrix::Array{T1,2},  positions::Array{T2,2} , cell::T3, 
             # Checking that atoms that should be bonded are bonded
             # matrix[atom1,atom2] : the truth value
             # norm(...) : whether atoms are bonded post unwrapping
-            if matrix[atom,atom2] == 1 && norm(positions[atom,:]-positions[atom2,:]) > cut_off
+            if matrix[ atom, atom2 ] == 1 && norm( positions[ atom, : ] - positions[ atom2, : ] ) > cut_off
                 # If there is no unbonded atoms
-                if size(list)[1] == 0
+                if size( list )[1] == 0
                     # Adding atoms that are problematic to the list
-                    list = vcat( list, [ molecule_indexs[atom] molecule_indexs[atom2] ] )
+                    list = vcat( list, [ molecule_indexs[ atom ] molecule_indexs[ atom2 ] ] )
                 else
                     # Checking that we haven't already added the pair
                     check = true
                     # Loop over all atoms in the list
                     for i=1:size(list)[1]
-                        if list[i,:] == [ molecule_indexs[atom], molecule_indexs[atom2] ]
+                        if list[ i, : ] == [ molecule_indexs[ atom ], molecule_indexs[ atom2 ] ]
                             check = false
                         end
                     end
                     # If the atoms are not in the list...
                     if check
                         # We add the atom to the list
-                        list = vcat( list, [ molecule_indexs[atom] molecule_indexs[atom2] ] )
+                        list = vcat( list, [ molecule_indexs[ atom ] molecule_indexs[ atom2 ] ] )
                     end
                 end
             end
@@ -1265,12 +1266,12 @@ function computeMoveVector( index::Vector{T1}, cell_matrix::Array{T2,2} ) where 
     # - moveVector: A vector by which to move all atoms of a cell to create a supercell
 
     # Initialize output
-    moveVector = zeros(Real,3)
+    moveVector = zeros(Real, 3 )
 
-    # Loop over dimension
-    for i=1:3
-        # Second loop over dimension
-        for j=1:3
+    # Second loop over dimension
+    for j=1:3
+        # Loop over dimension
+        for i=1:3
             # Compute the move
             moveVector[i] += index[i]*cell_matrix[i,j]
         end
@@ -1292,7 +1293,7 @@ function growCell( cell::Array{T1,2}, n_grow::Vector{T2} ) where { T1 <: Real, T
 
     # Constructing new cell
     for i=1:3
-        cell2[:,i] = cell[:,i]*n_grow[i]
+        cell2[:,i] = cell[ :, i ]*n_grow[i]
     end
 
     # Returns the modified cell
@@ -1308,7 +1309,7 @@ function growCell( cell::T1, n_grow::Vector{T2} ) where { T1 <: Cell_param, T2 <
 
     # Computes the cell matrix,
     # Compute and returns the supercell
-    return growCell( params2Matrix(cell), n_grow )
+    return growCell( params2Matrix( cell ), n_grow )
 end
 # Making a supercell using the n_grow indexes to decide in which direction to grow
 function makeSuperCell( atoms::T1, cell_matrix::Array{T2,2}, n_grow::Vector{T3} ) where { T1 <: atom_mod.AtomList, T2 <: Real, T3 <: Int }
@@ -1317,6 +1318,8 @@ function makeSuperCell( atoms::T1, cell_matrix::Array{T2,2}, n_grow::Vector{T3} 
 
     # Compute the number off atoms in the final cell
     nb_atoms_new = nb_atoms_base
+
+    # Loop over dimensions
     for i=1:3
         nb_atoms_new *= n_grow[i]
     end
@@ -1336,17 +1339,20 @@ function makeSuperCell( atoms::T1, cell_matrix::Array{T2,2}, n_grow::Vector{T3} 
 
                 # Compute the move vector for all atoms of the original cell
                 moveVector = zeros(Real,3)
-                for xyz=1:3
-                    for v123=1:3
-                        moveVector[xyz] += move_box[v123]*cell_matrix[xyz,v123]
+
+                # Loop 2 over dimension
+                for v123=1:3
+                    # Loop 1 over dimension
+                    for xyz=1:3
+                        moveVector[ xyz ] += move_box[v123]*cell_matrix[xyz,v123]
                     end
                 end
 
                 # Move all atoms by the move vector to populate the larger cell
                 for atom = 1:nb_atoms_base
-                    new_atoms.positions[count_,:] = atoms.positions[atom,:] .+ moveVector[:]
-                    new_atoms.names[count_] = atoms.names[atom]
-                    new_atoms.index[count_] = 1
+                    new_atoms.positions[ :, count_ ] = atoms.positions[ :, atom ] .+ moveVector[:]
+                    new_atoms.names[        count_ ] = atoms.names[ atom ]
+                    new_atoms.index[        count_ ] = 1
                 end
 
             end
@@ -1364,6 +1370,7 @@ function makeSuperCell( atoms::T1, cell_matrix::Array{T2,2}, n_grow::Vector{T3} 
         new_atoms.index[i] = i
     end
 
+    # Returns new atoms and cell
     return new_atoms, cell_mod.cellMatrix2Params( super_cell )
 end
 #-------------------------------------------------------------------------------
@@ -1381,11 +1388,11 @@ function toOrthoByCut( cell_matrix::Array{T1,2} ) where { T1 <: Real }
     lengths = zeros( Real, 3 )
 
     # Aligne direction 1 along the x axis
-    lengths[1] = LinearAlgebra.norm( cell_matrix[:,1] )
+    lengths[1] = LinearAlgebra.norm( cell_matrix[ :, 1 ] )
 
     # Loop to compute the lengths in the other directions
-    for i=2:3
-        for j=1:3
+    for j=1:3
+        for i=2:3
             lengths[j] += cell.matrix[i,j]
         end
     end
