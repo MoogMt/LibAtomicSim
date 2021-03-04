@@ -189,7 +189,7 @@ function readPOSCAR( path_file::T1 ) where { T1 <: AbstractString }
             # Loop over dimension for matrix product to convert reduced into cartesian coordinates
             for j=1:3
                 # Transform reduced coordinates into cartesian
-                atoms.positions[atom,i] += matrix2[j,i]*temp[j]
+                atoms.positions[ i, atom ] += matrix2[ j, i ]*temp[j]
             end
         end
 
@@ -266,14 +266,14 @@ function readPoscarOut( path_file::T1, species::Vector{T2}, nb_species::Vector{T
             # Loop over index
             for i=1:3
                 # Parse the positions, converts strings to float and converts from bohr to angstroms
-                traj[step].positions[atom,i] = parse( Float64, keys[i] )*conversion.bohr2Ang
+                traj[ step ].positions[ i, atom ] = parse( Float64, keys[i] )*conversion.bohr2Ang
             end
 
             # Put the name of the atoms in
-            traj[step].names[atom] = names_[atom]
+            traj[ step ].names[ atom ] = names_[atom]
 
             # Put the index of the atoms in
-            traj[step].index[atom] = atom
+            traj[ step ].index[ atom ] = atom
         end
 
     end
@@ -317,7 +317,7 @@ function readPoscarOut( path_file::T1, species::Vector{T2}, nb_species::Vector{T
     end
 
     # Computes number of step of trajectory
-    nb_step = Int(nb_lines/nb_atoms)
+    nb_step = Int( nb_lines/nb_atoms )
 
     # Initialize trajectory
     traj = Vector{AtomList}( undef, nb_step )
@@ -349,20 +349,20 @@ function readPoscarOut( path_file::T1, species::Vector{T2}, nb_species::Vector{T
             # Loop over dimension
             for i=1:3
                 # Read, parse positions from string to real, and converts from bohr to angstrom
-                traj[step].positions[atom,i] = parse( Float64, keys[i] )*conversion.bohr2Ang
+                traj[step].positions[ i, atom ] = parse( Float64, keys[i] )*conversion.bohr2Ang
             end
 
             # conversion of positions
-            positions_temp = matrix2 * inv_matrix * traj[step].positions[atom,:]
+            positions_temp = matrix2 * inv_matrix * traj[step].positions[ :, atom ]
 
             # Copies atomic positions to AtomList
-            traj[step].positions[atom,:] = positions_temp
+            traj[ step ].positions[ :, atom ] = positions_temp
 
             # Copies names of atom to AtomList
-            traj[step].names[atom] = names_[atom]
+            traj[ step ].names[ atom ] = names_[ atom ]
 
             # Copies index of atom to AtomList
-            traj[step].index[atom] = atom
+            traj[ step ].index[ atom ] = atom
         end
 
     end
@@ -387,6 +387,7 @@ function readPoscarTraj( input_path::T1, poscar_path::T2, cell_length_path::T3, 
 
     # Get the species and number of atoms per species
     species, species_nb = pimaim.getSpeciesAndNumber( input_path )
+
     # Check that it worked
     if species == false || species_nb == false
         # If it fails, returns false, false
@@ -427,6 +428,7 @@ function readPoscarTraj( input_path::T1, poscar_path::T2, cell_box_path::T3 ) wh
 
     # Get the chemical species and number of element per species
     species, species_nb = pimaim.getSpeciesAndNumber( input_path )
+
     # Check that all went well
     if species == false || species_nb == false
         # if not, returns false, false
@@ -435,6 +437,7 @@ function readPoscarTraj( input_path::T1, poscar_path::T2, cell_box_path::T3 ) wh
 
     # Reads the cell trajectory
     cells = pimaim.readCellBox( cell_box_path )
+
     # Check that cells is ok
     if cells == false
         # If not , returns false, false
@@ -443,6 +446,7 @@ function readPoscarTraj( input_path::T1, poscar_path::T2, cell_box_path::T3 ) wh
 
     # Reads the atoms trajectory
     traj = readPosCarTraj( poscar_path, species, species_nb )
+
     # Check that it worked
     if traj == false
         # If not , returns false, false
@@ -471,6 +475,7 @@ function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T
 
     # Get number of lines
     nb_lines = utils.getNbLines( path_file )
+
     # If the file does not exists, or is empty, returns false
     if nb_lines == false || nb_lines == 0
         return false
@@ -519,7 +524,7 @@ function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T
         end
 
         # Realign cell matrix so that its v1 is aligned with z-axis
-        cell_matrices[step,:,:] = cell_mod.params2Matrix( cell_mod.matrix2Params( cell_matrices[step,:,:] ) )
+        cell_matrices[:,:,step] = cell_mod.params2Matrix( cell_mod.matrix2Params( cell_matrices[:,:,step] ) )
 
         # Loop over atoms
         for atom=1:nb_atoms
@@ -542,15 +547,15 @@ function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T
                 # - Second loop over dimensions
                 for j=1:3
                     # Converts reduced to cartesian
-                    traj[step].positions[atom,i] += temp[j]*cell_matrices[step,i,j]
+                    traj[step].positions[ i, atom ] += temp[j]*cell_matrices[ i, j, step ]
                 end
             end
 
             # Affects names of atoms to the AtomList
-            traj[step].names[atom] = names_[atom]
+            traj[ step ].names[ atom ] = names_[ atom ]
 
             # Affects index of atoms to the AtomList
-            traj[step].index[atom] = atom
+            traj[ step ].index[ atom ] = atom
 
         end
 
@@ -575,6 +580,7 @@ function readPositionsCrash( path_file::T1, species::Vector{T2}, nb_species::Vec
 
     # Get the number of lines of the file
     nb_lines = utils.getNbLines( path_file )
+
     # If the file is empty or does not exists, return false
     if nb_lines == false || nb_lines == 0
         return false
@@ -587,7 +593,7 @@ function readPositionsCrash( path_file::T1, species::Vector{T2}, nb_species::Vec
     names_ = atom_mod.buildNames( species, nb_species )
 
     # Compute number of steps in the file
-    nb_step = Int( trunc( nb_lines/nb_atoms ) ) 
+    nb_step = Int( trunc( nb_lines/nb_atoms ) )
     # If the number of step is problematic, returns false
     if nb_step < 1
         return false
@@ -643,7 +649,7 @@ function readPositionsCrash( path_file::T1, species::Vector{T2}, nb_species::Vec
                 # - Second Loop over dimensions
                 for j=1:3
                     # Converts positions
-                    traj[step].positions[atom,i] += temp[j]*matrix2[i,j]
+                    traj[step].positions[ i, atom ] += temp[j]*matrix2[i,j]
                 end
             end
 
@@ -717,15 +723,15 @@ function readXV( path_file::T1 ) where { T1 <: AbstractString }
         keyword = split( readline( handle_in ) )
 
         # Get the name of the atom from its atomic number
-        atoms.names[atom] = periodicTable.z2Names( parse(Int, keyword[2] ) )
+        atoms.names[ atom ] = periodicTable.z2Names( parse(Int, keyword[2] ) )
 
         # Use the atomic number as index for AtomList
-        atoms.index[atom] = atom
+        atoms.index[ atom ] = atom
 
         # Loop over the elements 2-5 for the atomic positions
         for i=1:3
             # Parse string to float, and converts position from Bohr to Angstrom
-            atoms.positions[atom,i] = parse(Float64, keyword[2+i] )*conversion.bohr2Ang
+            atoms.positions[ i, atom ] = parse(Float64, keyword[ 2 + i ] )*conversion.bohr2Ang
         end
     end
 
@@ -774,7 +780,7 @@ function readRestart( restart_path::T1, runtime_path::T2 ) where { T1 <: Abstrac
         offset_specie = sum( nb_element_species[1:i_spec-1] )
 
         # Loop over atom species
-        for atom_spec=1:nb_element_species[i_spec]
+        for atom_spec=1:nb_element_species[ i_spec ]
             # Compute the species
             atoms_names[ offset_specie + atom_spec ] = species[ i_spec ]
         end
@@ -808,13 +814,15 @@ function readRestart( restart_path::T1, runtime_path::T2 ) where { T1 <: Abstrac
             keyword = split( readline( handle_in ) )
 
             # Affects index of atom to AtomList
-            atoms.index[atom] = atom
+            atoms.index[ atom ] = atom
 
             # Affects name of atom to AtomList
-            atoms.names[atom] = atoms_names[atom]
+            atoms.names[ atom ] = atoms_names[ atom ]
+
+            # Loop over dimensions
             for i=1:3
                 # Converts from String to Float, converts from bohr to Angstrom
-                atoms.positions[atom,i] = parse(Float64, keyword[i] )*conversion.bohr2Ang
+                atoms.positions[ i, atom] = parse(Float64, keyword[i] )*conversion.bohr2Ang
             end
         end
     end
@@ -825,7 +833,7 @@ function readRestart( restart_path::T1, runtime_path::T2 ) where { T1 <: Abstrac
     if check_velocity == "T"
 
         # Initialize vector for velocities
-        velocities = zeros(Real, nb_atoms, 3)
+        velocities = zeros(Real, 3, nb_atoms )
 
         # Loop over the atoms
         for atom=1:nb_atoms
@@ -843,11 +851,12 @@ function readRestart( restart_path::T1, runtime_path::T2 ) where { T1 <: Abstrac
 
     # Initialize output for forces
     forces = false
+
     # Check if the file contains forces
     if check_forces == "T"
 
         # Initialize forces as Array (real: nb_atoms,3)
-        forces = zeros(Real, nb_atoms, 3)
+        forces = zeros(Real, 3, nb_atoms )
 
         # Loop over atoms
         for atom=1:nb_atoms
@@ -858,7 +867,7 @@ function readRestart( restart_path::T1, runtime_path::T2 ) where { T1 <: Abstrac
             # Loop over dimensions
             for i=1:3
                 # Converts strings into floats, may need to convert (but unknown units)
-                forces[ atom, i ] = parse(Float64, keyword[i] )
+                forces[ i, atom ] = parse(Float64, keyword[i] )
             end
         end
     end
@@ -904,22 +913,23 @@ function readRestart( restart_path::T1, runtime_path::T2 ) where { T1 <: Abstrac
     end
 
     # Initialize cell matrix
-    cell_matrix = zeros(Real,3,3)
+    cell_matrix = zeros(Real, 3, 3 )
     # Loop over dimension 1
     for i=1:3
 
         # Reads line and parse with " " as delimitator
-        keyword = split( readline(handle_in) )
+        keyword = split( readline( handle_in ) )
 
         # Loop over dimension 2
         for j=1:3
             # Parse from string to float and send information to cell matrix
-            cell_matrix[i,j] = parse( Float64, keyword[j] )
+            cell_matrix[ i, j ] = parse( Float64, keyword[j] )
         end
     end
 
     # Initialize box lengths vector
-    boxlens = zeros(3)
+    boxlens = zeros( 3 )
+
     # Loop over dimensions
     for i=1:3
         # Reads the line and parse with " "
@@ -935,7 +945,7 @@ function readRestart( restart_path::T1, runtime_path::T2 ) where { T1 <: Abstrac
         # - Loop over dimension 2
         for j=1:3
             # Recompute cell matrix element
-            cell_matrix[i,j] *= cell_matrix[i,j]*boxlens[i]*conversion.bohr2Ang
+            cell_matrix[ i, j ] *= cell_matrix[ i, j ]*boxlens[ i ]*conversion.bohr2Ang
         end
     end
 
@@ -957,6 +967,7 @@ function readCellParams( path_file_len::T1, path_file_angles::T2 ) where { T1 <:
 
     # Get the number of lines in the cellangles file
     nb_lines_angles = utils.getNbLines( path_file_angles )
+
     # if the file does not exists or is empty, prints a message and returns false
     if nb_lines_angles == false || nb_lines_angles == 0
         print("File cellangles.out does not exists or is empty.\n")
@@ -965,6 +976,7 @@ function readCellParams( path_file_len::T1, path_file_angles::T2 ) where { T1 <:
 
     # Get the number of lines in the celllens file
     nb_lines_lengths = utils.getNbLines( path_file_len )
+
     # if the file does not exists or is empty, prints a message and returns false
     if nb_lines_lengths == false
         print("File celllens.out does not exists or is empty.\n")
@@ -973,17 +985,18 @@ function readCellParams( path_file_len::T1, path_file_angles::T2 ) where { T1 <:
 
     # Check that files have the same number of steps
     nb_step = min( nb_lines_angles, nb_lines_lengths )
+
     # If not, use the minimum to proceed, but warns the user
     if nb_lines_angles != nb_lines_lengths
         print( "Missmatch between number of lengths and angles, using the minimum to proceed.\n" )
     end
 
     # Initialize vectors for lenghts and angles
-    lengths = zeros(Real, nb_step , 3 )
-    angles  = zeros(Real, nb_step , 3 )
+    lengths = zeros(Real, 3, nb_step )
+    angles  = zeros(Real, 3, nb_step )
 
     # Value to convert radiants to degrees
-    tau=180/pi
+    tau = 180.0/pi
 
     # Open files
     handle_in_len = open( path_file_len )    # Opens celllens.out
@@ -1002,18 +1015,18 @@ function readCellParams( path_file_len::T1, path_file_angles::T2 ) where { T1 <:
         # Loop over dimension for conversion
         for i=1:3
             # Converts lengths from Bohr to Angstroms
-            lengths[line,i] = parse( Float64, key_len[1+i] )*conversion.bohr2Ang
+            lengths[line,i] = parse( Float64, key_len[ 1 + i ] )*conversion.bohr2Ang
             # Converts angles from radians to degrees
-            angles[line,i]  = parse( Float64, key_ang[1+i] )*tau
+            angles[line,i]  = parse( Float64, key_ang[ 1 + i ] )*tau
         end
 
         # Switch angles around (technicality so that they match the proper order)
-        stock           = angles[line,1]
-        angles[line,1]  = angles[line,3]
-        angles[line,3]  = stock
+        stock              = angles[ line, 1 ]
+        angles[ line, 1 ]  = angles[ line, 3 ]
+        angles[ line, 3 ]  = stock
 
         # Puts lengths and angles into the Cell_param for current step
-        cells[ line ] = cell_mod.Cell_param( lengths[line,:], angles[line,:] )
+        cells[ line ] = cell_mod.Cell_param( lengths[ line, : ], angles[ line, : ] )
     end
 
     # Closing files
@@ -1033,6 +1046,7 @@ function readCellBox( path_file::T1 ) where { T1 <: AbstractString }
 
     # Get number of lines of the file
     nb_lines = utils.getNbLines( path_file )
+
     # If the file is empty or does not exists, prints message and returns false
     if nb_lines == 0 || nb_lines == false
         print("File ",path_file," is empty or does not exist...\n")
@@ -1053,13 +1067,13 @@ function readCellBox( path_file::T1 ) where { T1 <: AbstractString }
     nb_step = Int( nb_lines/nb_line_per_box )
 
     # Initialize cell tensor
-    cells = Array{ Real }(undef, nb_step, 3, 3 )
+    cells = Array{ Real }(undef, 3, 3, nb_step )
 
     # Opening input file
     handle_in = open( path_file )
 
     # Loop over steps
-    for step = 1:nb_step
+    for step=1:nb_step
 
         # Reading cell reduced matrix for current step
         cells[step,:,:] = zeros(3,3)
@@ -1112,14 +1126,15 @@ function readEng1( path_file::T1 ) where { T1 <: AbstractString }
 
     # Get number of lines in the input file
     nb_lines = utils.getNbLines( path_file )
+
     # If the file is empty or does not exists, returns false
     if nb_lines == false || nb_lines == 0
         return false, false, false
     end
 
     # Initialize output vectors
-    enpot = zeros(Real,nb_lines)
-    enkin = zeros(Real,nb_lines)
+    enpot = zeros(Real, nb_lines )
+    enkin = zeros(Real, nb_lines )
 
     # Open the input file
     handle_in = open( path_file )
@@ -1127,7 +1142,7 @@ function readEng1( path_file::T1 ) where { T1 <: AbstractString }
     # Loop over steps
     for step=1:nb_lines
         # Read line, parse with " " as deliminator
-        keyword = split(readline(handle_in))
+        keyword = split( readline( handle_in ) )
 
         # Converts the string into floats
         enpot[step] = parse(Float64, keyword[2] ) # Second element is the potential energy
@@ -1135,10 +1150,10 @@ function readEng1( path_file::T1 ) where { T1 <: AbstractString }
     end
 
     # Close the input file
-    close(handle_in)
+    close( handle_in )
 
     # Return the total energy (float), the potential energy (float) and the kinetic energy (float)
-    return enpot.+enkin, enpot, enkin
+    return enpot .+ enkin, enpot, enkin
 end
 # Reading eng2.out file, contains enthalpy and pv contribution
 function readEnthalpy( path_file::T1 ) where { T1 <: AbstractString }
@@ -1150,14 +1165,15 @@ function readEnthalpy( path_file::T1 ) where { T1 <: AbstractString }
 
     # Get the number of lines in the file
     nb_lines = utils.getNbLines( path_file )
-    # If the file
+
+    # If the file does not exists or is empty, returns false
     if nb_lines == false || nb_lines == 0
         return false
     end
 
     # Initialize output vectors for
     enthalpy = zeros(Real,nb_lines) # - the enthalpy
-    pv = zeros(Real,nb_lines)       # - the P*V contribution
+    pv       = zeros(Real,nb_lines) # - the P*V contribution
 
     # Open input file
     handle_in = open( path_file )
@@ -1168,7 +1184,7 @@ function readEnthalpy( path_file::T1 ) where { T1 <: AbstractString }
         keyword = split(readline(handle_in))
 
         # Casting strings into float :
-        pv[step] = parse(Float64, keyword[2] )        # - Second column of file is P*V
+        pv[step]       = parse(Float64, keyword[2] )  # - Second column of file is P*V
         enthalpy[step] = parse(Float64, keyword[3] )  # - Third columns is the enthalpy (Total Energy + P*V)
     end
 
@@ -1192,6 +1208,7 @@ function readPressure( path_file::T1 ) where { T1 <: AbstractString }
 
     # Get number of lines in the file
     nb_lines = utils.getNbLines( path_file )
+
     # If the file is empty or does not exists, return false
     if nb_lines == false || nb_lines == 0
         return false
@@ -1229,6 +1246,7 @@ function readTemperature( path_file::T1 ) where { T1 <: AbstractString }
 
     # Get number of lines in the file
     nb_lines = utils.getNbLines( path_file )
+
     # If the file is empty or does not exists, return false
     if nb_lines == 0 || nb_lines == false
         return false
@@ -1263,14 +1281,15 @@ function readVolume( path_file::T1 ) where { T1 <: AbstractString }
 
     # Get the number of lines of the file
     nb_lines = utils.getNbLines( path_file )
+
     # If the file is empty or does not exists, return false, false
     if nb_lines == 0 || nb_lines == false
         return false, false
     end
 
     # Initialize vectors for
-    volume    = zeros(Real, nb_lines) # The volume
-    other_vol = zeros(Real, nb_lines) # Whatever the second value in the file is
+    volume    = zeros(Real, nb_lines ) # The volume
+    other_vol = zeros(Real, nb_lines ) # Whatever the second value in the file is
 
     # Opens the file
     handle_in = open( path_file )
@@ -1278,8 +1297,8 @@ function readVolume( path_file::T1 ) where { T1 <: AbstractString }
     # Loop over steps
     for step=1:nb_lines
         # For each value, reads the line, select the element and casts the string into float
-        volume[step]    = parse(Float64, split( readline(handle_in) )[2] ) # For the volume gets the 2nd element
-        other_vol[step] = parse(Float64, split( readline(handle_in) )[3] ) # FOr the other quantity gets the 3rd element
+        volume[step]    = parse(Float64, split( readline( handle_in ) )[2] ) # For the volume gets the 2nd element
+        other_vol[step] = parse(Float64, split( readline( handle_in ) )[3] ) # FOr the other quantity gets the 3rd element
     end
 
     # Close the file
@@ -1298,6 +1317,7 @@ function readFullOutput( path_file::T1 ) where { T1 <: AbstractString }
 
     # Gets the number of lines in the file
     nb_lines = utils.getNbLines( path_file )
+
     # If the file is empty or does not exists, returns false
     if nb_lines == false || nb_lines == 0
         return false
@@ -1423,6 +1443,7 @@ function readf3( path_file::T1 ) where { T1 <: AbstractString }
 
     # Gets the number of lines in the file
     nb_lines = utils.getNbLines( path_file )
+
     # If the file is empty or does not exists, returns false
     if nb_lines == false || nb_lines == 0
         return false
@@ -1435,7 +1456,7 @@ function readf3( path_file::T1 ) where { T1 <: AbstractString }
     col_nb = 9
 
     # Initialize output array
-    ring_data = zeros( nb_step, col_nb )
+    ring_data = zeros(Real, nb_step, col_nb )
 
     # skip the first line
     readline( handle_in )
@@ -1458,7 +1479,7 @@ function readf3( path_file::T1 ) where { T1 <: AbstractString }
     # Return the array with the ring statistics
     return ring_data
 end
-#----------------------g--------------------------------------------------------
+#------------------------------------------------------------------------------
 
 # Writting data (generic)
 #------------------------------------------------------------------------------
@@ -1481,7 +1502,7 @@ function writeFullData( handle_out::T1, data::Array{T2,2} ) where { T1 <: IO, T2
         # Loop over the data array
         for i=1:n_dim
             # Write the data for each dimension
-            Base.write( handle_out, string( data[step,i], " " ) )
+            Base.write( handle_out, string( data[ step, i ], " " ) )
         end
 
         # Write end of line
@@ -1549,7 +1570,7 @@ function writeRestartPositionsOnly( path_file::T1, atoms::T2, cell::Array{T3,2} 
 
     # Reduced the positions by the cell length (pimaim specific)
     for i=1:3
-        positions_[:,i] *= LinearAlgebra.norm( cell.matrix[:,i] )
+        positions_[ i,:] *= LinearAlgebra.norm( cell.matrix[ i,:] )
     end
 
     # Loop over atoms
@@ -1557,7 +1578,7 @@ function writeRestartPositionsOnly( path_file::T1, atoms::T2, cell::Array{T3,2} 
         # Loop over dimensions
         for i=1:3
             # Write positions, converting them into bohr first, and limiting precision to third digit
-            write( handle_out, string( round( positions_[atom,i]*conversion.ang2Bohr, digits=3 ), " " ) )
+            write( handle_out, string( round( positions_[ i, atom ]*conversion.ang2Bohr, digits=3 ), " " ) )
         end
 
         # Writting end of line
@@ -1693,16 +1714,16 @@ function writeAcellTxt( path_file::T1, cells::Vector{T2} ) where { T1 <: Abstrac
     handle_out=open( path_file, "w" )
 
     # Loop over steps
-    for step=1:size(cells)[1]
+    for step=1:size( cells )[1]
         # Converting current step cell params to cell matrix
-        cell_matrix = cell_mod.params2Matrix(cells[step])
+        cell_matrix = cell_mod.params2Matrix( cells[ step ] )
 
         # Loop over dimension 1
         for i=1:3
             # Loop over dimension 2
             for j=1:3
                 # Writting cell matrix element
-                write( handle_out, string( round(cell_matrix[i,j],digits=3), " " ) )
+                write( handle_out, string( round(cell_matrix[ i, j ],digits=3), " " ) )
             end
             # Writting end of line
             write( handle_out, "\n" )
@@ -1727,13 +1748,13 @@ function writeAcellTxt( path_file::T1, cells::Array{T2,3} ) where { T1 <: Abstra
     handle_out=open( path_file, "w" )
 
     # Loop over steps
-    for step = 1:size(cells)[1]
+    for step = 1:size( cells )[1]
         # Loop over dimensions 1
         for i=1:3
             # Loop over dimensions 2
             for j=1:3
                 # Writting cell matrix element, precision up to the third digits
-                write( handle_out, string( round( cells[step,i,j], digits=3 ), " " ) )
+                write( handle_out, string( round( cells[ i, j, step ], digits=3 ), " " ) )
             end
             # Write end of line to file
             write( handle_out, "\n" )
@@ -1741,7 +1762,7 @@ function writeAcellTxt( path_file::T1, cells::Array{T2,3} ) where { T1 <: Abstra
     end
 
     # Closing the file
-    close(handle_out)
+    close( handle_out )
 
     # Return true if the writting was successful
     return true
@@ -1771,12 +1792,12 @@ function writeCellbox( path_file::T1, cells::Array{T2,3}, timestep::T3 ) where {
             # Loop over dimension 2
             for j=1:3
                 # Write cell matrix element
-                write( handle_out, string( cells[step,i,j], " " ) )
+                write( handle_out, string( cells[ i, j, step ], " " ) )
             end
         end
 
         # Write the total volume of the cell
-        write( handle_out, string( " ", det( cells[step,:,:] ), "\n" ) )
+        write( handle_out, string( " ", det( cells[ :, :, step ] ), "\n" ) )
     end
 
     # Closing file

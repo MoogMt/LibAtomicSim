@@ -217,7 +217,7 @@ function writeVelocities( handle_out::T1, velocities::Array{T2,2} ) where { T1 <
     write( handle_out, string("VELOCITIES\n") )
 
     # Get number of atoms
-    nb_atoms = size(velocities)[1]
+    nb_atoms = size(velocities)[2]
 
     # Write number of atoms
     write( handle_out, string( nb_atoms, " " ) )
@@ -236,7 +236,7 @@ function writeVelocities( handle_out::T1, velocities::Array{T2,2} ) where { T1 <
         # Loop over dimension
         for i=1:3
             # Write velocities of atom in dimension i
-            write( handle_out, string( velocities[atom,i], " " ) )
+            write( handle_out, string( velocities[ i, atom ], " " ) )
         end
         # Write end of line for atom
         write( handle_out, string( "\n" ) )
@@ -278,7 +278,7 @@ function writeVelocities( handle_out::T1, velocities::Array{T2,2}, atoms_indexes
         # Loop over dimensions
         for i=1:3
             # Write velocities of atom_index in dimension i to file
-            write( handle_out, string( velocities[atom_index,i], " " ) )
+            write( handle_out, string( velocities[ i, atom_index ], " " ) )
         end
         # Write end of line
         write( handle_out, string( "\n" ) )
@@ -299,14 +299,14 @@ function writePositions( handle_out::T1, positions::Array{T2,2} ) where { T1 <: 
     # - Bool: whether writting was successful
 
     # Get number of atoms
-    nb_atoms=size(positions)[1]
+    nb_atoms=size(positions)[2]
 
     # Loop over atoms
     for atom=1:nb_atoms
         # Loop over dimensions
         for i=1:3
             # Write atomic position in dimension i
-            write( handle_out, string( positions[atom,i], " " ) )
+            write( handle_out, string( positions[ i, atom ], " " ) )
         end
 
         # Write end of line
@@ -753,31 +753,32 @@ function readStress( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, 
 
     # Init data files
     #------------------------------------------
-    nb_step = utils.nbStepStriding( nb_step_origin, stride_ )
-    stress  = zeros( Real, nb_step, stress_dim, stress_dim )
+    nb_step = utils.nbStepStriding( stride_, nb_step_origin )
+    stress  = zeros( Real, stress_dim, stress_dim, nb_step )
     #------------------------------------------
 
     #--------------------------------------------------------
-    count_=1
+    count_ = 1
     file_in=open(file_path)
+
     for step=1:nb_step_origin
-        if (step-1) % stride_ == 0
-            temp=split( readline( file_in ) ) # Comment line
+        if ( step - 1 ) % stride_ == 0
+            temp = split( readline( file_in ) ) # Comment line
             if temp[1] != "TOTAL"
                 # Corruption in file
-                print("STRESS file is likely corrupted!\n")
-                print("line: ",step*stress_block_size,"\n")
+                print( "STRESS file is likely corrupted!\n" )
+                print( "line: ", step*stress_block_size, "\n" )
                 return false
             end
             for i=1:stress_dim
                 keywords=split( readline( file_in ) )
                 if keywords[1] == "TOTAL"
-                    print("STRESS file is likely corrupted!\n")
-                    print("line: ",step*stress_block_size+i,"\n")
+                    print( "STRESS file is likely corrupted!\n" )
+                    print( "line: ", step*stress_block_size + i, "\n" )
                     return false
                 else
                     for j=1:stress_dim
-                        stress[count_,i,j] = parse(Float64,keywords[j])
+                        stress[ i, j, count_ ] = parse(Float64, keywords[j] )
                     end
                 end
             end
@@ -789,7 +790,6 @@ function readStress( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, 
         end
     end
     close(file_in)
-    #--------------------------------------------------------
 
     return stress
 end
@@ -803,48 +803,53 @@ function readStress( file_path::T1, stride_::T2, nb_ignored::T3 ) where { T1 <: 
 
     # Init data files
     #------------------------------------------
-    nb_step = utils.nbStepStriding( nb_step_origin-nb_ignored, stride_ )
-    stress = zeros( Real, nb_step, stress_dim, stress_dim )
+    nb_step = utils.nbStepStriding( stride_, nb_step_origin - nb_ignored )
+    stress = zeros(Real, stress_dim, stress_dim, nb_step )
     #------------------------------------------
 
     #--------------------------------------------------------
-    file_in=open(file_path)
+    file_in = open( file_path )
     for step=1:nb_ignored
         for i=1:stress_block_size
-            temp = readline(file_in )
+            temp = readline( file_in )
         end
     end
+
     count_=1
-    for step=1:(nb_step_origin-nb_ignored)
-        if (step-1) % stride_ == 0
-            temp=split( readline( file_in ) ) # Comment line
+
+    for step=1:( nb_step_origin - nb_ignored )
+        if ( step - 1 ) % stride_ == 0
+
+            temp = split( readline( file_in ) ) # Comment line
+
             if temp[1] != "TOTAL"
                 # Corruption in file
-                print("STRESS file is likely corrupted!\n")
-                print("line: ",step*stress_block_size,"\n")
+                print( "STRESS file is likely corrupted!\n" )
+                print( "line: ", step*stress_block_size, "\n" )
                 return false
             end
+
             for i=1:stress_dim
-                keywords=split( readline( file_in ) )
+                keywords = split( readline( file_in ) )
                 if keywords[1] == "TOTAL"
                     print("STRESS file is likely corrupted!\n")
                     print("line: ",step*stress_block_size+i,"\n")
                     return false
                 else
                     for j=1:stress_dim
-                        stress[count_,i,j] = parse(Float64,keywords[j])
+                        stress[ i, j, count_ ] = parse(Float64, keywords[j] )
                     end
                 end
             end
-            count_+=1
+            count_ = count_ + 1
         else
             for skip_line=1:stress_block_size
                 temp = readline( file_in )
             end
         end
     end
+
     close(file_in)
-    #--------------------------------------------------------
 
     return stress
 end
@@ -874,25 +879,27 @@ function readStress( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T4 ) wh
             temp = readline(file_in )
         end
     end
+
     count_=1
-    for step=1:(nb_step_origin-nb_ignored)
-        if (step-1) % stride_ == 0
+
+    for step=1:( nb_step_origin - nb_ignored )
+        if ( step - 1 ) % stride_ == 0
             temp=split( readline( file_in ) ) # Comment line
             if temp[1] != "TOTAL"
                 # Corruption in file
-                print("STRESS file is likely corrupted!\n")
-                print("line: ",step*stress_block_size,"\n")
+                print( "STRESS file is likely corrupted!\n" )
+                print( "line: ", step*stress_block_size, "\n" )
                 return false
             end
             for i=1:stress_dim
-                keywords=split( readline( file_in ) )
+                keywords = split( readline( file_in ) )
                 if keywords[1] == "TOTAL"
-                    print("STRESS file is likely corrupted!\n")
-                    print("line: ",step*stress_block_size+i,"\n")
+                    print( "STRESS file is likely corrupted!\n" )
+                    print( "line: ", step*stress_block_size + i, "\n" )
                     return false
                 else
                     for j=1:stress_dim
-                        stress[count_,i,j] = parse(Float64,keywords[j])
+                        stress[ i, j, count_ ] = parse(Float64,keywords[j])
                     end
                 end
             end
@@ -917,12 +924,14 @@ end
 #------------------------------------------------------------------------------#
 function writeStress( file_path::T1, stress_tensor::Array{T2,3} ) where { T1 <: AbstractString, T2 <: Real }
     nb_step=size(stress_tensor)[1]
+
     file_out = open( file_path, "w" )
+
     for step=1:nb_step
         write(file_out,string("TOTAL STRESS TENSOR (kB): STEP: ",step,"\n"))
         for i=1:3
             for j=1:3
-                write(file_out,string(stress_tensor[step,i,j]," "))
+                write(file_out,string(stress_tensor[ i, j, step ]," "))
             end
             write(file_out,string("\n"))
         end
@@ -953,6 +962,7 @@ function getNbStepAtomsFtraj( file_path::T1 ) where { T1 <: AbstractString }
             nb_line += 1
         end
     end
+
     close( file_in )
 
     if nb_line % nb_atoms != 0
@@ -981,26 +991,28 @@ function readFtraj( file_path::T1 ) where { T1 <: AbstractString }
 
     # Init arrays
     #-----------------------------------------------------
-    positions  = zeros( Real, nb_step, nb_atoms, 3 )
-    velocities = zeros( Real, nb_step, nb_atoms, 3 )
-    forces     = zeros( Real, nb_step, nb_atoms, 3 )
+    positions  = zeros( Real, 3, nb_atoms, nb_step )
+    velocities = zeros( Real, 3, nb_atoms, nb_step )
+    forces     = zeros( Real, 3, nb_atoms, nb_step )
     #-----------------------------------------------------
 
     # Reading
     #-----------------------------------------------------
     file_in = open( file_path )
-    for step=1:nb_step
+
         for atom=1:nb_atoms
+            for step=1:nb_step
             keywords=split( readline( file_in ) )
             if keywords[1] != "<<<<<<"
                 for i=1:3
-                    positions[step,atom,i]  = parse(Float64, keywords[ i + col_start_position ] )
-                    velocities[step,atom,i] = parse(Float64, keywords[ i + col_start_velocity ] )
-                    forces[step,atom,i]     = parse(Float64, keywords[ i + col_start_force ] )
+                    positions[  i, atom, step ] = parse(Float64, keywords[ i + col_start_position ] )
+                    velocities[ i, atom, step ] = parse(Float64, keywords[ i + col_start_velocity ] )
+                    forces[     i, atom, step ] = parse(Float64, keywords[ i + col_start_force ] )
                 end
             end
         end
     end
+
     close( file_in )
     #-----------------------------------------------------
 
@@ -1019,27 +1031,31 @@ function readFtraj( file_path::T1, stride_::T2 ) where { T1 <: AbstractString, T
 
     #---------------------------------------------------------------------------
     nb_step = utils.nbStepStriding( nb_step_origin, stride_ )
-    positions  = zeros( Real, nb_step, nb_atoms, 3 )
-    velocities = zeros( Real, nb_step, nb_atoms, 3 )
-    forces     = zeros( Real, nb_step, nb_atoms, 3 )
+    positions  = zeros( Real, 3, nb_atoms, nb_step )
+    velocities = zeros( Real, 3, nb_atoms, nb_step )
+    forces     = zeros( Real, 3, nb_atoms, nb_step )
     #---------------------------------------------------------------------------
 
     #---------------------------------------------------------------------------
     file_in = open( file_path )
     count_step=1
     for step=1:nb_step_origin
-        if (step-1) % stride_ == 0
+        if ( step - 1 ) % stride_ == 0
             for atom=1:nb_atoms
+
                 keywords=split( readline( file_in ) )
+
                 if keywords[1] == "<<<<<<"
                     keywords=split( readline( file_in ) )
                 end
+
                 for i=1:3
-                    positions[count_step,atom,i]  = parse(Float64, keywords[ i + col_start_position ] )
-                    velocities[count_step,atom,i] = parse(Float64, keywords[ i + col_start_velocity ] )
-                    forces[count_step,atom,i]     = parse(Float64, keywords[ i + col_start_force ] )
+                    positions[  i, atom, count_step ] = parse(Float64, keywords[ i + col_start_position ] )
+                    velocities[ i, atom, count_step ] = parse(Float64, keywords[ i + col_start_velocity ] )
+                    forces[     i, atom, count_step ] = parse(Float64, keywords[ i + col_start_force    ] )
                 end
             end
+
             count_step += 1
         end
     end
@@ -1057,24 +1073,21 @@ function readFtraj( file_path::T1, stride_::T2, nb_ignored::T3 ) where { T1 <: A
         print("File FTRAJ does not exists!\n")
         return false, false, false
     end
-    #---------------------------------------------------------------------------
 
-    #---------------------------------------------------------------------------
     nb_step = utils.nbStepStriding( nb_step_origin-nb_ignored, stride_ )
-    positions  = zeros( Real, nb_step, nb_atoms, 3 )
-    velocities = zeros( Real, nb_step, nb_atoms, 3 )
-    forces     = zeros( Real, nb_step, nb_atoms, 3 )
-    #---------------------------------------------------------------------------
+    positions  = zeros( Real, 3, nb_atoms, nb_step )
+    velocities = zeros( Real, 3, nb_atoms, nb_step )
+    forces     = zeros( Real, 3, nb_atoms, nb_step )
 
-    #---------------------------------------------------------------------------
     file_in = open( file_path )
-    # Ignoring the first nb_ignore steps
     for step=1:nb_ignored
         for atom=1:nb_atoms
             temp=readline(file_in)
         end
     end
+
     count_step=1
+
     for step=1:nb_step_origin-nb_ignored
         if (step-1) % stride_ == 0
             for atom=1:nb_atoms
@@ -1083,16 +1096,16 @@ function readFtraj( file_path::T1, stride_::T2, nb_ignored::T3 ) where { T1 <: A
                     keywords=split( readline( file_in ) )
                 end
                 for i=1:3
-                    positions[count_step,atom,i]  = parse(Float64, keywords[ i + col_start_position ] )
-                    velocities[count_step,atom,i] = parse(Float64, keywords[ i + col_start_velocity ] )
-                    forces[count_step,atom,i]     = parse(Float64, keywords[ i + col_start_force ] )
+                    positions[  i, atom, count_step ] = parse(Float64, keywords[ i + col_start_position ] )
+                    velocities[ i, atom, count_step ] = parse(Float64, keywords[ i + col_start_velocity ] )
+                    forces[     i, atom, count_step ] = parse(Float64, keywords[ i + col_start_force    ] )
                 end
             end
             count_step += 1
         end
     end
+
     close( file_in )
-    #---------------------------------------------------------------------------
 
     return positions, velocities, forces
 end
@@ -1112,39 +1125,48 @@ function readFtraj( file_path::T1, stride_::T2, nb_ignored::T3, nb_max::T4 ) whe
     if nb_max > nb_step
         print("nb_max is too large, maximum value is ",nb_step,"\n")
     end
+
     if nb_max <= 0
         print("nb_max must be positive!\n")
     end
-    positions  = zeros( nb_max, nb_atoms, 3 )
-    velocities = zeros( nb_max, nb_atoms, 3 )
-    forces     = zeros( nb_max, nb_atoms, 3 )
-    #---------------------------------------------------------------------------
+
+    #------------------------------------------
+    positions  = zeros( 3, nb_atoms, nb_max )
+    velocities = zeros( 3, nb_atoms, nb_max )
+    forces     = zeros( 3, nb_atoms, nb_max )
+    #--------------------------------------------
 
     #---------------------------------------------------------------------------
     file_in = open( file_path )
+
     # Ignoring the first nb_ignore steps
     for step=1:nb_ignored
         for atom=1:nb_atoms
             temp=readline(file_in)
         end
     end
+
     count_step=1
+
     for step=1:nb_step_origin-nb_ignored
-        if (step-1) % stride_ == 0
+        if ( step - 1 ) % stride_ == 0
+
             for atom=1:nb_atoms
                 keywords=split( readline( file_in ) )
                 if keywords[1] == "<<<<<<"
                     keywords=split( readline( file_in ) )
                 end
                 for i=1:3
-                    positions[count_step,atom,i]  = parse(Float64, keywords[ i + col_start_position ] )
-                    velocities[count_step,atom,i] = parse(Float64, keywords[ i + col_start_velocity ] )
-                    forces[count_step,atom,i]     = parse(Float64, keywords[ i + col_start_force ] )
+                    positions[  i, atom, count_step ] = parse(Float64, keywords[ i + col_start_position ] )
+                    velocities[ i, atom, count_step ] = parse(Float64, keywords[ i + col_start_velocity ] )
+                    forces[     i, atom, count_step ] = parse(Float64, keywords[ i + col_start_force    ] )
                 end
             end
+
             if count_step >= nb_max
                 break
             end
+
             count_step += 1
         end
     end
@@ -1157,25 +1179,34 @@ end
 
 #-------------------------------------------------------------------------------
 function writeFtraj( file_path::T1, positions::Array{T2,3}, velocities::Array{T3,3}, forces::Array{T4,3} ) where { T1 <: AbstractString, T2 <: Real, T3 <: Real, T4 <: Real }
-    nb_step = size(positions)[1]
+
+    nb_step = size(positions)[3]
     nb_atoms = size(positions)[2]
+
     file_out = open( file_path, "w" )
+
     for step=1:nb_step
         for atom=1:nb_atoms
             write( file_out, string( step, " " ) )
+
             for i=1:3
-                write( file_out, string( positions[step,atom,i], " " ) )
+                write( file_out, string( positions[ i, atom, step ], " " ) )
             end
+
             for i=1:3
-                write( file_out, string( velocities[step,atom,i], " " ) )
+                write( file_out, string( velocities[ i, atom, step ], " " ) )
             end
+
             for i=1:3
-                write( file_out, string( forces[step,atom,i], " " ) )
+                write( file_out, string( forces[ i, atom, step ], " " ) )
             end
-            write(file_out,string("\n"))
+
+            write( file_out, string("\n") )
         end
     end
+
     close( file_out )
+
     return true
 end
 #-------------------------------------------------------------------------------
@@ -1186,7 +1217,7 @@ function buildingDataBase( folder_target::T1, file_stress::T2, file_pressure::T3
 
     # Reading input file
     #---------------------------------------------------------------------------
-    file_input=string(folder_target,"input")
+    file_input = string(folder_target,"input")
     # Getting the stride for the STRESS file
     stride_stress = cpmd.readIntputStrideStress( file_input )
     # Getting the stride for the TRAJEC and FTRAJECTORY files
@@ -1197,18 +1228,18 @@ function buildingDataBase( folder_target::T1, file_stress::T2, file_pressure::T3
 
     # Computing
     #---------------------------------------------------------------------------
-    n_stress = round( Int, timestep_target/( timestep_sim*stride_stress ) )
-    n_traj   = round( Int, timestep_target/( timestep_sim*stride_traj ) )
-    n_energy = round( Int, timestep_target/( timestep_sim ) )
-    n_ftraj  = round( Int, timestep_target/( timestep_sim*stride_traj ) )
+    n_stress = round(Int, timestep_target/( timestep_sim*stride_stress ) )
+    n_traj   = round(Int, timestep_target/( timestep_sim*stride_traj ) )
+    n_energy = round(Int, timestep_target/( timestep_sim ) )
+    n_ftraj  = round(Int, timestep_target/( timestep_sim*stride_traj ) )
     #---------------------------------------------------------------------------
 
     # Target files
     #---------------------------------------------------------------------------
-    file_energy_in = string(folder_target,"ENERGIES")
-    file_trajec_in = string(folder_target,"TRAJEC.xyz")
-    file_stress_in = string(folder_target,"STRESS")
-    file_ftrajectory_in = string(folder_target,"FTRAJECTORY")
+    file_energy_in      = string( folder_target, "ENERGIES"    )
+    file_trajec_in      = string( folder_target, "TRAJEC.xyz"  )
+    file_stress_in      = string( folder_target, "STRESS"      )
+    file_ftrajectory_in = string( folder_target, "FTRAJECTORY" )
     #---------------------------------------------------------------------------
 
     # Determining nb of steps
@@ -1218,39 +1249,39 @@ function buildingDataBase( folder_target::T1, file_stress::T2, file_pressure::T3
         print("Interrupting database construction.\n")
         return false
     end
-    nb_step_stress = utils.nbStepStriding( nb_step_stress, n_stress )
+    nb_step_stress = utils.nbStepStriding( n_stress, nb_step_stress )
     #-------------------------------------------
     nb_step_ftraj, nb_atoms_ftraj = getNbStepAtomsFtraj( file_ftrajectory_in )
     if nb_step_ftraj == false
         print("Interrupting database construction.\n")
         return false
     end
-    nb_step_ftraj = utils.nbStepStriding( nb_step_ftraj, n_ftraj )
+    nb_step_ftraj = utils.nbStepStriding( n_ftraj, nb_step_ftraj )
     #-------------------------------------------
     nb_step_energy = getNbStepEnergies( file_energy_in )
     if nb_step_energy == false
         print("Interrupting database construction.\n")
         return false
     end
-    nb_step_energy = utils.nbStepStriding( nb_step_energy, n_energy )
+    nb_step_energy = utils.nbStepStriding( n_energy, nb_step_energy )
     #-------------------------------------------
     nb_step_traj = filexyz.getNbSteps( file_trajec_in )
     if nb_step_traj == false
         print("Interrupting database construction.\n")
         return false
     end
-    nb_step_traj = utils.nbStepStriding( nb_step_traj, n_traj )
+    nb_step_traj = utils.nbStepStriding( n_traj, nb_step_traj )
     #--------------------------------------------------------------------------
 
     # Checking coherence
     #--------------------------------------------------------------------------
     if nb_step_traj != nb_step_stress ||  nb_step_traj != nb_step_energy || nb_step_traj != nb_step_ftraj
-        print("Some inconsistencies in ",folder_target,"\n")
-        print("traj_step: ",nb_step_traj,"\n")
-        print("ftraj_step: ",nb_step_ftraj,"\n")
-        print("energy_step: ",nb_step_energy,"\n")
-        print("stress_step: ",nb_step_stress,"\n")
-        print("Interrupting database construction.\n")
+        print( "Some inconsistencies in ", folder_target, "\n" )
+        print( "traj_step: ",   nb_step_traj,    "\n" )
+        print( "ftraj_step: ",  nb_step_ftraj,   "\n" )
+        print( "energy_step: ", nb_step_energy,  "\n" )
+        print( "stress_step: ", nb_step_stress,  "\n" )
+        print( "Interrupting database construction.\n")
         return false
     end
     target_length = min( nb_step_traj, nb_step_ftraj, nb_step_energy, nb_step_stress )
@@ -1302,11 +1333,11 @@ end
 function writeRelaunchVelocities( folder_target::T1, velocities::Array{T2,2}, file_out_velocities::T3 ) where { T1 <: AbstractString, T2 <: Real, T3 <: AbstractString }
 
     #----------------------------------------
-    nb_atoms=size(velocities)[1]
+    nb_atoms = size(velocities)[1]
     file_out = open( string( folder_target, file_out_velocities ), "w" )
-    for atom = 1:nb_atoms
+    for atom=1:nb_atoms
         for i=1:3
-            write( file_out, string( velocities[atom,i], " " ) )
+            write( file_out, string( velocities[ i, atom ], " " ) )
         end
         write("\n")
     end
@@ -1327,18 +1358,20 @@ function writeRelaunchVelocitiesTraj( folder_target::T1, traj::Vector{T2}, file_
     if timestep == false
         return false
     end
+
     stride_traj = readIntputStrideTraj( string( folder_target, "input" ) )
     if stride_traj == false
         return false
     end
+
     dt = stride_traj*timestep*conversion.fs2hatime
     #---------------------------------------
 
     #----------------------------------------
     file_out = open( string( folder_target, file_out_velocities ), "w" )
-    for atom = 1:nb_atoms
+    for atom=1:nb_atoms
         for i=1:3
-            dx=(traj[nb_step].positions[atom,i]-traj[nb_step-1].positions[atom,i])*conversion.ang2Bohr
+            dx = ( traj[ nb_step ].positions[ i, atom ] - traj[ nb_step - 1 ].positions[ i, atom ])*conversion.ang2Bohr
             write( file_out, string( dx/dt , " " ) )
         end
         write("\n")
@@ -1377,54 +1410,61 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_positions_suffix::T2, 
 
     #------------------------------------------------
     nb_step_ftraj = size( positions )[1]
-    positions = positions[nb_step_ftraj,:,:]
-    velocities = velocities[nb_step_ftraj,:,:]
-    forces=[]
+    positions  = positions[  :, :, nb_step_ftraj ]
+    velocities = velocities[ :, :, nb_step_ftraj ]
+    forces     = []
     #------------------------------------------------
 
     #------------------------------------------------
     traj = filexyz.readFileAtomList( string( folder_in_target, "TRAJEC.xyz" ) )
-    nb_step_traj = size(traj)[1]
+    nb_step_traj = size(traj)[2]
     #------------------------------------------------
 
     #------------------------------------------------
     if nb_step_traj != nb_step_ftraj
         print("TRAJEC.xyz and FTRAJECTORY DO NOT HAVE THE SAME SIZE!\n")
-        print("TRAJEC.xyz at: ",folder_in_target,"TRAJEC.xyz n_step: ",nb_step_traj,"\n")
-        print("FTRAJECTORY at: ",folder_in_target,"FTRAJECTORY n_step: ",nb_step_ftraj,"\n")
+        print("TRAJEC.xyz at: ",  folder_in_target, "TRAJEC.xyz n_step: ",  nb_step_traj,  "\n" )
+        print("FTRAJECTORY at: ", folder_in_target, "FTRAJECTORY n_step: ", nb_step_ftraj, "\n" )
         return false
     end
     #------------------------------------------------
 
     #------------------------------------------------
-    if writeRelaunchPositions( folder_in_target, traj[nb_step_traj], file_out_positions_suffix ) && writeRelaunchVelocities( folder_in_target, velocities, file_out_velocities )
+    if writeRelaunchPositions( folder_in_target, traj[ nb_step_traj ], file_out_positions_suffix ) && writeRelaunchVelocities( folder_in_target, velocities, file_out_velocities )
         return true
     end
 end
 function relaunchRunTrajec( folder_in_target::T1, file_out_path::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
 
     #------------------------------------------------------------
-    path_input_file = string(folder_in_target,"input")
-    if ! isfile(path_input_file)
-        print("No input file found at ",path_input_file,"!\n")
+    path_input_file = string( folder_in_target, "input" )
+    if ! isfile( path_input_file )
+        print( "No input file found at ", path_input_file, "!\n ")
         return false
     end
-    file_in=open( path_input_file )
+
+    file_in = open( path_input_file )
     #------------------------------------------------------------
 
     # Getting positions and velocities
     #------------------------------------------------------------
+
     dt = computeTimestep( path_input_file )
+
     if dt == false
         return false
     end
+
     traj = filexyz.readFileAtomList( string( folder_in_target, "TRAJEC.xyz" ) )
+
     if traj == false
         return false
     end
-    nb_step=size(traj)[1]
+
+    nb_step = size(traj)[1]
+
     velocities = atom_mod.computeVelocities( traj, nb_step, dt )*conversion.ang2Bohr/conversion.fs2hatime
-    traj=traj[nb_step]
+    traj = traj[ nb_step ]
     #------------------------------------------------------------
 
     # Copy parameters of input
@@ -1436,43 +1476,56 @@ function relaunchRunTrajec( folder_in_target::T1, file_out_path::T2 ) where { T1
     write(file_out,"&ATOMS\n")
     # Looping over atoms species
     while true
-        keywords  = utils.getLineElements( file_in )
+        keywords = utils.getLineElements( file_in )
+
         # Skip blank lines
-        while size(keywords)[1] == 0
+        while size( keywords )[1] == 0
             keywords  = utils.getLineElements( file_in )
         end
+
         if keywords[1] == "&END" || keywords[1] == "VELOCITIES"
             break
         end
+
         # Copy PP line
         utils.copyLine2file( keywords, file_out )
+
         # Copy basis PP line
         utils.copyLine2file( utils.getLineElements( file_in ), file_out )
+
         # Getting Nb of atoms of species
         keywords =  utils.getLineElements( file_in )
         nb_atoms = parse( Int, keywords[1] )
+
         # Writing nb atoms line to file
         utils.copyLine2file( keywords, file_out )
+
         # Writting actual positions for specie
         writePositions( file_out, traj.positions )
+
         # Ignore the atoms positions
         utils.skipLines( file_in, nb_atoms)
     end
+
     write( file_out, string("\n") )
+
     writeVelocities( file_out, velocities )
+
     write( file_out, string("&END") )
+
     close( file_in  )
+
     close( file_out )
 end
 function relaunchRunFtraj( folder_in_target::T1, file_out_path::T2 ) where { T1 <: AbstractString, T2 <: AbstractString }
 
     #------------------------------------------------------------
-    path_input_file = string(folder_in_target,"input")
-    if ! isfile(path_input_file)
-        print("No input file found at ",path_input_file,"!\n")
+    path_input_file = string( folder_in_target, "input" )
+    if ! isfile( path_input_file )
+        print( "No input file found at ", path_input_file, "!\n" )
         return false
     end
-    file_in=open( path_input_file )
+    file_in = open( path_input_file )
     #------------------------------------------------------------
 
     # Getting positions and velocities
@@ -1491,37 +1544,52 @@ function relaunchRunFtraj( folder_in_target::T1, file_out_path::T2 ) where { T1 
     copyInputParams( file_in, file_out )
     #----------------------------------------
     # Copying &ATOMS line
-    atom_done=1
-    write(file_out,"&ATOMS\n")
+    atom_done = 1
+    write( file_out, "&ATOMS\n" )
+
     # Looping over atoms species
     while true
+        #
         keywords  = utils.getLineElements( file_in )
+
         # Skip blank lines
         while size(keywords)[1] == 0
             keywords  = utils.getLineElements( file_in )
         end
+
         if keywords[1] == "&END" || keywords[1] == "VELOCITIES"
             break
         end
+
         # Copy PP line
         utils.copyLine2file( keywords, file_out )
+
         # Copy basis PP line
         utils.copyLine2file( utils.getLineElements( file_in ), file_out )
+
         # Getting Nb of atoms of species
         keywords =  utils.getLineElements( file_in )
         nb_specie = parse( Int, keywords[1] )
+
         # Writing nb atoms line to file
         utils.copyLine2file( keywords, file_out )
+
         # Writting actual positions for specie
-        writePositions( file_out, positions[nb_step,atom_done:atom_done+nb_specie-1,:]*conversion.bohr2Ang )
+        writePositions( file_out, positions[ :, atom_done:atom_done+nb_specie-1, nb_step ]*conversion.bohr2Ang )
+
         atom_done += nb_specie
         # Ignore the atoms positions
         utils.skipLines( file_in, nb_specie )
     end
+
     write( file_out, string("\n") )
-    writeVelocities( file_out, velocities[nb_step,:,:] )
+
+    writeVelocities( file_out, velocities[ :, :, nb_step ] )
+
     write( file_out, string("&END") )
+
     close( file_in  )
+
     close( file_out )
 end
 #-------------------------------------------------------------------------------
@@ -1534,22 +1602,27 @@ function cpmdArcheology( folder_target::T1 , output_suffix::T2 ) where { T1 <: A
         print("No folder at ",folder_target," !\n")
         return false
     end
+
     if ! isfile( string( folder_target,"TRAJEC.xyz"))
         print("No TRAJEC.xyz file at ",folder_target," , this function will not work, try another one.\n")
         return false
     end
+
     if ! isfile( string( folder_target,"ENERGIES") )
         print("No ENERGIES file in ",folder_target," , this function will not work, try another one.\n")
         return false
     end
+
     if ! isfile( string( folder_target, "FTRAJECTORY" ) )
         print("No FTRAJECTORY file in ", folder_target, " this function will not work, try another one.\n")
         return false
     end
+
     if ! isifile( string( folder_target, "STRESS" ) )
         print("No STRESS file in ", folder_target, " this function will not work, try another one.\n")
         return false
     end
+
     if ! isfile( string( folder_target, "input") )
         print("No input file at ",folder_target," \n")
         return false
