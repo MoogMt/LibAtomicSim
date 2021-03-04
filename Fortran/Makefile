@@ -12,4 +12,4 @@ $(ALL):
 all: $(ALL) 
 
 clean:
-	@rm *.mod *.o
+	@rm *.mod *.o *~

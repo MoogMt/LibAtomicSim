@@ -1,8 +1,10 @@
 module conversion
 
 	! Description
+	!---------------------------------------------------------------------
 	! Contains various conversions variables in order to allow conversion between 
 	! units easily without looking them up all the time
+	!---------------------------------------------------------------------
 
 	! Geometry
 	!---------------------------------------------------------------------
