@@ -1,6 +1,7 @@
 module utils
 
 # Description
+#-------------------------------------------------------------
 # Various functions that are very useful but that do not really fit very well
 # anywhere else
 # - basic I/O handling files:
@@ -9,6 +10,7 @@ module utils
 # - switching functions constructions
 # - gaussian functions
 # - creates point clouds
+#-------------------------------------------------------------s
 
 # Export functions
 export writeData, writeBasicData

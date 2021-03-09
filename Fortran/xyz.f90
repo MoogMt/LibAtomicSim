@@ -73,7 +73,7 @@ end subroutine getnbatomssteps
 
 ! Read an xyz traj and returns positions
 !--------------------------------------------------------------
-subroutine readxyztraj( file_path, str_len, handle_nb, n_steps, n_atoms, positions, atoms_z )
+subroutine readtrajxyz( file_path, str_len, handle_nb, n_steps, n_atoms, positions, atoms_z )
   ! All variables intent have to be declared
   implicit none
 

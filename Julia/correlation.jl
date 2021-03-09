@@ -4,8 +4,10 @@ module correlation
 using Statistics
 
 # Description
-# - Sets of functions dealing with correlation/autocorrelation of
+#-------------------------------------------------------------
+# Sets of functions dealing with correlation/autocorrelation of
 # a given signal
+#-------------------------------------------------------------
 
 # Export functions
 export autocorr, autocorrAvg, autocorrAvgSig, autocorrNorm

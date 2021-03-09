@@ -28,7 +28,7 @@ program prout
 
 	path_file="/Volumes/B2O3_QUENCH/Project_Quench/NPT/2000-1998/traj.xyz"
 
-	call readxyztraj( path_file, str_len, handle_xyz, n_steps, n_atoms, positions, atoms_z )
+	call readtrajxyz( path_file, str_len, handle_xyz, n_steps, n_atoms, positions, atoms_z )
 
 	do i=1,n_atoms
 		write(*,*) i, atoms_z(i), positions(:,i,1)
