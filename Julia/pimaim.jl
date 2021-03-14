@@ -24,7 +24,8 @@ export readCellParams, readCellBox
 # field software called PIMAIM created by Mathieu Salanne's team in PHENIX
 # in Sorbonne University, Paris, France (contact him if you want to know more)
 
-# TODO: Test functions to check what works and what needs works
+# TODO:
+# Check read restart.dat reading functions
 
 # Reads runtime.inpt input to get the species and number of species
 #-------------------------------------------------------------------------------
@@ -872,52 +873,6 @@ function readPoscarTraj( input_path::T1, poscar_path::T2, cell_length_path::T3, 
     # - a tensor for atomic positions
     # - a vector of Cell_param for the cells
     return names, positions, cells
-end
-# Reads runtime.inpt, poscart.out, celllens.out and cellangles.out
-# - returns a trajectory for the atoms (vector of AtomList) and the cell (vector of Cell_param)
-function readPoscarTrajAtomList( input_path::T1, poscar_path::T2, cell_length_path::T3, cell_angles_path::T4 ) where { T1 <: AbstractString, T2 <: AbstractString, T3 <: AbstractString, T4 <: AbstractString }
-    # Arguments:
-    # - input_path: path to the runtime.inpt file (string)
-    # - poscar_path: path to the poscart.out file (string)
-    # - cell_length_path: path to the celllens.out file (string)
-    # - cell_angles_path: path to the cellangles.out file (string)
-    # Output
-    # - names: names of the atom, vector of strings
-    # - positions: positions of the atoms, tensor of real (3, nb_atoms, nb_step)
-    # - cells: vector of Cell_param - trajectory of the cell
-
-    # Get the species and number of atoms per species
-    species, species_nb = pimaim.getSpeciesAndNumber( input_path )
-
-    # Check that it worked
-    if species == false || species_nb == false
-        # If it fails, returns false, false
-        return false, false
-    end
-
-    # Read the trajectory of atoms
-    traj = readPoscarOutAtomList( poscar_path, species, species_nb )
-
-    # Check that trajectory was read
-    if traj == false
-        # If it fails, returns false, false
-        return false, false
-    end
-
-    # Reads the cell trajectory
-    cells = pimaim.readCellParams( cell_length_path, cell_angles_path )
-
-    # Check that it worked
-    if cells == false
-        # If it did not work, returns false, false
-        return false, false
-    end
-
-    # Return Trajectory in the shape of
-    # - a vector of string for atom names
-    # - a tensor for atomic positions
-    # - a vector of Cell_param for the cells
-    return traj, cells
 end
 # Reads runtime.inpt, poscart.out, cellbox.out
 # - returns a trajectory for the atoms (vector of AtomList) and the cell (vector of Cell_param)

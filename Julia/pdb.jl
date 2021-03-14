@@ -42,6 +42,7 @@ function getNbSteps( file_path::T1 ) where { T1 <: AbstractString }
         # first counter is triggered by the END keyword
         if keyword1 == "END"
             nb_step += 1
+
         # second counter is triggered by "CRYST1" keyword
         elseif keyword1 == "CRYST1"
             nb_step2 +=1
@@ -63,224 +64,562 @@ function getNbSteps( file_path::T1 ) where { T1 <: AbstractString }
 end
 # Get number of atoms
 function getNbAtoms( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file_path: path to the input file (string)
+    # Output
+    # - nb_atoms: number of atoms in the structure (int)
+    # OR false, if something went wrong
 
-    #-----------------------------------------
+
+    # Check that file exists
     if ! isfile( file_path )
+        # If not, send an error message, and returns false
         print("No pdb file found at ",file_path," !\n")
         return false
     end
-    #-----------------------------------------
 
-    #-----------------------------------------
+    # Initialize number of atoms for output
     nb_atoms  = 0
+
+    # Open input file
     handle_in = open( file_path )
+
+    # Reading in loop
     while ! eof( handle_in )
+        # Reads and parse line, selecting only first column of file
         keyword1 = split( readline( handle_in ) )[1]
+
+        # Increment counter as long as we encounter the "ATOM" keyword
         if keyword1 == "ATOM"
             nb_atoms += 1
+        # Stops reading when reading "END" keyword
         elseif keyword1 == "END"
             break
         end
     end
-    close( handle_in )
-    #-----------------------------------------
 
+    # Close input file
+    close( handle_in )
+
+    # Returns number of atoms
     return nb_atoms
 end
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
 # Reads a .pdb file containing a single structure
-function readAtomList( file_path::T1 ) where { T1 <: AbstractString }
+function readStructure( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file_path: path of the pdb file
+    # Output
+    # - names: vector (nb_atoms) of string with atomic names
+    # - positions: array (3,nb_atoms), contains the atomic positions
+    # - cell: Cell_param that contains all cell informations
+    # OR false, false, false if something went wrong
 
+    # Get number of atoms and check that file exists
     nb_atoms = getNbAtoms(file_path)
+
+    # If file does not exists returns false, false
     if nb_atoms == false
-        return false, false
+        return false, false, false
     end
 
+    # Opens input file
     handle_in = open( file_path )
 
-    # Cell
-    #------------------------------
-    lengths = zeros( Real, 3 )
-    angles = zeros( Real, 3 )
-    keyword=split( readline( handle_in ) )
+    # Initialize vectors for lengths and angles of cell
+    lengths = zeros(Real, 3 )
+    angles  = zeros(Real, 3 )
+
+    # Reads and parse first line
+    keyword = split( readline( handle_in ) )
+
+    # Reading cell information from CRYST1 line
     if keyword[1] == "CRYST1"
+        # Loop over dimensions
         for i=1:3
+            # Lengths are elements 2-4
             lengths[i] = parse( Float64, keyword[i+1] )
+
+            # Angles are elements 5-7
             angles[i] = parse( Float64, keyword[i+4] )
         end
-    else
-        print("Problem with .pdb file at: ",file_path,"\n")
-        return false, false
-    end
-    cell = cell_mod.Cell_param( lengths, angles )
-    #------------------------------
 
-    # Atoms
-    #------------------------------
-    atoms = atom_mod.AtomList( nb_atoms )
+    # If initial element is not CRYST1, return error
+    else
+        print( "Problem with .pdb file at: ", file_path, "\n" )
+        return false, false, false
+    end
+
+    # Compact all information into a Cell Param object
+    cell = cell_mod.Cell_param( lengths, angles )
+
+    # Initialize position arrays
+    positions = zeros(Real, 3, nb_atoms )
+
+    # Initialize vector for atom names
+    names = Vector{AbstractString}(undef, nb_atoms )
+
+    # Loop over atoms
     for atom=1:nb_atoms
+        # Reading line
         keyword = split( readline( handle_in ) )
+
+        # Checking that the first key is ATOM
         if keyword[1] == "ATOM"
-            atoms.index[atom] = atom
-            atoms.names[atom] = keyword[3]
+            # Atom name is the third element of the line
+            names[atom] = keyword[3]
+
+            # Loop over dimensions
             for i=1:3
-                atoms.positions[atom,i] = parse( Float64, keyword[5+i] )
+                # Positions are elements 5-7 in the ATOM lines
+                positions[ i, atom ] = parse(Float64, keyword[ 5 + i ] )
             end
+
+        # If not, we have a problem and return false, false
         else
-            print("Problem with .pdb file at: ",file_path," at ATOM keyword.\n")
-            return false
+            print( "Problem reading .pdb file at: ", file_path, " at ATOM keyword.\n" )
+            return false, false, false
         end
     end
-    #------------------------------
 
+    # Closes input file
     close( handle_in )
 
-    return atoms, cell
+    # We return the names of atoms, their position and the cell information
+    return names, positions, cell
+end
+# Reads a .pdb file for a trajectory
+function readTraj( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file_path: path to the input file (string)
+    # Output
+    # - names: vector of string with atoms names
+    # - positions: array (3,nb_atoms,nb_step) with atomic positions
+    # - cells: vector of cell param with cell information
+    # OR false, false, false if something went wrong
+
+    # Getting number of steps
+    nb_step = getNbSteps( file_path )
+
+    if nb_step == false
+        return false, false, false
+    end
+
+    # Get number of atoms
+    nb_atoms = getNbAtoms( file_path )
+
+    # Check that we could get an number of atom
+    if nb_atoms == false
+        return false, false, false
+    end
+
+    # Open input file
+    handle_in = open( file_path )
+
+    # Initialize vector for atom names
+    names = Vector{AbstractString}(undef, nb_atoms )
+
+    # Initialize array for atomic positions
+    positions = zeros(Real, 3, nb_atoms, nb_step )
+
+    # Initialize cell param vector
+    cells = Vector{cell_mod.Cell_param}(undef,nb_step)
+
+    # Loop over steps
+    for step=1:nb_step
+        # If "CRYST1" keyword, reads cell information
+        if split(readline( handle_in ) )[1] == "CRYST1"
+            # Initialize vectors for cell lengths and angles for current step
+            lengths = zeros(Real, 3 )
+            angles  = zeros(Real, 3 )
+
+            # Loop over dimensions
+            for i=1:3
+                # Lengths of cells are columns 2-4 (+ parse to float)
+                lengths[i] = parse( Float64, keyword[ i + 1 ] )
+
+                # Angles of cells are columns 5-7 (+ parse to float)
+                angles[i]  = parse( Float64, keyword[ i + 4 ] )
+            end
+
+            # Assemble cell lengths and angles into CellParam
+            cells[step] = cell_mod.Cell_param( lengths, angles)
+        # If not returns error message and false, false, false
+        else
+            print("Problem reading file ", file_path, " at step: ", step, "\n" )
+            return false, false, false
+        end
+
+        # Loop over atoms
+        for atom=1:nb_atoms
+            # Read "ATOM" line
+            keyword = split( readline( handle_in ) )
+
+            # If "ATOM" keyword
+            if keyword[1] == "ATOM"
+                # At first step only...
+                if step == 1
+                    # Reads the atom names as third column
+                    names[ count_ ] = keyword[3]
+                end
+
+                # Loop over dimensions
+                for i=1:3
+                    # Read dimensions as columns 6-8
+                    positions[ i, count_ ] = parse( Float64, keyword[ 5 + i ] )
+                end
+            end
+        end
+
+        # Reads "END" line
+        readline( handle_in )
+    end
+
+    # Returns names, positions and cell informations
+    return names, positions, cells
 end
 # Reads a .pdb file containing a single structure
-function readAtomMolList( file_path::T1 ) where { T1 <: AbstractString }
+function readStructureAtomList( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file_path: path to the input file
+    # Output
+    # - atoms: AtomList, contains atomic information
+    # - cells: Cell_param, contains cell information
+    # OR false, false
 
-    nb_atoms=getNbAtoms(file_path)
+    # Get number of atoms
+    nb_atoms = getNbAtoms(file_path)
+
+    # If something went wrong, returns false, false (message was sent by getNbAtoms)
     if nb_atoms == false
         return false, false
     end
 
+    # Open input file
     handle_in = open( file_path )
 
-    #----------------------------------------------------
-    cell = cell_mod.Cell_param()
+    # Initialize vectors for cell lengths and angles
+    lengths = zeros( Real, 3 )
+    angles  = zeros( Real, 3 )
+
+    # Read first line and parse it with " " deliminator
     keyword=split( readline( handle_in ) )
+
+    # Check that the first element is "CRYST1" (cell information)
     if keyword[1] == "CRYST1"
+        # Loop over dimensions
         for i=1:3
-            cell.length[i] = parse( Float64, split(keyword)[i+1] )
-            cell.angles[i] = parse( Float64, split(keyword)[i+4] )
+            # Casts elements 2-4 into float as lengths of cell
+            lengths[i] = parse( Float64, keyword[ i + 1 ] )
+
+            # Casts elements 5-7 into float as angles of cell
+            angles[i]  = parse( Float64, keyword[ i + 4 ] )
         end
+
+    # If there is no "CRYST1" keyword, there is a problem, returns false, false
     else
         print("Problem with .pdb file at: ",file_path,"\n")
-        return false
+        return false, false
     end
-    #----------------------------------------------------
 
-    #----------------------------------------------------
-    # Reading informations about cell and number of atoms
-    #----------------------------------------------------
+    # Assemble cell information into Cell_param
+    cell = cell_mod.Cell_param( lengths, angles )
+
+    # Initialize AtomList for atomic informations
     atoms = atom_mod.AtomList( nb_atoms )
+
+    # Loop over atoms
     for atom=1:nb_atoms
+        # Read line and parse with " " deliminator
         keyword = split( readline( handle_in ) )
+
+        # Check that first column starts with "ATOM"
         if keyword[1] == "ATOM"
-            atoms.atom_index[atom] = parse( Int, keyword[2] )
-            atoms.atom_names[atom] = keyword[3]
-            atoms.mol_names[atom] =  keyword[4]
-            atoms.mol_index[atom] = parse( Int, keyword[6] )
+            # Parse third column as element name
+            atoms.names[atom] = keyword[3]
+
+            # Get index of atom
+            atoms.index[atom]  = atom
+
+            # Loop over dimensions
             for i=1:3
-                atoms.positions[atom,i] = parse( Float64, keyword[6+i] )
+                # Parse elements 6-8 as particle positions
+                atoms.positions[ i, atom ] = parse(Float64, keyword[ 5 + i ] )
             end
+
+        # If column does not start with "ATOM", there is a problem with the file
         else
             print("Problem with .pdb file at: ",file_path," at ATOM keyword.\n")
             return false
         end
     end
-    #----------------------------------------------------
 
+    # Close input file
     close( handle_in )
 
+    # Returns atomic (atoms) and cell information (cell)
     return atoms, cell
 end
-function readTrajAtomListFixedCell( file_path::T1 ) where { T1 <: AbstractString }
+# Reads a .pdb file containing a single structure, returns AtomMolList
+function readStructureAtomMolList( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file_path: path to the input file
+    # Output
+    # - atoms: AtomMolList for atomic information
+    # - cell: Cell_param for cell information
 
-    nb_step = getNbSteps( file_path )
-    nb_atoms = getNbAtoms( file_path )
+    # Get number of atoms
+    nb_atoms = getNbAtoms(file_path)
+
+    # If something went wrong, returns false, false
+    if nb_atoms == false
+        return false, false
+    end
+
+    # Opens input file
     handle_in = open( file_path )
 
-    #----------------------------------------------------
+    # Initialize Cell_param for cell info
     cell = cell_mod.Cell_param()
+
+    # Read first line and parse with " " deliminator
     keyword=split( readline( handle_in ) )
+
+    # Check that the first column signal is "CRYST1"
     if keyword[1] == "CRYST1"
+        # If so, loop over dimensions
         for i=1:3
-            cell.length[i] = parse( Float64, keyword[i+1] )
-            cell.angles[i] = parse( Float64, keyword[i+4] )
+            # Columns 2-4 are cell lengths
+            cell.length[i] = parse( Float64, split( keyword )[ i + 1 ] )
+            # Columns 5-7 are cell angles
+            cell.angles[i] = parse( Float64, split( keyword )[ i + 4 ] )
         end
+    # If not, send an error message and return false, false
+    else
+        print("Problem with .pdb file at: ",file_path,"\n")
+        return false, false
+    end
+
+    # Initialize AtomMolList for atomic informations
+    atoms = atom_mod.AtomMolList( nb_atoms )
+
+    # Loop over atoms
+    for atom=1:nb_atoms
+        # Read line and parse with " " deliminator
+        keyword = split( readline( handle_in ) )
+
+        # Check that first column signal is "ATOM"
+        if keyword[1] == "ATOM"
+            # Parse 2nd column as atom index
+            atoms.atom_index[atom] = parse( Int, keyword[2] )
+
+            # Parse 3rd column as atom name
+            atoms.atom_names[atom] = keyword[3]
+
+            # Parse 4th column as molecule name
+            atoms.mol_names[atom] =  keyword[4]
+
+            # Parse 6th column as molecule index
+            atoms.mol_index[atom] = parse( Int, keyword[5] )
+
+            # Loop over dimensions
+            for i=1:3
+                # Parse columns 6-8 as atomic positions
+                atoms.positions[ i, atom ] = parse( Float64, keyword[ 5 + i ] )
+            end
+        # If not, sends error message and return false, false
+        else
+            print("Problem with .pdb file at: ",file_path," at ATOM keyword.\n")
+            return false, false
+        end
+    end
+
+    # Close input file
+    close( handle_in )
+
+    #
+    return atoms, cell
+end
+# Reads a .pdb file containing a trajectory with fixed cell
+function readTrajAtomListFixedCell( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file_path: path to the *.pdb file
+    # Output
+    # - traj: vector of AtomList, with trajectories of atoms
+    # - cells: vector of Cell_param, with trajectory of cell
+
+    # Get number of step in the trajectory
+    nb_step = getNbSteps( file_path )
+
+    # Get number of atoms in the traj
+    nb_atoms = getNbAtoms( file_path )
+
+    # Opens input file
+    handle_in = open( file_path )
+
+    # Initialize Cell_param for cell information
+    cell = cell_mod.Cell_param()
+
+    # Read and parse first line
+    keyword = split( readline( handle_in ) )
+
+    # Check that the first column is "CRYST1"
+    if keyword[1] == "CRYST1"
+        # Loop over dimensions
+        for i=1:3
+            # Columns 2-4 are cell lengths
+            cell.length[ i ] = parse( Float64, keyword[ i + 1 ] )
+
+            # Columns 5-7 are cell lengths
+            cell.angles[ i ] = parse( Float64, keyword[ i + 4 ] )
+        end
+    # If not, sends a message and returns false, false
     else
         print("Problem with .pdb file at: ",file_path," at CRYST1 (start)\n")
         return false, false
     end
-    seekstart( handle_in )
-    #----------------------------------------------------
 
-    #---------------------------------
-    # Reading atomic informations
-    #---------------------------------------------------------------------
+    # Goes back to the begining of the file
+    seekstart( handle_in )
+
+    # Initialize vector of AtomList for atomic trajectory
     traj = Vector{ AtomList }( undef, nb_step )
+
+    # Loop over steps
     for step=1:nb_step
-        keyword = readline( handle_in )
+        # Read line and parse with " " deliminator
+        keyword = split( readline( handle_in ) )
+
+        # Check that the first column of line is "CRYST1"
         if keyword[1] != "CRYST1"
-            print("Problem with .pdb file at: ",file_path," at CRYST1 step:",step," !\n")
+            # If not, returns false, false and sends error message
+            print( "Problem with .pdb file at: ", file_path, " at CRYST1 step:", step, " !\n" )
             return false, false
         end
+
+        # Check dummy
         check = false
-        traj[1] = atom_mod.AtomList(nb_atoms)
+
+        # Initialize ATomList for current step
+        traj[step] = atom_mod.AtomList(nb_atoms)
+
+        # Counter of atoms
         count_ = 1
+
+        # Loop as long as we don't reach "END" keyword
         while ! check
-            keyword = readline( handle_in )
+            # Reads and parse line with " " deliminator
+            keyword = split( readline( handle_in ) )
+
+            # Check that keyword is "ATOM"
             if keyword[1] == "ATOM"
+                # Get the atom name as third column
                 traj[step].names = keyword[3]
+
+                # Get atom counter as atom index
                 traj[step].index = count_
+
+                # Loop over dimension
                 for i=1:3
-                    traj[step].positions[count_,i] = parse( Float64, keyword[6+i] )
+                    # Columns 6-8 are parsed as atomic positions
+                    traj[ step ].positions[ i, count_ ] = parse( Float64, keyword[ 5 + i ] )
                 end
+
+                # Increment atom counter
                 count_ += 1
+
+            # Else, check that the keyword is not "END", if so, stops steps
             elseif keyword[1] == "END"
                 break
             end
         end
     end
-    #---------------------------------------------------------------------
 
+    # Returns trajectory for atoms (traj) and cells (cell)
     return traj, cell
 end
+# Reads *.pdb file trajectory as vector of AtomList and Cell_param
 function readTrajAtomList( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file_path: path to the input file
+    # Output
+    # - traj: vector of AtomList with atomic positions
+    # - cells: vector of Cell_param with cell informations
 
-    #---------------------------------
+    # Get number of steps
     nb_step = getNbSteps( file_path )
-    nb_atoms = getNbAtoms( file_path )
-    handle_in = open( file_path )
-    #---------------------------------
 
-    #---------------------------------
-    # Reading atomic informations
-    #---------------------------------------------------------------------
+    # Get number of atoms
+    nb_atoms = getNbAtoms( file_path )
+
+    # Open input file
+    handle_in = open( file_path )
+
+    # Initialize vector of AtomList for atom information
     traj = Vector{ AtomList }( undef, nb_step )
-    cells = Vector{cell_mod.Cell_param}(undef,nb_step)
+
+    # Initialize vector of Cell_param for cell information
+    cells = Vector{cell_mod.Cell_param}(undef, nb_step )
+
+    # Loop over steps
     for step=1:nb_step
+        # Dummy to check for "END" signal
         check = false
-        traj[step] = atom_mod.AtomList(nb_atoms)
+
+        # Initialize local AtomList
+        traj[step] = atom_mod.AtomList( nb_atoms )
+
+        # Initialize atom counter
         count_ = 1
+
+        # Loop as long as "END" signal is not reached
         while ! check
-            keyword = split(readline( handle_in ))
+            # Read and parse line " " deliminator
+            keyword = split( readline( handle_in ) )
+
+            # Check that first column is CRYST1
             if keyword[1] == "CRYST1"
-                lengths = zeros(Real, 3)
-                angles = zeros(Real,3)
+                # Initialize vectors for cell lengths and angles
+                lengths = zeros(Real, 3 )
+                angles  = zeros(Real, 3 )
+
+                # Loop over dimensions
                 for i=1:3
-                    lengths[i] = parse( Float64, keyword[i+1] )
-                    angles[i] = parse( Float64, keyword[i+4] )
+                    # Columns 2-4 are parsed as cell lenghts
+                    lengths[i] = parse( Float64, keyword[ i + 1 ] )
+
+                    # Columns 5-7 are parsed as cell lenghts
+                    angles[i] = parse( Float64, keyword[ i + 4 ] )
                 end
-                cells[step] = cell_mod.Cell_param( lengths, angles)
+
+                # Compound information into Cell_param
+                cells[ step ] = cell_mod.Cell_param( lengths, angles )
+            # Check that the first column is "ATOM"
             elseif keyword[1] == "ATOM"
+                # Parse second element as atom index
                 traj[step].index[count_] = parse( Int, keyword[2] )
+
+                # Parse third column as atom name
                 traj[step].names[count_] = keyword[3]
+
+                # Loop over dimensions
                 for i=1:3
-                    traj[step].positions[count_,i] = parse( Float64, keyword[5+i] )
+                    # Parse elements 6-8 as atomic positions
+                    traj[step].positions[ i, count_ ] = parse( Float64, keyword[ 5 + i ] )
                 end
+
+                # Increment atom counter
                 count_ += 1
+            # If first column is END, end the step
             elseif keyword[1] == "END"
                 break
             end
         end
     end
-    #---------------------------------------------------------------------
 
+    # Returns vector of AtomList for atoms, vector of Cell_param for cell information
     return traj, cells
 end
 #-------------------------------------------------------------------------------
