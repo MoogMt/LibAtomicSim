@@ -1,0 +1,10 @@
+#!/bin/bash
+
+export SRC="/Users/mathieumoog/Softwares/LibAtomicSim/Fortran/examples/"
+export OBJ="/Users/mathieumoog/Softwares/LibAtomicSim/Fortran/"
+export BIN="/Users/mathieumoog/Softwares/LibAtomicSim/Fortran/examples/"
+
+gfortran -J$OBJ -c $OBJ/utils.f90 -o $SRC/utils.o
+gfortran -J$OBJ -c $OBJ/xyz.f90   -o $SRC/xyz.o
+gfortran -I$OBJ -c $SRC/test.f90  -o $SRC/test.o
+gfortran -o $BIN/test.exe $SRC/test.o $SRC/utils.o $SRC/xyz.o
