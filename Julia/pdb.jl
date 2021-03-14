@@ -7,8 +7,14 @@ using cell_mod
 using periodicTable
 
 # Exporting modules functions
-export getNbSteps, readStructure, readTraj
-export writePdb, writePdbPlumed
+export getNbSteps, getNbAtoms
+export readStructure, readTraj, readStructureAtomList, readStructureAtomMolList, readTrajAtomListFixedCell, readTrajAtomList
+export addJustifyRight, addJustifyLeft
+export writeCRYST1, writeMODEL
+export writePdb, writePdbPivClustering, writePdbPlumed
+
+# Descriptors
+# - Set of functions to deal with pdb files
 
 # Get number of atoms and steps
 #-------------------------------------------------------------------------------
@@ -624,7 +630,7 @@ function readTrajAtomList( file_path::T1 ) where { T1 <: AbstractString }
 end
 #-------------------------------------------------------------------------------
 
-# Writing file
+# Writting file in justification file
 #-------------------------------------------------------------------------------
 function addJustifyRight( max_column::T1, string_target::T2, string_toadd::T3 ) where  { T1 <: Int, T2 <: AbstractString, T3 <: AbstractString }
     string_target = utils.spaces( string_target, max_column-length(string_target)-length(string_toadd) )
@@ -634,6 +640,10 @@ function addJustifyLeft( max_column::T1, string_target::T2, string_toadd::T3 ) w
     string_target = utils.spaces( string_target, max_column-length(string_target) )
     return string( string_target, string_toadd)
 end
+#-------------------------------------------------------------------------------
+
+# Element of write first elements
+#-------------------------------------------------------------------------------
 function writeCRYST1(  handle_out::IO, lengths::Vector{Real}, angles::Vector{Real},
     round_length::Int=2,
     round_angles::Int=2,
@@ -740,6 +750,10 @@ function writeMODEL( handle_out::T1, name_model::T2 )  where { T1 <: IO, T2 <: A
     write( handle_out, string("MODEL ",name_model))
     return true
 end
+#-------------------------------------------------------------------------------
+
+# Writing file
+#-------------------------------------------------------------------------------
 function writePdb( file::T1, atoms::T2, cell::T3 ) where { T1 <: AbstractString , T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param }
 
     # Writes a PDB file according to standard format (2011)
