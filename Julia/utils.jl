@@ -17,7 +17,7 @@ export writeData, writeBasicData
 export getNbLines
 export getAllFilesWithExtension, getFileName, getFilesName
 export copyLine2file, skipLines, readParseLine
-export ifLongerCut, char2int, spaces
+export addJustifyRight, addJustifyLeft, ifLongerCut, char2int, spaces
 export nbStepStriding, strideData!
 export checkDimVec, checkMatDim, sequenceMatrixH, simpleSequence, swap!
 export switchingFunction
@@ -284,6 +284,56 @@ end
 
 # Strings Handling
 #-------------------------------------------------------------------------------
+# Adds the target string to final string justifying right
+function addJustifyRight( max_column::T1, string_target::T2, string_toadd::T3 ) where  { T1 <: Int, T2 <: AbstractString, T3 <: AbstractString }
+    # Argument
+    # - max_column: maximum length of the string once string is added
+    # - string_target: target string to add to the final string
+    # - string_toadd: string to add the target string to
+    # Output
+    # - finals string
+    # OR false if something went wrong
+
+    # Compute the number of spaces
+    number_spaces = max_column - length( string_target ) - length( string_toadd )
+
+    # If the number of spaces is negative, there is no enough space, returns false and sends error message
+    if number_spaces < 0
+        print( "Not enough space to add the string.\n" )
+        return false
+    end
+
+    # Adds spaces to the final string
+    string_target = utils.spaces( string_target, number_spaces )
+
+    # Adds target string to the final string
+    return string( string_target, string_toadd )
+end
+# Adds the target string to final string justifying left
+function addJustifyLeft( max_column::T1, string_target::T2, string_toadd::T3 ) where { T1 <: Int, T2 <: AbstractString, T3 <: AbstractString }
+    # Argument
+    # - max_column: maximum length of the string once string is added
+    # - string_target: target string to add to the final string
+    # - string_toadd: string to add the target string to
+    # Output
+    # - finals string
+    # OR false if something went wrong
+
+    # Computes number of spaces to add
+    nb_spaces = max_column - length(string_target)
+
+    # If the number of spaces is negative, there is no enough space, returns false and sends error message
+    if nb_spaces < 0
+        print( "Not enough space to add the string.\n" )
+        return false
+    end
+
+    # Adds string to target string
+    string_target = utils.spaces( string_target, nb_spaces )
+
+    # Adds target string to final string
+    return string( string_target, string_toadd )
+end
 # Cuts a string corresponding to a number if it is longer than a given number of characters
 function ifLongerCut( string_::T1, length_max::T2, cut_ind::T3 ) where { T1 <: AbstractString, T2 <: Int, T3 <: Int }
     # Argument

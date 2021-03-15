@@ -630,227 +630,291 @@ function readTrajAtomList( file_path::T1 ) where { T1 <: AbstractString }
 end
 #-------------------------------------------------------------------------------
 
-# Writting file in justification file
-#-------------------------------------------------------------------------------
-function addJustifyRight( max_column::T1, string_target::T2, string_toadd::T3 ) where  { T1 <: Int, T2 <: AbstractString, T3 <: AbstractString }
-    string_target = utils.spaces( string_target, max_column-length(string_target)-length(string_toadd) )
-    return string( string_target, string_toadd)
-end
-function addJustifyLeft( max_column::T1, string_target::T2, string_toadd::T3 ) where { T1 <: Int, T2 <: AbstractString, T3 <: AbstractString }
-    string_target = utils.spaces( string_target, max_column-length(string_target) )
-    return string( string_target, string_toadd)
-end
-#-------------------------------------------------------------------------------
-
 # Element of write first elements
 #-------------------------------------------------------------------------------
-function writeCRYST1(  handle_out::IO, lengths::Vector{Real}, angles::Vector{Real},
-    round_length::Int=2,
-    round_angles::Int=2,
-    space_group::AbstractString="P 1",
-    z_number::Int=1,
-    end_a::Int=15,
-    end_b::Int=24,
-    end_c::Int=33,
-    end_alpha::Int=40,
-    end_beta::Int=47,
-    end_gamma::Int=54,
-    start_sg::Int=56,
-    end_z::Int=70 )
-
-    # Role: write CRYST1 to file
-    # Parametric, in order to adapt to the various PDB format in existence
-
+# Creates and writes the CRYST1 line with cell information about the structure to a *.pdb file
+# very parametric to fit all future evolution of the format
+function writeCRYST1( handle_out::T1, lengths::Vector{T2}, angles::Vector{T3},
+    round_length::T4=2,
+    round_angles::T5=2,
+    space_group::T6="P 1",
+    z_number::T7=1,
+    end_a::T8=15,
+    end_b::T9=24,
+    end_c::T10=33,
+    end_alpha::T11=40,
+    end_beta::T12=47,
+    end_gamma::T13=54,
+    start_sg::T14=56,
+    end_z::T15=70 ) where { T1 <: IO, T2 <: Real, T3 <: Real, T4 <: Int, T5 <: Int, T6 <: AbstractString, T7 <: Int, T8 <: Int, T9 <: Int, T10 <: Int, T11 <: Int, T12 <: Int, T13 <: Int, T14 <: Int, T15 <: Int }
     # Arguments
-    # handle_out: IO stream to target file
-    # lengths:   lengths parameters of the cell
-    # angles:    angles parameters of the cell
-
+    # - handle_out: IO stream to target file
+    # - lengths:   lengths parameters of the cell
+    # - angles:    angles parameters of the cell
     # Optionnal Arguments
-    # round_length: number of digits for lengths rounding
-    # round_angles: number of digits for angles rounding
-    # space_group: Space group in Hermann Mauguin notation, by default P 1 works...
+    # - round_length: number of digits for lengths rounding
+    # - round_angles: number of digits for angles rounding
+    # - space_group: Space group in Hermann Mauguin notation, by default P 1 works...
     #              never seen a case where something else is used 28/01/2020 (M Moog)
-    # z_number: Number of polumeric chains or in hetero polymers
+    # - z_number: Number of polumeric chains or in hetero polymers
     #           the n umber of occurences of the most populous chain
-    # end_a:  Maximum colum for a (justify right for a )
-    # end_b;  Maximum colum for b (justify right for b )
-    # end_c;  Maximum colum for c (justify right for b )
-    # end_alpha;  Maximum colum for alpha (justify right for b )
-    # end_beta;  Maximum colum for beta (justify right for b )
-    # end_gamma;  Maximum colum for gamma (justify right for b )
-    # start_sg;  Min column for Space Group
-    # end_z;  Maximum colum for gamma (justify right for b )
+    # - end_a:  Maximum colum for a (justify right for a )
+    # - end_b:  Maximum colum for b (justify right for b )
+    # - end_c:  Maximum colum for c (justify right for b )
+    # - end_alpha:  Maximum colum for alpha (justify right for b )
+    # - end_beta:  Maximum colum for beta (justify right for b )
+    # - end_gamma: Maximum colum for gamma (justify right for b )
+    # - start_sg: Min column for Space Group
+    # - end_z: Maximum colum for gamma (justify right for b )
+    # Output
+    # - Bool: whether all went ok
 
-    # lengths
+    # Rounds cell lengths to the given digit
     a = string( round( lengths[1], digits=round_length ) )
     b = string( round( lengths[2], digits=round_length ) )
     c = string( round( lengths[3], digits=round_length ) )
-    # angles
+
+    # Round cell angles to the given digits
     alpha = string( round( angles[1], digits=round_angles ) )
     beta  = string( round( angles[2], digits=round_angles ) )
     gamma = string( round( angles[3], digits=round_angles ) )
-    # z number
-    z_number=string(z_number)
 
-    # Writting CRYST1 info -> Cell information
+    # Casts Z number into a string
+    z_number = string( z_number )
+
+    # Writting CRYST1 signal
     cryst1 = string("CRYST1")
-    # Cell lengths (right justified)
+
+    # Adds information to the string with info about a into the appropriate columns number (right justified)
     cryst1 = addJustifyRight( end_a, cryst1, a )
+
+    # If Something went wrong, sends error message and false
     if cryst1 == false
         print("Error writting CRYST1 line (a).\n")
         return false
     end
+
+    # Adds information to the string with info about b into the appropriate columns number (right justified)
     cryst1 = addJustifyRight( end_b, cryst1, b )
+
+    # If Something went wrong, sends error message and false
     if cryst1 == false
         print("Error writting CRYST1 line (b).\n")
         return false
     end
+
+    # Adds information to the string with info about alpha into the appropriate columns number (right justified)
     cryst1 = addJustifyRight( end_c, cryst1, c )
+
+    # If Something went wrong, sends error message and false
     if cryst1 == false
         print("Error writting CRYST1 line (c).\n")
         return false
     end
-    # Angles (right justified)
+
+    # Adds information to the string with info about beta into the appropriate columns number (right justified)
     cryst1 = addJustifyRight( end_alpha, cryst1, alpha )
+
+    # If Something went wrong, sends error message and false
     if cryst1 == false
         print("Error writting CRYST1 line (alpha).\n")
         return false
     end
+
+    # Adds information to the string with info about gamma into the appropriate columns number (right justified)
     cryst1 = addJustifyRight( end_beta,  cryst1, beta  )
+
+    # If Something went wrong, sends error message and false
     if cryst1 == false
         print("Error writting CRYST1 line (beta).\n")
         return false
     end
+
+    # Adds information about the gamma factor to the string (right justified)
     cryst1 = addJustifyRight( end_gamma, cryst1, gamma )
+
+    # If Something went wrong, sends error message and false
     if cryst1 == false
         print("Error writting CRYST1 line (gamma).\n")
         return false
     end
-    # Space Group (left justified)
+
+    # Adds information about the Space Group to the string (left justified)
     cryst1 = addJustifyLeft( start_sg, cryst1, space_group )
+
+    # If Something went wrong, sends error message and false
     if cryst1 == false
         print("Error writting CRYST1 line (Space Group).\n")
         return false
     end
+
     # Z number (right justified)
     cryst1 = addJustifyRight( end_z, cryst1, z_number )
+
+    # If Something went wrong, sends error message and false
     if cryst1 == false
         print("Error writting CRYST1 line (z).\n")
         return false
     end
-    cryst1=string(cryst1,"\n")
+
+    # Adds line break at the end of the line
+    cryst1 = string( cryst1, "\n" )
 
     # Writting line
-    Base.write(handle_out,cryst1)
+    Base.write( handle_out, cryst1 )
 
+    # Return true if all went ok
     return true
 end
+# Creates and writes the MODEL line with a name of structure to *.pdb file
+# NB: not the most useful functions ever but if it works...
 function writeMODEL( handle_out::T1, name_model::T2 )  where { T1 <: IO, T2 <: AbstractString }
+    # Argument
+    # - handle_out: IO handler for the output file
+    # - name_model: name of the model to write
+    # Output
+    # - Bool: whether it worked or not
+
+    # Writting to the file
     write( handle_out, string("MODEL ",name_model))
+
+    # Returning true
+    return true
+end
+# Creates and writes the ATOM line with atomic information about a single atom
+# Parametric, works if there is or isn't molecules
+function writeATOM( handle_out::T1, atom_index::T2, atom_name::T3, atom_positions::Vector{T4},
+    max_col_atom_index::T5=11,
+    max_col_atom_name::T26=14,
+    max_col_alt_loc::T6=17,
+    max_col_res_name::T7=20,
+    max_col_mol_name::T8=22,
+    max_col_mol_index::T9=26,
+    max_col_ins_res_code::T10=27,
+    max_col_x::T11=38,
+    max_col_y::T12=46,
+    max_col_z::T13=54,
+    max_col_occup::T14=60,
+    max_col_temp_fac::T15=66,
+    max_col_atom_name2::T16=78,
+    max_col_atom_charge::T17=80,
+    alt_location::T18=" ",
+    residue_name::T19="   ",
+    chain_id::T20="X",
+    molecule_index::T21=0,
+    residue_insertion_code::T22=" ",
+    occupancy::T23=0,
+    tempfac::T24=0,
+    charge::T25=0 ) where { T1 <: IO, T2 <: Int, T3 <: AbstractString, T4 <: Int, T5 <: Int, T6 <: Int, T7 <: Int,
+    T8 <: Int, T9 <: Int, T10 <: Int, T11 <: Int, T12 <: Int, T13 <: Int, T14 <: Int, T15 <: Int, T16 <: Int, T17 <: Int,
+    T18 <: AbstractString, T19 <: AbstractString, T20 <: AbstractString, T21 <: Int, T22 <: AbstractString, T23 <: Real,
+    T24 <: Real, T25 <: Real, T26 <: Int }
+    # Argument
+    # - handle_out: IO for the output file
+    # - atom_name: name of the target atom to add to the file
+    # - atom_index: index of the target atom to add to the file
+    # - atom_positions: positions of the target atom to add to the file
+    # Optionnal Argument
+    # - max_col_atom_index: maximum column for atom index
+    # - max_col_alt_loc: maximum column for alternative location
+    # - max_col_res_name: maximum column for residue number
+    # Output
+    # - Bool: whether it went ok
+
+    # Start with "ATOM" keyword
+    atom_line = string("ATOM")
+
+    # Adds the index of atom
+    atom_line = utils.addJustifyRight( max_col_atom_index, string(atom_index), atom_line )
+
+    # Adds the name of atom
+    atom_line = utils.addJustifyRight( max_col_atom_name, atom_name, atom_line )
+
+    # Alternative location symbol
+    atom_line = utils.addJustifyRight( max_col_alt_loc, alt_location, atom_line )
+
+    # Adds the name of the residue (for protein)
+    atom_line = utils.addJustifyRight( max_col_res_name, residue_name, atom_line )
+
+    # Adds the name of the chain/molecule
+    atom_line = utils.addJustifyRight( max_col_mol_name, molecule_name, atom_line )
+
+    # Adds the index of the molecule
+    atom_line = utils.addJustifyRight( max_col_mol_index, string( molecule_index ), atom_line )
+
+    # Adds the insertion code of the residue
+    atom_line = utils.addJustifyRight( max_col_ins_res_code, residue_insertion_code, atom_line )
+
+    # Adds the position x
+    atom_line = utils.addJustifyRight( max_col_x, string( atom_positions[1] ), atom_line )
+
+    # Adds the position y
+    atom_line = utils.addJustifyRight( max_col_y, string( atom_positions[2] ), atom_line )
+
+    # Adds the position z
+    atom_line = utils.addJustifyRight( max_col_z, string( atom_positions[3] ), atom_line )
+
+    # Adds the occupancy
+    atom_line = utils.addJustifyRight( max_col_occup, string( occupancy ), atom_line )
+
+    # Adds the temperature factor
+    atom_line = utils.addJustifyRight( max_col_temp_fac, string( tempfac ), atom_line )
+
+    # Adds the name of the atom, again
+    atom_line = utils.addJustifyRight( max_col_atom_name2, atom_name, atom_line )
+
+    # Adds the charge
+    atom_line = utils.addJustifyRight( max_col_atom_charge, string( charge ), atom_line )
+
+    # Adds the end line to the string
+    atom_line = string( atom_line, "\n")
+
+    # If something went wrong, returns false
+    if atom_line == false
+        return false
+    end
+
+    # If we reach this point, we return true
     return true
 end
 #-------------------------------------------------------------------------------
 
 # Writing file
 #-------------------------------------------------------------------------------
-function writePdb( file::T1, atoms::T2, cell::T3 ) where { T1 <: AbstractString , T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param }
+# Writes a PDB file according to standard format (2011)
+function writePdb( file_path::T1, atoms::T2, cell::T3 ) where { T1 <: AbstractString , T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param }
+    # Argument
+    # - file_path: path to the input file
+    # - atoms: AtomList with atomic information
+    # - cell: Cell_param with cell informations
+    # Output
+    # - Bool: whether it worked or not
 
-    # Writes a PDB file according to standard format (2011)
+    # Opens output file
+    handle_out = open( file_path, "w" )
 
-    handle_out=open(file,"w")
-
+    # Writes CRYST1 line with cell information
     if ! writeCRYST1( handle_out, cell.length, cell.angles )
-        print("Error writting cell information!\n")
+        # Returns false if something went wrong
         return false
     end
 
-
-    # Atomic Positions
+    # Get number of atoms in the structure
     nb_atoms = size(atoms.names)[1]
-    for i=1:nb_atoms
-        atom="ATOM"
-        # Right justified
-        atom=utils.spaces(atom,11-length(string(atoms.index[i]))-length(atom))
-        atom=string(atom,atoms.index[i])
-        # If atom name is 1 length, start on 13, otherwise 14
-        # atom names are left justified here
-        if length(atoms.names[i]) == 1
-            atom=utils.spaces(atom,13-length(atom))
-        else
-            atom=utils.spaces(atom,14-length(atom))
-        end
-        atom=string(atom,atoms.names[i])
 
-        # Alternate location indicator ( default blank )
-        alt_loc=string(" ")
-        atom=utils.spaces(atom,17-length(atom)-length(alt_loc))
-        atom=string(atom," ")
-
-        # Residue name (3 col max) righ justified?
-        residue_name=string("   ")
-        atom=utils.spaces(atom,20-length(atom)-length(residue_name))
-        atom=string(atom,residue_name)
-
-        # Chain Identifier
-        # Default is "X"
-        chain_id=string("X")
-        atom=utils.spaces(atom,22-length(atom)-length(chain_id))
-        atom=string(atom,"X")
-
-        # Residue Sequence Nb - Molecule nb
-        mol_nb=string("1")
-        atom=utils.spaces(atom,26-length(atom)-length(mol_nb))
-        atom=string(atom,mol_nb)
-
-        # Code for insertion of residues
-        code_insertion=string(" ")
-        atom=utils.spaces(atom,27-length(atom)-length(code_insertion))
-        atom=string(atom,code_insertion)
-
-        # Positions are right justified
-        # X
-        x=string( round(atoms.positions[i,1], digits=3 ) )
-        atom=utils.spaces( atom, 38-length(atom)-length(x) )
-        atom=string( atom, x)
-        # Y
-        y=string( round(atoms.positions[i,2], digits=3 ) )
-        atom=utils.spaces( atom, 46-length(atom)-length(y) )
-        atom=string( atom, y )
-        # Z
-        z=string( round( atoms.positions[i,3], digits=3 ))
-        atom=utils.spaces( atom, 54-length(atom)-length(z) )
-        atom=string( atom, z )
-
-        # Occupancy and Temperature Factor (default 0, except for PLUMED where used for masses)
-        # Occupancy
-        occ = periodicTable.names2Z( atoms.names[i] )
-        atom=utils.spaces(atom, 60-length(atom)-length(occ) )
-        atom=string(atom, occ )
-        # Temperature Factor
-        tempfac = periodicTable.names2Z( atoms.names[i] )
-        atom=utils.spaces(atom,66-length(atom))
-        atom=string(atom, string( 0.0 ),string(0) )
-
-        # Atom name (right justified)
-        atom=utils.spaces(atom,78-length(atom)-length(atoms.names[i]))
-        atom=string(atom,atoms.names[i])
-
-        # Charge (2 col max, default is blank)
-        charge=string(" ")
-        atom=utils.spaces(atom,80-length(atom)-length(charge))
-        atom=string(atom,charge)
-
-        # End of line
-        atom=string(atom,"\n")
-        Base.write(handle_out,atom)
+    # Loop over atoms
+    for atom=1:nb_atoms
+        writeATOM( handle_out, atoms.index[atom], atoms.names[atom], atoms.positions[ :, atom ] )
     end
 
-    Base.write(handle_out,"END\n")
+    # Writes "END" signal for the step
+    Base.write( handle_out, "END\n" )
 
-    close(handle_out)
+    # Close output file
+    close( handle_out )
 
-    return
+    # Returns true if something went ok
+    return true
 end
 function writePdb( file::T1, traj::Vector{T2}, cell::T3 ) where { T1 <: AbstractString , T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param }
 
