@@ -800,7 +800,7 @@ function writeATOM( handle_out::T1, atom_index::T2, atom_name::T3, atom_position
     max_col_atom_charge::T17=80,
     alt_location::T18=" ",
     residue_name::T19="   ",
-    chain_id::T20="X",
+    molecule_name::T20="X",
     molecule_index::T21=0,
     residue_insertion_code::T22=" ",
     occupancy::T23=0,
@@ -818,6 +818,24 @@ function writeATOM( handle_out::T1, atom_index::T2, atom_name::T3, atom_position
     # - max_col_atom_index: maximum column for atom index
     # - max_col_alt_loc: maximum column for alternative location
     # - max_col_res_name: maximum column for residue number
+    # - max_col_mol_name: maximum column for molecule name
+    # - max_col_mol_index: maximum column for molecule index
+    # - max_col_ins_res_code: maximum column for insertion code of residue
+    # - max_col_x: maximum column for x position
+    # - max_col_y: maximum column for y position
+    # - max_col_z: maximum column for z position
+    # - max_col_occup: maximum column for occupancy of atom
+    # - max_col_temp_fac: maximum column for temperature factor
+    # - max_col_atom_name2: maximum column for second atom name
+    # - max_col_atom_charge: maximum column for atomic charge
+    # - alt_location: alternative location signal
+    # - residue_name: name of the residue to which the atom belong
+    # - molecule_name: name of the molecule to which the atom belong
+    # - molecule_index: index of the molecule to which the atom belong
+    # - residue_insertion_code: code of atom insertion
+    # - occupancy: occupancy of the atom
+    # - tempfac: temperature factor
+    # - charge: charge of the atom
     # Output
     # - Bool: whether it went ok
 
@@ -881,7 +899,7 @@ end
 
 # Writing file
 #-------------------------------------------------------------------------------
-# Writes a PDB file according to standard format (2011)
+# Writes a PDB file according to standard format (2011) for a single atomic structure in AtomList, with a Cell_param for cell
 function writePdb( file_path::T1, atoms::T2, cell::T3 ) where { T1 <: AbstractString , T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param }
     # Argument
     # - file_path: path to the input file
@@ -904,7 +922,7 @@ function writePdb( file_path::T1, atoms::T2, cell::T3 ) where { T1 <: AbstractSt
 
     # Loop over atoms
     for atom=1:nb_atoms
-        writeATOM( handle_out, atoms.index[atom], atoms.names[atom], atoms.positions[ :, atom ] )
+        writeATOM( handle_out, atoms.index[ atom ], atoms.name[ atom ], atoms.positions[ :, atom ] )
     end
 
     # Writes "END" signal for the step
@@ -916,13 +934,22 @@ function writePdb( file_path::T1, atoms::T2, cell::T3 ) where { T1 <: AbstractSt
     # Returns true if something went ok
     return true
 end
-function writePdb( file::T1, traj::Vector{T2}, cell::T3 ) where { T1 <: AbstractString , T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param }
+# Writes a PDB file according to standard format (2011) for several atomic structure (vector of AtomList) and a single cell (Cell_param)
+function writePdb( file_path::T1, traj::Vector{T2}, cell::T3 ) where { T1 <: AbstractString , T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param }
+    # Argument
+    # - file_path: path to the output file
+    # - traj: vector of AtomList with atomic trajectory
+    # - cell: Cell_param with cell information
+    # Output
+    # - None
 
-    # Writes a PDB file according to standard format (2011)
+    # Open output file
+    handle_out = open( file_path, "w" )
 
-    handle_out=open(file,"w")
+    # Get number of step of the trajectory
+    nb_step = size(traj)
 
-    nb_step=size(traj)
+    # Loop over steps
     for step=1:nb_step
 
         if ! writeCRYST1( handle_out, cell.length, cell.angles )
@@ -930,84 +957,11 @@ function writePdb( file::T1, traj::Vector{T2}, cell::T3 ) where { T1 <: Abstract
             return false
         end
 
-        # Atomic Positions
+        # Get number of atoms
         nb_atoms = size(traj[step].names)[1]
-        for i=1:nb_atoms
-            atom="ATOM"
-            # Right justified
-            atom=utils.spaces(atom,11-length(string(traj[step].index[i]))-length(atom))
-            atom=string(atom,traj[step].index[i])
-            # If atom name is 1 length, start on 13, otherwise 14
-            # atom names are left justified here
-            if length(traj[step].names[i])==1
-                atom=utils.spaces(atom,13-length(atom))
-            else
-                atom=utils.spaces(atom,14-length(atom))
-            end
-            atom=string(atom,traj[step].names[i])
 
-            # Alternate location indicator ( default blank )
-            alt_loc=string(" ")
-            atom=utils.spaces(atom,17-length(atom)-length(alt_loc))
-            atom=string(atom," ")
-
-            # Residue name (3 col max) righ justified?
-            residue_name=string("   ")
-            atom=utils.spaces(atom,20-length(atom)-length(residue_name))
-            atom=string(atom,residue_name)
-
-            # Chain Identifier
-            # Default is "X"
-            chain_id=string("X")
-            atom=utils.spaces(atom,22-length(atom)-length(chain_id))
-            atom=string(atom,"X")
-
-            # Residue Sequence Nb - Molecule nb
-            mol_nb=string("1")
-            atom=utils.spaces(atom,26-length(atom)-length(mol_nb))
-            atom=string(atom,mol_nb)
-
-            # Code for insertion of residues
-            code_insertion=string(" ")
-            atom=utils.spaces(atom,27-length(atom)-length(code_insertion))
-            atom=string(atom,code_insertion)
-
-            # Positions are right justified
-            # X
-            x=string( round(traj[step].positions[i,1], digits=3 ) )
-            atom=utils.spaces( atom, 38-length(atom)-length(x) )
-            atom=string( atom, x)
-            # Y
-            y=string( round(traj[step].positions[i,2], digits=3 ) )
-            atom=utils.spaces( atom, 46-length(atom)-length(y) )
-            atom=string( atom, y )
-            # Z
-            z=string( round( traj[step].positions[i,3], digits=3 ))
-            atom=utils.spaces( atom, 54-length(atom)-length(z) )
-            atom=string( atom, z )
-
-            # Occupancy and Temperature Factor (default 0, except for PLUMED where used for masses)
-            # Occupancy
-            occ = periodicTable.names2Z( traj[step].names[i] )
-            atom=utils.spaces(atom, 60-length(atom)-length(occ) )
-            atom=string(atom, occ )
-            # Temperature Factor
-            tempfac = periodicTable.names2Z( traj[step].names[i] )
-            atom=utils.spaces(atom,66-length(atom))
-            atom=string(atom, string( 0.0 ),string(0) )
-
-            # Atom name (right justified)
-            atom=utils.spaces(atom,78-length(atom)-length(traj[step].names[i]))
-            atom=string(atom,traj[step].names[i])
-
-            # Charge (2 col max, default is blank)
-            charge=string(" ")
-            atom=utils.spaces(atom,80-length(atom)-length(charge))
-            atom=string(atom,charge)
-
-            # End of line
-            atom=string(atom,"\n")
-            Base.write(handle_out,atom)
+        for atom=1:nb_atoms
+            writeATOM( handle_out, traj[ step ].index[ atom ], traj[ step ].name[ atom ], traj[ step ].positions[ :, atom ] )
         end
 
         Base.write(handle_out,"END\n")
@@ -1017,15 +971,25 @@ function writePdb( file::T1, traj::Vector{T2}, cell::T3 ) where { T1 <: Abstract
 
     return
 end
-function writePdb( file::T1, traj::Vector{T2}, cells::Vector{T3} ) where { T1 <: AbstractString , T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param }
+# Writes a PDB file according to standard format (2011) for several atomic structure (vector of AtomList) and cells (vector of Cell_param)
+function writePdb( file_path::T1, traj::Vector{T2}, cells::Vector{T3} ) where { T1 <: AbstractString , T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param }
+    # Argument
+    # - file_path: path to the output file
+    # - traj: vector of Atomlist with atomic information for the trajectory
+    # - cells: vector of Cell_param with cell information for the trajectory
+    # Output
+    # - Bool; whether writting was successful
 
-    # Writes a PDB file according to standard format (2011)
+    # Open output file
+    handle_out = open( file_path, "w" )
 
-    handle_out=open(file,"w")
-
+    # Get number of steps
     nb_step=size(traj)[1]
+
+    # Loop over steps
     for step=1:nb_step
 
+        # Write cell information
         if ! writeCRYST1( handle_out, cells[step].length, cells[step].angles )
             print("Error writting cell information!\n")
             return false
@@ -1033,188 +997,63 @@ function writePdb( file::T1, traj::Vector{T2}, cells::Vector{T3} ) where { T1 <:
 
         # Atomic Positions
         nb_atoms = size(traj[step].names)[1]
-        for i=1:nb_atoms
-            atom="ATOM"
-            # Right justified
-            atom=utils.spaces(atom,11-length(string(traj[step].index[i]))-length(atom))
-            atom=string(atom,traj[step].index[i])
-            # If atom name is 1 length, start on 13, otherwise 14
-            # atom names are left justified here
-            if length(traj[step].names[i])==1
-                atom=utils.spaces(atom,13-length(atom))
-            else
-                atom=utils.spaces(atom,14-length(atom))
+
+        # Loop over atoms
+        for atom=1:nb_atoms
+            # Write line for current atom
+            if ! writeATOM( handle_out, traj[ step ].index[ atom ], traj[ step ].name[ atom ], traj[ step ].positions[ :, atom ] )
+                print("Error writting atom: ", atom, ".\n")
+                return false
             end
-            atom=string(atom,traj[step].names[i])
-
-            # Alternate location indicator ( default blank )
-            alt_loc=string(" ")
-            atom=utils.spaces(atom,17-length(atom)-length(alt_loc))
-            atom=string(atom," ")
-
-            # Residue name (3 col max) righ justified?
-            residue_name=string("   ")
-            atom=utils.spaces(atom,20-length(atom)-length(residue_name))
-            atom=string(atom,residue_name)
-
-            # Chain Identifier
-            # Default is "X"
-            chain_id=string("X")
-            atom=utils.spaces(atom,22-length(atom)-length(chain_id))
-            atom=string(atom,"X")
-
-            # Residue Sequence Nb - Molecule nb
-            mol_nb=string("1")
-            atom=utils.spaces(atom,26-length(atom)-length(mol_nb))
-            atom=string(atom,mol_nb)
-
-            # Code for insertion of residues
-            code_insertion=string(" ")
-            atom=utils.spaces(atom,27-length(atom)-length(code_insertion))
-            atom=string(atom,code_insertion)
-
-            # Positions are right justified
-            # X
-            x=string( round(traj[step].positions[i,1], digits=3 ) )
-            atom=utils.spaces( atom, 38-length(atom)-length(x) )
-            atom=string( atom, x)
-            # Y
-            y=string( round(traj[step].positions[i,2], digits=3 ) )
-            atom=utils.spaces( atom, 46-length(atom)-length(y) )
-            atom=string( atom, y )
-            # Z
-            z=string( round( traj[step].positions[i,3], digits=3 ))
-            atom=utils.spaces( atom, 54-length(atom)-length(z) )
-            atom=string( atom, z )
-
-            # Occupancy and Temperature Factor (default 0, except for PLUMED where used for masses)
-            # Occupancy
-            occ = periodicTable.names2Z( traj[step].names[i] )
-            atom=utils.spaces(atom, 60-length(atom)-length(occ) )
-            atom=string(atom, occ )
-            # Temperature Factor
-            tempfac = periodicTable.names2Z( traj[step].names[i] )
-            atom=utils.spaces(atom,66-length(atom))
-            atom=string(atom, string( 0.0 ),string(0) )
-
-            # Atom name (right justified)
-            atom=utils.spaces(atom,78-length(atom)-length(traj[step].names[i]))
-            atom=string(atom,traj[step].names[i])
-
-            # Charge (2 col max, default is blank)
-            charge=string(" ")
-            atom=utils.spaces(atom,80-length(atom)-length(charge))
-            atom=string(atom,charge)
-
-            # End of line
-            atom=string(atom,"\n")
-            Base.write(handle_out,atom)
         end
 
+        # Write END signal for step
         Base.write(handle_out,"END\n")
     end
 
+    # Close output file
     close(handle_out)
 
-    return
-end
-function writePdb( handle_out::T1, traj::Vector{T2}, cells::Vector{T3} ) where { T1 <: IO , T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param }
-
-    # Writes a PDB file according to standard format (2011)
-
-    nb_step=size(traj)[1]
-    for step=1:nb_step
-
-        if ! writeCRYST1( handle_out, cells[step].length, cells[step].angles )
-            print("Error writting cell information!\n")
-            return false
-        end
-
-        # Atomic Positions
-        nb_atoms = size(traj[step].names)[1]
-        for i=1:nb_atoms
-            atom="ATOM"
-            # Right justified
-            atom=utils.spaces(atom,11-length(string(traj[step].index[i]))-length(atom))
-            atom=string(atom,traj[step].index[i])
-            # If atom name is 1 length, start on 13, otherwise 14
-            # atom names are left justified here
-            if length(traj[step].names[i])==1
-                atom=utils.spaces(atom,13-length(atom))
-            else
-                atom=utils.spaces(atom,14-length(atom))
-            end
-            atom=string(atom,traj[step].names[i])
-
-            # Alternate location indicator ( default blank )
-            alt_loc=string(" ")
-            atom=utils.spaces(atom,17-length(atom)-length(alt_loc))
-            atom=string(atom," ")
-
-            # Residue name (3 col max) righ justified?
-            residue_name=string("   ")
-            atom=utils.spaces(atom,20-length(atom)-length(residue_name))
-            atom=string(atom,residue_name)
-
-            # Chain Identifier
-            # Default is "X"
-            chain_id=string("X")
-            atom=utils.spaces(atom,22-length(atom)-length(chain_id))
-            atom=string(atom,"X")
-
-            # Residue Sequence Nb - Molecule nb
-            mol_nb=string("1")
-            atom=utils.spaces(atom,26-length(atom)-length(mol_nb))
-            atom=string(atom,mol_nb)
-
-            # Code for insertion of residues
-            code_insertion=string(" ")
-            atom=utils.spaces(atom,27-length(atom)-length(code_insertion))
-            atom=string(atom,code_insertion)
-
-            # Positions are right justified
-            # X
-            x=string( round(traj[step].positions[i,1], digits=3 ) )
-            atom=utils.spaces( atom, 38-length(atom)-length(x) )
-            atom=string( atom, x)
-            # Y
-            y=string( round(traj[step].positions[i,2], digits=3 ) )
-            atom=utils.spaces( atom, 46-length(atom)-length(y) )
-            atom=string( atom, y )
-            # Z
-            z=string( round( traj[step].positions[i,3], digits=3 ))
-            atom=utils.spaces( atom, 54-length(atom)-length(z) )
-            atom=string( atom, z )
-
-            # Occupancy and Temperature Factor (default 0, except for PLUMED where used for masses)
-            # Occupancy
-            occ = periodicTable.names2Z( traj[step].names[i] )
-            atom=utils.spaces(atom, 60-length(atom)-length(occ) )
-            atom=string(atom, occ )
-            # Temperature Factor
-            tempfac = periodicTable.names2Z( traj[step].names[i] )
-            atom=utils.spaces(atom,66-length(atom))
-            atom=string(atom, string( 0.0 ),string(0) )
-
-            # Atom name (right justified)
-            atom=utils.spaces(atom,78-length(atom)-length(traj[step].names[i]))
-            atom=string(atom,traj[step].names[i])
-
-            # Charge (2 col max, default is blank)
-            charge=string(" ")
-            atom=utils.spaces(atom,80-length(atom)-length(charge))
-            atom=string(atom,charge)
-
-            # End of line
-            atom=string(atom,"\n")
-            Base.write(handle_out,atom)
-        end
-
-        Base.write(handle_out,"END\n")
-    end
-
+    # If we reach this point returns true as all went well
     return true
 end
+# Writes a PDB file according to standard format (2011) for several atomic structure (vector of AtomList) and cells (vector of Cell_param) using IO handle for file
+function writePdb( handle_out::T1, traj::Vector{T2}, cells::Vector{T3} ) where { T1 <: IO , T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param }
+    # Argument
+    # - handle_out: IO handler for output file
+    # - traj: vector of AtomList, contains atoms trajectory
+    # - cells: vector of Cell_param, contains cell trajectory
+    # Output
+    # Bool: whether writting went ok
+
+    # Get number of steps
+    nb_step = size( traj )[1]
+
+    # Loop over steps
+    for step=1:nb_step
+        # Write cell information
+        if ! writeCRYST1( handle_out, cells[step].length, cells[step].angles )
+            print("Error writting cell information!\n")
+            return false
+        end
+
+        # Atomic Positions
+        nb_atoms = size(traj[step].names)[1]
+
+        # Loop over atoms
+        for atom=1:nb_atoms
+            # Write atoms to file
+            writeATOM( handle_out, traj[ step ].index[ atom ], traj[ step ].name[ atom ], traj[ step ].positions[ :, atom ] )
+        end
+
+        # Write END of line signal
+        Base.write(handle_out,"END\n")
+    end
+
+    # Returns true if we reach this point
+    return true
+end
+#
 function writePdbPivClustering( file::T1, atoms::T2, cell::T3 ) where { T1 <: AbstractString , T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param }
 
     # Writes a PDB file according to standard format (2011)
@@ -1317,6 +1156,7 @@ function writePdbPivClustering( file::T1, atoms::T2, cell::T3 ) where { T1 <: Ab
 
     return
 end
+#
 function writePdbPivClustering( file::T1, traj::Vector{T2}, cells::Vector{T3} ) where { T1 <: AbstractString , T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param }
 
     nb_step  = size( traj )[1]
@@ -1424,6 +1264,7 @@ function writePdbPivClustering( file::T1, traj::Vector{T2}, cells::Vector{T3} ) 
 
     return true
 end
+#
 function writePdbPlumed( atoms::T1, cell::T2, file::T3 ) where { T1 <: atom_mod.AtomMolList, T2 <: cell_mod.Cell_param, T3 <: AbstractString }
 
   out=open(file,"w")
@@ -1483,6 +1324,7 @@ function writePdbPlumed( atoms::T1, cell::T2, file::T3 ) where { T1 <: atom_mod.
 
   return
 end
+#
 function writePdbPlumed( atoms::T1, cell::T2, file::T3 ) where { T1 <: atom_mod.AtomList, T2 <: cell_mod.Cell_param, T3 <: AbstractString }
 
   out=open(file,"w")
