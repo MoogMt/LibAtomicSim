@@ -179,8 +179,6 @@ function readATOM( handle_in::T1 ) where { T1 <: IO }
     # - mol_index: (int) index of molecule
     # - mol_name: (string) name of molecule
     # - atom_position: vector (real,3) with atomic positions
-    # - temp_factor: temperature factor of atom
-    # - occupancy: cell occupancy of the atom
 
     # Reading and parsing line with " " deliminator
     keys = split( readline( handle_in ) )
@@ -225,11 +223,14 @@ end
 # PDB reading functions
 #-------------------------------------------------------------------------------
 # Reads a .pdb file containing a single structure
-function readStructure( file_path::T1 ) where { T1 <: AbstractString, T2 <: Bool, T3 <: Bool, T4 <: Bool, T5 <: Bool }
+function readStructure( file_path::T1 ) where { T1 <: AbstractString }
     # Argument
     # - file_path: path of the pdb file
     # Output
-    # - names: vector (nb_atoms) of string with atomic names
+    # - atom_names: vector (nb_atoms) of string with atomic names
+    # - mol_names: vector (nb_atoms) of string with molecules names
+    # - atom_index: vector (nb_atoms) of int with atomic indexes
+    # - mol_index: vector (nb_atoms) of int with molecules indexes
     # - positions: array (3,nb_atoms), contains the atomic positions
     # - cell: Cell_param that contains all cell informations
     # OR false, false, false if something went wrong
@@ -239,16 +240,16 @@ function readStructure( file_path::T1 ) where { T1 <: AbstractString, T2 <: Bool
 
     # If file does not exists returns false, false
     if nb_atoms == false
-        return false, false, false, false, false
+        return false, false, false, false, false, false
     end
 
     # Opens input file
     handle_in = open( file_path )
 
     # Initialize vectors for lengths and angles of cell
-    lengths, angles, space_group, z_value = readCRYST1( handle_in )
+    lengths, angles, __, __ = readCRYST1( handle_in )
     if lengths == false
-        return false, false, false, false, false
+        return false, false, false, false, false, false
     end
 
     # Compact all information into a Cell Param object
@@ -268,7 +269,15 @@ function readStructure( file_path::T1 ) where { T1 <: AbstractString, T2 <: Bool
     # Loop over atoms
     for atom=1:nb_atoms
         # Read atom line
-        atom_index[atom], atom_names[atom], mol_index[atom], mol_name[atom], positions[ :, atom ], __, __ = readATOM( handle_in )
+        atom_info = readATOM( handle_in )
+
+        # Check that reading went ok
+        if atom_index[1] == false
+            return false, false, false, false, false, false
+        end
+
+        # Put information back into their respective arrays
+        atom_index[atom], atom_names[atom], mol_index[atom], mol_name[atom], positions[ :, atom ] =  atom_info[1:5]
     end
 
     # Closes input file
