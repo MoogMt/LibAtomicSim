@@ -112,9 +112,120 @@ function getNbAtoms( file_path::T1 ) where { T1 <: AbstractString }
 end
 #-------------------------------------------------------------------------------
 
+# Line reader
+#-------------------------------------------------------------------------------
+function readCRYST1( handle_in::T1 ) where { T1 <: IO }
+    # Argument
+    # - handle_in: IO handler of the input file
+    # Output
+    # - lengths: cell lengths parameters (vector, real, 3)
+    # - angles: cell angles parameters (vector, real, 3)
+    # - space_group: string contains the space group of the
+    # - z_value: number of polymeric chains in the unit cell
+
+    # Reading and parsing line with " " deliminator
+    keys = split( readline( handle_in ) )
+
+    # Check that the line starts with CRYST1
+    if keys[1] == "CRYST1"
+        # If not sends a message and return false
+        print("Issue reading CRYST1 in pdb file.\n")
+        return false, false, false, false
+    end
+
+    # Initialize vectors for lengths and angles of cell
+    lengths = zeros(Real, 3 )
+    angles  = zeros(Real, 3 )
+
+    # Loop over dimensions
+    for i=1:3
+        # Columns 2-4 are lengths
+        lengths[ i ] = parse(Float64, keys[ i + 1 ] )
+
+        # Columns 5-7 are angles
+        angles[ i ]  = parse(Float64, keys[ i + 4 ] )
+    end
+
+    # Initialize Space group
+    space_group = "P1 1"
+
+    # Initialize z_value
+    z_value = 0
+
+    # Check whether if there is 9 or 10 elements
+    if size(keys)[1] == 9
+        # Get Space Group as column 8
+        space_group = string( keys[ 8 ] )
+
+        # Get z value as column 9
+        z_value = parse(Int64, keys[ 9 ] )
+    else
+        # Get Space Group as columns 8 and 9
+        space_group = string( keys[ 8 ], keys[ 9 ] )
+
+        # Get z value as column 10
+        z_value = parse(Int64, keys[ 10 ] )
+    end
+
+    # Returns lents, angles, space group and z_value of the cell
+    return lengths, cells, space_group, z_value
+end
+function readATOM( handle_in::T1 ) where { T1 <: IO }
+    # Argument
+    # - handle_in: IO handler of the input file
+    # Output
+    # - atom_index: (int) index of atom
+    # - atom_name: (string) name of atom
+    # - mol_index: (int) index of molecule
+    # - mol_name: (string) name of molecule
+    # - atom_position: vector (real,3) with atomic positions
+    # - temp_factor: temperature factor of atom
+    # - occupancy: cell occupancy of the atom
+
+    # Reading and parsing line with " " deliminator
+    keys = split( readline( handle_in ) )
+
+    # Check that
+    if keys[1] != "ATOM"
+        return false, false, false
+    end
+
+    # Get atom index at column 2
+    atom_index = parse(Int64, keys[2] )
+
+    # Get atom name at column 3
+    atom_name = keys[3]
+
+    # Get molecule name at column 4
+    mol_name = keys[4]
+
+    # Get molecule index at column 5
+    mol_index = parse(Int64, keys[5] )
+
+    # Initialize vector for positions
+    positions = zeros(Real, 3 )
+
+    # Loop over dimensions
+    for i=1:3
+        # Positions are elements 5-7 in the ATOM lines
+        positions[ i ] = parse(Float64, keys[ 5 + i ] )
+    end
+
+    # Get temperature factor as column 9
+    temp_fac = parse(Float64, keys[9] )
+
+    # Get temperature factor as column 10
+    occupancy = parse(Float64, keys[10] )
+
+    # Returns all line informations
+    return atom_index, atom_name, mol_index, mol_name, atom_positions, temp_factor, occupancy
+end
+#-------------------------------------------------------------------------------
+
+# PDB reading functions
 #-------------------------------------------------------------------------------
 # Reads a .pdb file containing a single structure
-function readStructure( file_path::T1 ) where { T1 <: AbstractString }
+function readStructure( file_path::T1 ) where { T1 <: AbstractString, T2 <: Bool, T3 <: Bool, T4 <: Bool, T5 <: Bool }
     # Argument
     # - file_path: path of the pdb file
     # Output
@@ -128,34 +239,16 @@ function readStructure( file_path::T1 ) where { T1 <: AbstractString }
 
     # If file does not exists returns false, false
     if nb_atoms == false
-        return false, false, false
+        return false, false, false, false, false
     end
 
     # Opens input file
     handle_in = open( file_path )
 
     # Initialize vectors for lengths and angles of cell
-    lengths = zeros(Real, 3 )
-    angles  = zeros(Real, 3 )
-
-    # Reads and parse first line
-    keyword = split( readline( handle_in ) )
-
-    # Reading cell information from CRYST1 line
-    if keyword[1] == "CRYST1"
-        # Loop over dimensions
-        for i=1:3
-            # Lengths are elements 2-4
-            lengths[i] = parse( Float64, keyword[i+1] )
-
-            # Angles are elements 5-7
-            angles[i] = parse( Float64, keyword[i+4] )
-        end
-
-    # If initial element is not CRYST1, return error
-    else
-        print( "Problem with .pdb file at: ", file_path, "\n" )
-        return false, false, false
+    lengths, angles, space_group, z_value = readCRYST1( handle_in )
+    if lengths == false
+        return false, false, false, false, false
     end
 
     # Compact all information into a Cell Param object
@@ -165,36 +258,24 @@ function readStructure( file_path::T1 ) where { T1 <: AbstractString }
     positions = zeros(Real, 3, nb_atoms )
 
     # Initialize vector for atom names
-    names = Vector{AbstractString}(undef, nb_atoms )
+    atom_names = Vector{AbstractString}(undef, nb_atoms )
+    mol_names  = Vector{AbstractString}(undef, nb_atoms )
+
+    # Initialize vectors for atom and molecule indexes
+    atom_index = zeros(Int, nb_atoms )
+    mol_names  = zeros(Int, nb_atoms )
 
     # Loop over atoms
     for atom=1:nb_atoms
-        # Reading line
-        keyword = split( readline( handle_in ) )
-
-        # Checking that the first key is ATOM
-        if keyword[1] == "ATOM"
-            # Atom name is the third element of the line
-            names[atom] = keyword[3]
-
-            # Loop over dimensions
-            for i=1:3
-                # Positions are elements 5-7 in the ATOM lines
-                positions[ i, atom ] = parse(Float64, keyword[ 5 + i ] )
-            end
-
-        # If not, we have a problem and return false, false
-        else
-            print( "Problem reading .pdb file at: ", file_path, " at ATOM keyword.\n" )
-            return false, false, false
-        end
+        # Read atom line
+        atom_index[atom], atom_names[atom], mol_index[atom], mol_name[atom], positions[ :, atom ], __, __ = readATOM( handle_in )
     end
 
     # Closes input file
     close( handle_in )
 
     # We return the names of atoms, their position and the cell information
-    return names, positions, cell
+    return atom_names, mol_names, atom_index, mol_index, positions, cell
 end
 # Reads a .pdb file for a trajectory
 function readTraj( file_path::T1 ) where { T1 <: AbstractString }
@@ -235,8 +316,9 @@ function readTraj( file_path::T1 ) where { T1 <: AbstractString }
 
     # Loop over steps
     for step=1:nb_step
+        keys = split(readline( handle_in ) )
         # If "CRYST1" keyword, reads cell information
-        if split(readline( handle_in ) )[1] == "CRYST1"
+        if keys[1] == "CRYST1"
             # Initialize vectors for cell lengths and angles for current step
             lengths = zeros(Real, 3 )
             angles  = zeros(Real, 3 )
@@ -244,10 +326,10 @@ function readTraj( file_path::T1 ) where { T1 <: AbstractString }
             # Loop over dimensions
             for i=1:3
                 # Lengths of cells are columns 2-4 (+ parse to float)
-                lengths[i] = parse( Float64, keyword[ i + 1 ] )
+                lengths[i] = parse( Float64, keys[ i + 1 ] )
 
                 # Angles of cells are columns 5-7 (+ parse to float)
-                angles[i]  = parse( Float64, keyword[ i + 4 ] )
+                angles[i]  = parse( Float64, keys[ i + 4 ] )
             end
 
             # Assemble cell lengths and angles into CellParam
@@ -260,21 +342,21 @@ function readTraj( file_path::T1 ) where { T1 <: AbstractString }
 
         # Loop over atoms
         for atom=1:nb_atoms
-            # Read "ATOM" line
-            keyword = split( readline( handle_in ) )
+            # Read "ATOM" line and parse with " " deliminator
+            keys = split( readline( handle_in ) )
 
             # If "ATOM" keyword
-            if keyword[1] == "ATOM"
+            if keys[1] == "ATOM"
                 # At first step only...
                 if step == 1
                     # Reads the atom names as third column
-                    names[ count_ ] = keyword[3]
+                    names[ atom ] = keys[3]
                 end
 
                 # Loop over dimensions
                 for i=1:3
                     # Read dimensions as columns 6-8
-                    positions[ i, count_ ] = parse( Float64, keyword[ 5 + i ] )
+                    positions[ i, atom, step ] = parse( Float64, keys[ 5 + i ] )
                 end
             end
         end

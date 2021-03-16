@@ -48,7 +48,7 @@ mutable struct AtomList
         # - Creates a default AtomList
 
         # Create the new AtomList with nothing in it
-        new( Array{AbstractString,1}(undef,0) , zeros(0), zeros(0,3) )
+        new( Array{AbstractString,1}(undef, 0 ) , zeros( 0 ), zeros( 3, 0 ) )
     end
     # Creates a default AtomList with a preset number of atoms
     function AtomList( nb_atoms::T1 ) where { T1 <: Int }
@@ -58,7 +58,7 @@ mutable struct AtomList
         # Creates an AtomList with nb_atoms, all with default values
 
         # Creates the AtomList
-        new( Array{AbstractString,1}(undef,nb_atoms) , zeros(nb_atoms), zeros(nb_atoms,3) )
+        new( Array{AbstractString,1}(undef, nb_atoms ) , zeros( nb_atoms ), zeros( 3, nb_atoms ) )
     end
     # Creates an AtomList with all data given
     function AtomList( names::Vector{T1}, index::Vector{T2}, positions::Array{T3,2} ) where { T1 <: AbstractString, T2 <: Int, T3 <: Real }
