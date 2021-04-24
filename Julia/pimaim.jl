@@ -208,7 +208,7 @@ function readCellBox( path_file::T1 ) where { T1 <: AbstractString }
     for step=1:nb_step
 
         # Reading cell reduced matrix for current step
-        cells[step,:,:] = zeros(3,3)
+        cells[:,:,step] = zeros(3,3)
 
         # Loop over dimension
         for i=1:3
@@ -218,7 +218,7 @@ function readCellBox( path_file::T1 ) where { T1 <: AbstractString }
             # loop over dimension 2
             for j=1:3
                 # parse the element of the matrix from string to float
-                cells[step,i,j] = parse( Float64, keys[j] )
+                cells[i,j,step] = parse( Float64, keys[j] )
             end
         end
 
@@ -232,7 +232,7 @@ function readCellBox( path_file::T1 ) where { T1 <: AbstractString }
             length = parse( Float64, keys[i] )
 
             # Unreduced cell tensor, and converts length from Bohr to Angstrom
-            cells[step,:,i] *= length*conversion.bohr2Ang
+            cells[:,i,step] *= length*conversion.bohr2Ang
         end
     end
 
@@ -1013,7 +1013,7 @@ function readPositions( path_file::T1, species::Vector{T2}, nb_species::Vector{T
     for step=1:nb_step
 
         # Copy cell matrix for step
-        matrix2 = copy( cell_matrices[step,:,:] )
+        matrix2 = copy( cell_matrices[:,:,step] )
 
         # Initialize vector for box lengths
         box_len=zeros(Real,3)

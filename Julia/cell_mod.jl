@@ -277,7 +277,7 @@ function matrix2Params( cell_matrix::Array{T1,2} )  where { T1 <: Real }
         for col=1:3
             length[col] += cell_matrix[line,col]*cell_matrix[line,col]
         end
-        length[col] = sqrt( length[col] )
+        length[line] = sqrt( length[line] )
     end
     #---------------------------------------------------------------------
 
