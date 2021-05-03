@@ -3,143 +3,253 @@ module cube_mod
 using atom_mod
 using cell_mod
 using geom
+using conversion
 
-export readCube, dataInTheMiddleWME, getClosestIndex, traceLine
+export readCube, writeCube
 
+# Volume structure to manipulate info
 #-----------------------------------------------------------------------
-# Volume 4, nb_vox*nb_vox*nb_vox
-#-----------------------
-# 1-3 for positions
-# 4 for the values
-#-----------------------
 mutable struct Volume
-    matrix::Array{Real}
-    vox_vec::Array{Real}
-    nb_vox::Vector{Int}
-    origin::Vector{Real}
+
+    # Variables
+    #--------------------------------
+    matrix::Array{Real}   # Tensor with cube data
+    vox_vec::Array{Real}  # Vector describing the orientation of voxel vectors
+    nb_vox::Vector{Int}   # Number of voxel per vector direction
+    origin::Vector{Real}  # Shift between origin and location
+    #--------------------------------
+
+    # Constructors
+    #---------------------------------------------------------------------------
+    # Default constructor
     function Volume()
-        new( Array{ Real, 3 }(undef,1,1,1), Array{Real,2}(undef,3,3), Array{Int,1}(undef,3),Array{Real,1}(undef,3) )
+        new( Array{ Real, 3 }(undef, 1, 1, 1 ), Array{Real,2}(undef, 3, 3 ), Array{Int,1}(undef, 3 ),Array{Real,1}(undef, 3 ) )
     end
-    function Volume( nb_vox_iso::T1 ) where {T1 <: Real}
-        if nb_vox_iso > 0
-            new( Array{Real}( nb_vox_iso, nb_vox_iso, nb_vox_iso), Array{Real}(3,3), [nb_vox_iso, nb_vox_iso, nb_vox_iso] )
+    function Volume( nb_vox::T1 ) where {T1 <: Real}
+        if nb_vox > 0
+            new( Array{Real}( nb_vox, nb_vox, nb_vox ), Array{Real}(3,3), [ nb_vox, nb_vox, nb_vox ] )
         else
             print("/!\\ Error: Wrong size for the number of voxels.");
         end
     end
-    function Volume( nb_vox::Vector{T1} ) where {T1 <: Real}
-        if size(nb_vox)[1] == 3
-            new( Array{Real}(nb_vox[1],nb_vox[2],nb_vox[3]),Array{Real}(3,3),nb_vox);
-        else
-            print("/!\\ Error: Wrong size for the number of voxels.");
-        end
+    function Volume( matrix::Array{T1,3}, vector_vox::Array{T2,2}, nb_vox::Vector{T3}, origin::Vector{T4} )  where { T1 <: Real, T2 <: Real, T3 <: Int, T4 <: Real }
+        new( matrix, vector_vox, nb_vox, origin )
     end
+    #---------------------------------------------------------------------------
 end
 #-----------------------------------------------------------------------
 
-#-----------------------------------------------------------------------------------
 # Reads a cube file and returns all or parts of its informations
-function readCube( file_name::T1 ) where { T1 <: AbstractString }
-    #--------------
-    # Reading file
-    #----------------------
-    file=open(file_name);
-    lines=readlines(file);
-    close(file);
-    #-----------------------
+#-----------------------------------------------------------------------------------
+function readCube( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file_path: path to the input file
+    # Output
+    # - atom_list: AtomList object with atom positions, names and index
+    # - cell_matrix: cell matrix describing cell
+    # - volume: volume with ELF, density, or whatever is contained in the cube file
 
-    #------------------
+    # Max number of column for data
+    nb_col = 6
+
+    # Open input file
+    handle_in = open( file_path )
+
+    # Reads entire files and put all lines in tuple
+    lines = readlines( handle_in )
+
+    # Closing input file
+    close( handle_in )
+
+    # Ignoring first 2 lines
+    offset=3
+
     # Number of atoms
-    #-----------------------------------------
-    nb_atoms = parse(Int,split(lines[3])[1]);
-    #-----------------------------------------
+    nb_atoms = parse(Int, split( lines[ offset ] )[1] );
 
-    #--------------------------------
     # Origin position of the density
-    #-----------------------------------------------------
     center=zeros(3)
     for i=1:3
-        center[i]=parse(Float64,split(lines[3])[1+i])*0.529177
+        center[i] = parse(Float64, split( lines[ offset ] )[ i + 1 ])*conversion.bohr2Ang
     end
-    #-----------------------------------------------------
 
-    #-------------------------------------
     # Number of voxels in each direction
-    #-----------------------------------------------------
     nb_vox=zeros(Int,3)
     for i=1:3
-        nb_vox[i] = parse(Float64, split( lines[3+i] )[1] )
+        nb_vox[i] = parse(Float64, split( lines[ i + offset ] )[1] )
     end
-    #-----------------------------------------------------
 
-    #--------------------
-    # Reads Cell Matrix
-    #-----------------------------------------------------
-    cell_matrix=zeros(Real,3,3)
+    # Parse Cell information
+    cell_matrix=zeros(Real, 3, 3 )
     for i=1:3
         for j=1:3
-            cell_matrix[i,j] = parse(Float64, split( lines[3+i] )[1+j] )*0.529177
+            cell_matrix[ i, j ] = parse(Float64, split( lines[ i + offset ] )[ j + 1 ] )*conversion.bohr2Ang
         end
     end
-    #-----------------------------------------------------
 
-    #-------------
-    # Reads atoms
-    #----------------------------------------------------
+    # Increase offset
+    offset = 6
+
+    # Parse Atomic Information
     atom_list=atom_mod.AtomList(nb_atoms);
-    for i=1:nb_atoms
-        atom_list.names[i] = split( lines[6+i] )[1]
+
+    # Loop over atoms
+    for atom=1:nb_atoms
+        # Get atom names
+        atom_list.names[atom] = periodicTable.z2Names( round(Int, split( lines[ atom + offset ] )[1] ) )
+        # Loop over dimensions
         for j=1:3
-            atom_list.positions[i,j] = parse(Float64, split( lines[6+i])[2+j] )*0.529177
+            # Parsing
+            atom_list.positions[ j, atom ] = parse(Float64, split( lines[ atom + offset ])[ j + 2 ] )*conversion.bohr2Ang
         end
     end
-    #----------------------------------------------------
 
-    #-----------------------
-    # Reads Volumetric Data
-    #----------------------------------------------------
-    nb_tot=nb_vox[1]*nb_vox[2]*nb_vox[3]
-    nb_col=6
-    matrix = Array{Real,3}( undef,nb_vox[1], nb_vox[2], nb_vox[3] )
-    offset=(Int)(6+nb_atoms+1)
+    # Parse Volume Data
+    nb_tot = nb_vox[1]*nb_vox[2]*nb_vox[3]
+
+    # Init matrix for data
+    matrix = zeros(Real, nb_vox[1], nb_vox[2], nb_vox[3] )
+
+    # Update offset
+    offset = round(Int, offset + nb_atoms + 1 )
+
+    # Init position of matrix
     x=1; y=1; z=1;
+
+    # Loop over volume lines
     for i=0:nb_tot/nb_col-1
+        # Loop over columns
         for j=1:nb_col
-            matrix[x,y,z] = parse(Float64, split( lines[(Int)(offset+i)])[j] )
-            z=z+1;
-            if z == nb_vox[3]+1
-                z=1;
-                y=y+1;
+            # index of current line
+            index_ = round(Int, offset + i  )
+            # volume data
+            keys = split( lines[ index_ ] )
+            #
+            if size( keys )[1] < j
+                break
             end
-            if y == nb_vox[2]+1
-                y=1;
-                z=1;
-                x=x+1;
+            # Storing data in matrix
+            matrix[ x, y, z ] = parse(Float64, keys[ j ] )
+            # Increment z
+            z = z + 1
+            # PBC on z
+            if z == nb_vox[3] + 1
+                z = 1
+                y = y + 1
+            end
+            # PBC on y
+            if y == nb_vox[2] + 1
+                y = 1
+                z = 1
+                x = x + 1
             end
         end
     end
-    #----------------------------------------------------
 
-    #-----------------
     # Updating volume
-    #--------------------------------
-    volume=Volume()
-    volume.nb_vox=nb_vox
-    volume.vox_vec=cell_matrix
-    volume.matrix=matrix
-    volume.origin=center
-    #---------------------------------
+    volume = Volume( matrix, cell_matrix, matrix, center )
 
-    #-------------------------------------------
     # Scaling cell vectors by number of voxels
-    #--------------------------------------------
-    cell_vecs=cell_mod.Cell_matrix(cell_matrix)
+    # - Loop over dimensions
     for i=1:3
-        cell_vecs.matrix[i,i]=cell_vecs.matrix[i,i]*nb_vox[i]
+        cell_matrix[ :, i ] = cell_matrix[ :, i ]*nb_vox[i]
     end
-    #---------------------------------------------
 
-    return atom_list, cell_matrix, volume
+    # Returns atom, cell info and volume data
+    return atom_list, matrix2Params( cell_matrix ), volume
+end
+#-----------------------------------------------------------------------------------
+
+# Write info to cube
+#-----------------------------------------------------------------------------------
+function writeCube( file_path::T1, atoms::T2, cell::T3, volume::Array{T4,3}, title_line::T5="TITLE OF FRAME", comment_line::T6="COMMENT LINE OF FRAME" ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param, T4 <: Real, T5 <: AbstractString, T6 <: AbstractString }
+    # Arguments
+    # - file_path: path to the output file
+    # - atoms: AtomList contains atomic information
+    # - cell: Cell_Param containing cell information
+    # - volume: data from
+    # - title_line (opt): Title of the frame
+    # - comment_line (opt): Comment line describing cell
+    # Output
+    # - Bool: whether or not writting was successful
+
+    # Maximum number of column for the volume data
+    max_col = 6
+
+    # Opening file
+    handle_out = open( file_path, "w" )
+
+    # Write title line
+    Base.write( handle_out, string( title_line,   "\n" ) )
+
+    # Write comment line
+    Base.write( handle_out, string( comment_line, "\n" ) )
+
+    # Write number of atoms
+    Base.write( handle_out, string( size(atoms.positions)[2], " " ) )
+
+    # Write origin vector
+    # - Loop over dimension
+    for i=1:3
+        # Write vector component, rounding to 3 digits
+        Base.write( handle_out, string( round( volume.origin[i]*conversion.ang2Bohr, digits=3 ), " " ) )
+    end
+    Base.write( handle_out, "\n" )
+
+    # Writting Cell information
+    # - Loop over dimensions
+    for i=1:3
+        # Write number of voxel in direction i
+        Base.write( handle_out, string( volume.nb_vox[i], " " ) )
+        # - Second loop over dimensions
+        for j=1:3
+            Base.write( handle_out, string( round( volume.vox_vec[i,j]*conversion.ang2Bohr/volume.nb_vox[i], digits=3 ), " " ) )
+        end
+        # Write end of line
+        Base.write( handle_out, string("\n") )
+    end
+
+    # Writting atomic information
+    # - Loop over atoms
+    for atom=1:size( atoms.positions )[2]
+        # Write atom name
+        Base.write( handle_out, string( periodicTable.names2Z( atoms.names[atom] ), " " ) )
+        # Write atom Z, again for some reason, with 5 digits if possible (to be fixed, but still works for VMD)
+        Base.write( handle_out, string( round( periodicTable.names2Z( atoms.names[atom] ), digits=5 ) " " ) )
+        # Loop over dimensions
+        for i=1:3
+            # Writting atomic positions (converting to atomic unit first)
+            Base.write( handle_out, string( round( atoms.positions[i,atom]*conversion.ang2Bohr, digits=3 ), " " ) )
+        end
+        # Write end of line
+        Base.write( handle_out, string("\n") )
+    end
+
+    # Writting volume info
+    # - Loop over voxel in i dimension
+    for i=1:volume.nb_vox[1]
+        # - Loop over voxel in j dimension
+        for j=1:volume.nb_vox[2]
+            # - Loop over voxel in k dimension
+            for k=1:volume.nb_vox[3]
+                # Write volume data with rounding 5
+                Base.write( handle_out, string( round( volume.matrix[i,j,k], digits=5 ), " " ) )
+                # Make sure that we make maximum 6 columns
+                if k % max_col == max_col-1
+                    # Write end of line
+                    Base.write( handle_out, string("\n") )
+                end
+            end
+            # Write end of line
+            write( handle_out, string("\n") )
+        end
+    end
+
+    # Closing file
+    close( handle_out )
+
+    # Returns bool
+    return true
 end
 #-----------------------------------------------------------------------------------
 

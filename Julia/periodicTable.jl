@@ -26,7 +26,7 @@ function names2Z( name::T1 ) where { T1 <: AbstractString }
             return i
         end
     end
-    print("No such element in the periodic table")
+    print("No such element in the periodic table\n")
     return false
 end
 
