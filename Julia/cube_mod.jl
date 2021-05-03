@@ -1,11 +1,18 @@
 module cube_mod
 
+# Loading necessary modules from LibAtomSim
 using atom_mod
 using cell_mod
 using geom
 using conversion
+using periodicTable
 
+# Loading necessary modules from Julia default repository
+using LinearAlgebra
+
+# Exporting functions
 export readCube, writeCube
+export carveCube
 
 # Volume structure to manipulate info
 #-----------------------------------------------------------------------
@@ -96,7 +103,8 @@ function readCube( file_path::T1 ) where { T1 <: AbstractString }
     # Loop over atoms
     for atom=1:nb_atoms
         # Get atom names
-        atom_list.names[atom] = periodicTable.z2Names( round(Int, split( lines[ atom + offset ] )[1] ) )
+        atom_list.names[atom] = periodicTable.z2Names( parse(Int, split( lines[ atom + offset ] )[1] ) )
+
         # Loop over dimensions
         for j=1:3
             # Parsing
@@ -147,7 +155,7 @@ function readCube( file_path::T1 ) where { T1 <: AbstractString }
     end
 
     # Updating volume
-    volume = Volume( matrix, cell_matrix, matrix, center )
+    volume = Volume( matrix, cell_matrix, nb_vox, center )
 
     # Scaling cell vectors by number of voxels
     # - Loop over dimensions
@@ -162,7 +170,7 @@ end
 
 # Write info to cube
 #-----------------------------------------------------------------------------------
-function writeCube( file_path::T1, atoms::T2, cell::T3, volume::Array{T4,3}, title_line::T5="TITLE OF FRAME", comment_line::T6="COMMENT LINE OF FRAME" ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param, T4 <: Real, T5 <: AbstractString, T6 <: AbstractString }
+function writeCube( file_path::T1, atoms::T2, cell::T3, volume::T4, title_line::T5="TITLE OF FRAME", comment_line::T6="COMMENT LINE OF FRAME" ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param, T4 <: cube_mod.Volume, T5 <: AbstractString, T6 <: AbstractString }
     # Arguments
     # - file_path: path to the output file
     # - atoms: AtomList contains atomic information
@@ -215,7 +223,7 @@ function writeCube( file_path::T1, atoms::T2, cell::T3, volume::Array{T4,3}, tit
         # Write atom name
         Base.write( handle_out, string( periodicTable.names2Z( atoms.names[atom] ), " " ) )
         # Write atom Z, again for some reason, with 5 digits if possible (to be fixed, but still works for VMD)
-        Base.write( handle_out, string( round( periodicTable.names2Z( atoms.names[atom] ), digits=5 ) " " ) )
+        Base.write( handle_out, string( round( periodicTable.names2Z( atoms.names[atom] ), digits=5 ), " " ) )
         # Loop over dimensions
         for i=1:3
             # Writting atomic positions (converting to atomic unit first)
@@ -254,6 +262,155 @@ end
 #-----------------------------------------------------------------------------------
 
 #-----------------------------------------------------------------------------------
+function moveValues( volume::T1, vector_move::Vector{T2} ) where { T1 <: Volume, T2 <: Int }
+    # Argument
+    # - volume: Volume with all info
+    # - vector_move: vector by which to move the data
+    # Output
+    # - volume: volume with shifted data
+
+    # Initialize matrices
+    matrix_in = copy( volume.matrix )
+    matrix_out = copy( volume.matrix )
+
+    # Loop over dimension 1
+    for i=1:volume.nb_vox[1]
+        # Handle very large move vectors
+        if vector_move[1] > volume.nb_vox[1] || vector_move[1] < -volume.nb_vox[1]
+            vector_move[1] = vector_move % volume.nb_vox[1]
+        end
+
+        # Computing move vector on direction i
+        i_move = i + vector_move[1]
+
+        # Apply Lower PBC
+        if i_move < 1
+            i_move = volume.nb_vox[1] + i_move
+        end
+
+        # Apply Upper PBC
+        if i_move > volume.nb_vox[1]
+            i_move = i_move - volume.nb_vox[1]
+        end
+
+        # Loop over dimension 2
+        for j=1:volume.nb_vox[2]
+            # Handle very large move vectors
+            if vector_move[2] > volume.nb_vox[2] || vector_move[2] < -volume.nb_vox[2]
+                vector_move[2] = vector_move % volume.nb_vox[2]
+            end
+
+            # Computing move on direction j
+            j_move = j + vector_move[2]
+
+            # Apply Lower PBC
+            if j_move < 1
+                j_move = volume.nb_vox[2] + j_move
+            end
+
+            # Apply Upper PBC
+            if j_move > volume.nb_vox[2]
+                j_move = j_move - volume.nb_vox[2]
+            end
+
+            # Loop over dimension 3
+            for k=1:volume.nb_vox[3]
+                # Handle very large move vectors
+                if vector_move[3] > volume.nb_vox[3] || vector_move[3] < -volume.nb_vox[3]
+                    vector_move[3] = vector_move % volume.nb_vox[3]
+                end
+
+                # Computing move on direction k
+                k_move = k + vector_move[3]
+
+                # Apply Lower PBC
+                if k_move < 1
+                    k_move = volume.nb_vox[3] + k_move
+                end
+
+                # Apply Upper PBC
+                if k_move > volume.nb_vox[3]
+                    k_move = k_move - volume.nb_vox[3]
+                end
+
+                # Shifting matrix elements
+                matrix_out[ i_move, j_move, k_move ] = matrix_in[ i, j, k ]
+            end
+        end
+    end
+
+    # Replacing matrix with new one
+    volume.matrix = matrix_out
+
+    # Return new volume with modified matrix
+    return volume
+end
+#-----------------------------------------------------------------------------------
+
+# Compute distance between two points in the grid, orthorombic cells only
+function distanceSimpleCube( position_1::Vector{T1}, position_2::Vector{T2} ) where {T1 <: Int, T2 <: Int }
+    # Argument
+    # - volume: information about the volume
+    # - position_cube: position in the cube
+    # - position_atom: position of the atom
+    # Output
+    # - dist: distance between atom and cube
+
+    # Initialize distance
+    dist = 0
+
+    # Loop over dimensions
+    for i=1:3
+        # Compute local distance in each dimension
+        dist_loc = ( position_1[i] - position_2[i] )
+        # Square dimension distance
+        dist = dist + dist_loc*dist_loc
+    end
+
+    # Return distance
+    return sqrt(dist)
+end
+
+# Keep only values
+#-----------------------------------------------------------------------------
+function carveCube( volume::T1, positions::Array{T2,2}, cut_off::T3 ) where { T1 <: Volume, T2 <: Int, T3 <: Real }
+    # Argument
+    # - volume: volume information with data
+    # - positions: positions of the atoms around which to carve the values
+    # Output
+    # - volume: modified volume with carved values
+
+    # Initialization of matrix
+    matrix_in  = copy( volume.matrix )
+    matrix_out = zeros( volume.nb_vox[1], volume.nb_vox[2], volume.nb_vox[3] )
+
+    # Loop over dimension 1
+    for i=1:volume.nb_vox[1]
+        # Loop over dimension 2
+        for j=1:volume.nb_vox[2]
+            # Loop over dimension 3
+            for k=1:volume.nb_vox[3]
+                # Loop over atoms
+                for atom=1:size(positions)[2]
+                    # Check wether point is within a given radius
+                    dist = distanceSimpleCube([ i, j, k ], positions[ :, atom ] )
+                    if  dist < cut_off
+                        matrix_out[i,j,k] = matrix_in[i,j,k]
+                        break
+                    end
+                end
+            end
+        end
+    end
+
+    # Update volume with carved volume
+    volume.matrix = matrix_out
+
+    # Modified volume
+    return volume
+end
+#-----------------------------------------------------------------------------
+
 function computeDisplacementOrigin( data::T1 , cell::T2 ) where { T1 <: Volume, T2 <: cell_mod.Cell_param }
     index=zeros(Int,3)
     for i=1:3
