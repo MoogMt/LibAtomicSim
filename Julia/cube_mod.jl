@@ -348,7 +348,8 @@ end
 #-----------------------------------------------------------------------------------
 
 # Compute distance between two points in the grid, orthorombic cells only
-function distanceSimpleCube( position_1::Vector{T1}, position_2::Vector{T2} ) where {T1 <: Int, T2 <: Int }
+#-----------------------------------------------------------------------------------
+function distanceSimpleCube( position_1::Vector{T1}, position_2::Vector{T2}, volume::T3 ) where {T1 <: Int, T2 <: Int, T3 <: Volume }
     # Argument
     # - volume: information about the volume
     # - position_cube: position in the cube
@@ -362,7 +363,7 @@ function distanceSimpleCube( position_1::Vector{T1}, position_2::Vector{T2} ) wh
     # Loop over dimensions
     for i=1:3
         # Compute local distance in each dimension
-        dist_loc = ( position_1[i] - position_2[i] )
+        dist_loc = ( position_1[i] - position_2[i] )*(norm( volume.vox_vec[i,:] )/volume.nb_vox[i] )
         # Square dimension distance
         dist = dist + dist_loc*dist_loc
     end
@@ -370,15 +371,26 @@ function distanceSimpleCube( position_1::Vector{T1}, position_2::Vector{T2} ) wh
     # Return distance
     return sqrt(dist)
 end
+#-----------------------------------------------------------------------------------
 
 # Keep only values
 #-----------------------------------------------------------------------------
-function carveCube( volume::T1, positions::Array{T2,2}, cut_off::T3 ) where { T1 <: Volume, T2 <: Int, T3 <: Real }
+function carveCube( volume::T1, positions::Array{T2,2}, cut_off::T3, fac::T4=1, soft_fac::T5=0.5 ) where { T1 <: Volume, T2 <: Int, T3 <: Real, T4 <: Real, T5 <: Real }
     # Argument
     # - volume: volume information with data
     # - positions: positions of the atoms around which to carve the values
     # Output
     # - volume: modified volume with carved values
+
+    # Check that the softening cut-off is >= 1 or set it to 1
+    if fac < 1
+        fac = 1.00005
+    end
+
+    # Check that the softening factor is between 0 and 1 or set it to 0.5 as default
+    if soft_fac > 1 || soft_fac < 0
+        soft_fac = 0.5
+    end
 
     # Initialization of matrix
     matrix_in  = copy( volume.matrix )
@@ -390,14 +402,33 @@ function carveCube( volume::T1, positions::Array{T2,2}, cut_off::T3 ) where { T1
         for j=1:volume.nb_vox[2]
             # Loop over dimension 3
             for k=1:volume.nb_vox[3]
+                # Initialize bool to check whether to carve
+                found  = false
+                found2 = false
+
                 # Loop over atoms
                 for atom=1:size(positions)[2]
+                    # Computes distance between positions on grid and atom position
+                    dist = distanceSimpleCube( [ i, j, k ], positions[ :, atom ], volume )
+
                     # Check wether point is within a given radius
-                    dist = distanceSimpleCube([ i, j, k ], positions[ :, atom ] )
                     if  dist < cut_off
+                        # If so keep matrix data
                         matrix_out[i,j,k] = matrix_in[i,j,k]
+                        # Indicate that it's ok
+                        found = true
                         break
+                    # If the point is within a secondary cut-off we can damp the values
+                    elseif dist < fac*cut_off
+                        found2 = true
                     end
+                end
+
+                # Soften the carving so that the data looks less messy
+                if ( ! found ) && found2
+                    # Copy the data from original matrix, with a softening factor
+                    # that is determined by user
+                    matrix_out[i,j,k] = matrix_in[i,j,k]*soft_fac
                 end
             end
         end
@@ -411,6 +442,41 @@ function carveCube( volume::T1, positions::Array{T2,2}, cut_off::T3 ) where { T1
 end
 #-----------------------------------------------------------------------------
 
+#-----------------------------------------------------------------------------
+function getClosestIndex( position::Vector{T1}, volume::T2 ) where { T1 <: Real, T2 <: Volume }
+    # Arguments
+    # - position: position of the target atom
+    # - volume: volume with all information
+    # - cell: cell_param with all information
+    # Output
+    # - index: index closest of the target atom
+
+    # Trying to guess the closest g
+    index=zeros(Int,3)
+
+    # Loop over the dimensions
+    for i=1:3
+        # Compute index in the ith dimension
+        index[i] = round(Int, position[i]/(norm( volume.vox_vec[:,i] )/volume.nb_vox[i] ) ) + 1
+
+        # Wrapping up index
+        if index[i] > volume.nb_vox[i] || index[i] < - volume.nb_vox[i]
+            index[i] = index[i] % volume.nb_vox[i]
+        end
+
+        # Applying PBC on index
+        if index[i] < 1
+            index[i] = volume.nb_vox[i] + index[i]
+        end
+    end
+
+    # Returns the index
+    return index
+end
+#-----------------------------------------------------------------------------
+
+
+
 function computeDisplacementOrigin( data::T1 , cell::T2 ) where { T1 <: Volume, T2 <: cell_mod.Cell_param }
     index=zeros(Int,3)
     for i=1:3
@@ -422,30 +488,6 @@ function computeDisplacementOrigin( data::T1 , cell::T2 ) where { T1 <: Volume, 
     end
     return index
 end
-
-function getClosestIndex( position::Vector{T1}, volume::T2 , cell::T3 ) where { T1 <: Real, T2 <: Volume, T3 <: cell_mod.Cell_param }
-    # Trying to guess the closest grid point to the center
-    index=zeros(Int,3)
-    # Rounding up the raw guess
-    for i=1:3
-        index[i] = trunc(position[i]/cell.length[i]*volume.nb_vox[i])  + 1
-    end
-    # Displacement due to origin
-    mod=computeDisplacementOrigin( volume , cell )
-    for i=1:3
-        index[i]-=mod[i]
-    end
-    for i=1:3
-        if index[i] > volume.nb_vox[i]
-            index[i] = index[i] - volume.nb_vox[i]
-        end
-        if index[i] < 1
-            index[i] = volume.nb_vox[i]+index[i]
-        end
-    end
-    return index
-end
-
 function getClosestIndex( position::Vector{T1}, volume::T2 , cell::T3, origin_index::Vector{T4} ) where { T1 <: Real, T2 <: Volume, T3 <: cell_mod.Cell_param , T4 <: Int }
     # Trying to guess the closest grid point to the center
     index=zeros(Int,3)
@@ -466,7 +508,6 @@ function getClosestIndex( position::Vector{T1}, volume::T2 , cell::T3, origin_in
     end
     return index
 end
-
 function dataInTheMiddleWME( atoms::T1, cell::T2 , atom1::T3, atom2::T4, data::T5 ) where { T1 <: atom_mod.AtomList, T2 <: cell_mod.Cell_param, T3 <: Int, T4 <: Int, T5 <: Volume }
     # Wrapped  Edition
     # Copies of 1 and 2
@@ -494,7 +535,6 @@ function dataInTheMiddleWME( atoms::T1, cell::T2 , atom1::T3, atom2::T4, data::T
     index=getClosestIndex( center , data , cell )
     return data.matrix[index[1],index[2],index[3]]
 end
-
 # Trace the volume between two points.
 function traceLine( atom1::T1, atom2::T2, nb_points::T3, volume::T4, atoms::T5 , cell::T6 ) where { T1 <: Int, T2 <: Int, T3 <: Int, T4 <: Volume , T5 <: atom_mod.AtomList, T6 <: cell_mod.Cell_param }
 
