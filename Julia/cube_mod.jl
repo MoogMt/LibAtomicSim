@@ -67,9 +67,133 @@ mutable struct Volume
 end
 #-----------------------------------------------------------------------
 
-# Reads a cube file and returns all or parts of its informations
+# Reads a cube file and returns all information in the form of a volume
 #-----------------------------------------------------------------------------------
 function readCube( file_path::T1 ) where { T1 <: AbstractString }
+    # Argument
+    # - file_path: path to the input file
+    # Output
+    # - atom_list: AtomList object with atom positions, names and index
+    # - cell_matrix: cell matrix describing cell
+    # - volume: volume with ELF, density, or whatever is contained in the cube file
+
+    # Max number of column for data
+    nb_col = 6
+
+    # Open input file
+    handle_in = open( file_path )
+
+    # Reads entire files and put all lines in tuple
+    lines = readlines( handle_in )
+
+    # Closing input file
+    close( handle_in )
+
+    # Ignoring first 2 lines
+    offset=3
+
+    # Number of atoms
+    nb_atoms = parse(Int, split( lines[ offset ] )[1] );
+
+    # Origin position of the density
+    center=zeros(3)
+    for i=1:3
+        center[i] = parse(Float64, split( lines[ offset ] )[ i + 1 ])*conversion.bohr2Ang
+    end
+
+    # Number of voxels in each direction
+    nb_vox=zeros(Int,3)
+    for i=1:3
+        nb_vox[i] = parse(Float64, split( lines[ i + offset ] )[1] )
+    end
+
+    # Parse Cell information
+    cell_matrix=zeros(Real, 3, 3 )
+    for i=1:3
+        for j=1:3
+            cell_matrix[ i, j ] = parse(Float64, split( lines[ i + offset ] )[ j + 1 ] )*conversion.bohr2Ang
+        end
+    end
+
+    # Increase offset
+    offset = 6
+
+    # Parse Atomic Information
+    atom_list=atom_mod.AtomList(nb_atoms);
+
+    # Loop over atoms
+    for atom=1:nb_atoms
+        # Get atom names
+        atom_list.names[atom] = periodicTable.z2Names( parse(Int, split( lines[ atom + offset ] )[1] ) )
+
+        # Loop over dimensions
+        for j=1:3
+            # Parsing
+            atom_list.positions[ j, atom ] = parse(Float64, split( lines[ atom + offset ])[ j + 2 ] )*conversion.bohr2Ang
+        end
+    end
+
+    # Parse Volume Data
+    nb_tot = nb_vox[1]*nb_vox[2]*nb_vox[3]
+
+    # Init matrix for data
+    matrix = zeros(Real, nb_vox[1], nb_vox[2], nb_vox[3] )
+
+    # Update offset
+    offset = round(Int, offset + nb_atoms + 1 )
+
+    # Init position of matrix
+    x=1; y=1; z=1;
+
+    # Loop over volume lines
+    for i=0:nb_tot/nb_col-1
+        # Loop over columns
+        for j=1:nb_col
+            # index of current line
+            index_ = round(Int, offset + i  )
+            # volume data
+            keys = split( lines[ index_ ] )
+            #
+            if size( keys )[1] < j
+                break
+            end
+            # Storing data in matrix
+            matrix[ x, y, z ] = parse(Float64, keys[ j ] )
+            # Increment z
+            z = z + 1
+            # PBC on z
+            if z == nb_vox[3] + 1
+                z = 1
+                y = y + 1
+            end
+            # PBC on y
+            if y == nb_vox[2] + 1
+                y = 1
+                z = 1
+                x = x + 1
+            end
+        end
+    end
+
+    # Updating volume
+    volume = Volume( matrix, cell_matrix, nb_vox, center )
+
+    # Scaling cell vectors by number of voxels
+    # - Loop over dimensions
+    for i=1:3
+        cell_matrix[ :, i ] = cell_matrix[ :, i ]*nb_vox[i]
+    end
+
+    # Returns
+    # - atoms_list: AtomList containing atomic positions, names
+    # - cell_param: Cell_param contains cell information
+    # - nb_vox: number of voxels in each directions
+    # - matrix: data contained in the *.cube file
+    # - vec_vox: voxel describing the voxel structure
+    # - center: shift between position origin and grid origin
+    return atom_list, matrix2Params( cell_matrix ), nb_vox, matrix, vec_vox, nb_vox, center
+end
+function readCubeVolume( file_path::T1 ) where { T1 <: AbstractString }
     # Argument
     # - file_path: path to the input file
     # Output
@@ -189,7 +313,7 @@ function readCube( file_path::T1 ) where { T1 <: AbstractString }
 end
 #-----------------------------------------------------------------------------------
 
-# Write info to cube
+# Write information of a volume into a *.cube file
 #-----------------------------------------------------------------------------------
 function writeCube( file_path::T1, atoms::T2, cell::T3, volume::T4, title_line::T5="TITLE OF FRAME", comment_line::T6="COMMENT LINE OF FRAME" ) where { T1 <: AbstractString, T2 <: atom_mod.AtomList, T3 <: cell_mod.Cell_param, T4 <: cube_mod.Volume, T5 <: AbstractString, T6 <: AbstractString }
     # Arguments
@@ -305,6 +429,7 @@ function applyPBCCube( index::T1, max_vox::T2 ) where { T1 <: Int, T2 <: Int }
 end
 #-----------------------------------------------------------------------------------
 
+# Displace all values by a given vector
 #-----------------------------------------------------------------------------------
 function moveValues( volume::T1, vector_move::Vector{T2} ) where { T1 <: Volume, T2 <: Int }
     # Argument
@@ -387,7 +512,7 @@ function distanceSimpleCube( position_1::Vector{T1}, position_2::Vector{T2}, vol
 end
 #-----------------------------------------------------------------------------------
 
-# Keep only values
+# Keep only values within a given radius of positions
 #-----------------------------------------------------------------------------
 function carveCube( volume::T1, positions::Array{T2,2}, cut_off::T3, fac::T4=1, soft_fac::T5=0.5 ) where { T1 <: Volume, T2 <: Int, T3 <: Real, T4 <: Real, T5 <: Real }
     # Argument
@@ -456,6 +581,7 @@ function carveCube( volume::T1, positions::Array{T2,2}, cut_off::T3, fac::T4=1, 
 end
 #-----------------------------------------------------------------------------
 
+# Get the index closest to a given position in a box
 #-----------------------------------------------------------------------------
 function getClosestIndex( position::Vector{T1}, volume::T2 ) where { T1 <: Real, T2 <: Volume }
     # Arguments
@@ -489,6 +615,7 @@ function getClosestIndex( position::Vector{T1}, volume::T2 ) where { T1 <: Real,
 end
 #-----------------------------------------------------------------------------
 
+#-----------------------------------------------------------------------------
 function computeDisplacementOrigin( data::T1 , cell::T2 ) where { T1 <: Volume, T2 <: cell_mod.Cell_param }
     index=zeros(Int,3)
     for i=1:3
@@ -604,5 +731,6 @@ function traceLine( atom1::T1, atom2::T2, nb_points::T3, volume::T4, atoms::T5 ,
 
     return distances, data
 end
+#-----------------------------------------------------------------------------
 
 end
