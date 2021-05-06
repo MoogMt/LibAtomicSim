@@ -12,12 +12,18 @@ using LinearAlgebra
 
 # Exporting functions
 export readCube, writeCube
+export applyPBCCube
+export moveValues
+export distanceSimpleCube
 export carveCube
+export getClosestIndex
+
+# Functions that have not yet been cleared
+export computeDisplacementOrigin, dataInTheMiddleWME, traceLine
 
 # Volume structure to manipulate info
 #-----------------------------------------------------------------------
 mutable struct Volume
-
     # Variables
     #--------------------------------
     matrix::Array{Real}   # Tensor with cube data
@@ -32,14 +38,29 @@ mutable struct Volume
     function Volume()
         new( Array{ Real, 3 }(undef, 1, 1, 1 ), Array{Real,2}(undef, 3, 3 ), Array{Int,1}(undef, 3 ),Array{Real,1}(undef, 3 ) )
     end
+    # Cubic volume constructor
     function Volume( nb_vox::T1 ) where {T1 <: Real}
+        # Argument
+        # - nb_vox: number of voxels in all three direction (cubic cell)
+
+        # Check that the number is positive
         if nb_vox > 0
             new( Array{Real}( nb_vox, nb_vox, nb_vox ), Array{Real}(3,3), [ nb_vox, nb_vox, nb_vox ] )
+        # If not, sends an error message and return false
         else
-            print("/!\\ Error: Wrong size for the number of voxels.");
+            print("/!\\ Error: Wrong size for the number of voxels.\n")
+            return false
         end
     end
+    # Default constructor with all information specified
     function Volume( matrix::Array{T1,3}, vector_vox::Array{T2,2}, nb_vox::Vector{T3}, origin::Vector{T4} )  where { T1 <: Real, T2 <: Real, T3 <: Int, T4 <: Real }
+        # Argument
+        # - matrix: tensor (Real, nb_vox_x, nb_vox_y, nb_vox_z) containing all data
+        # - vector_vox: voxel vectors describing the structure of the voxels (basically the reduced cell matrix, reduced by number of voxels in each vector direction)
+        # - nb_vox: number of voxels in each dimensions
+        # - origin: shift of the voxel grid compared to the position origin
+
+        # Creates object
         new( matrix, vector_vox, nb_vox, origin )
     end
     #---------------------------------------------------------------------------
@@ -243,8 +264,7 @@ function writeCube( file_path::T1, atoms::T2, cell::T3, volume::T4, title_line::
                 # Write volume data with rounding 5
                 Base.write( handle_out, string( round( volume.matrix[i,j,k], digits=5 ), " " ) )
                 # Make sure that we make maximum 6 columns
-                if k % max_col == max_col-1
-                    # Write end of line
+                if k % max_col == 0
                     Base.write( handle_out, string("\n") )
                 end
             end
@@ -258,6 +278,30 @@ function writeCube( file_path::T1, atoms::T2, cell::T3, volume::T4, title_line::
 
     # Returns bool
     return true
+end
+#-----------------------------------------------------------------------------------
+
+# Apply PBC on cube
+#-----------------------------------------------------------------------------------
+function applyPBCCube( index::T1, max_vox::T2 ) where { T1 <: Int, T2 <: Int }
+    # Argument
+    # - index: original index
+    # - max_vox: maximum number of voxel in given direction
+    # Output
+    # - index: new index with PBC applied
+
+    # Apply Lower PBC
+    if index < 1
+        index = max_vox + index
+    end
+
+    # Apply Upper PBC
+    if index > max_vox
+        index = index - max_vox
+    end
+
+    # Returns the modified index
+    return index
 end
 #-----------------------------------------------------------------------------------
 
@@ -281,17 +325,7 @@ function moveValues( volume::T1, vector_move::Vector{T2} ) where { T1 <: Volume,
         end
 
         # Computing move vector on direction i
-        i_move = i + vector_move[1]
-
-        # Apply Lower PBC
-        if i_move < 1
-            i_move = volume.nb_vox[1] + i_move
-        end
-
-        # Apply Upper PBC
-        if i_move > volume.nb_vox[1]
-            i_move = i_move - volume.nb_vox[1]
-        end
+        i_move = applyPBCCube( i + vector_move[1], volume.nb_vox[1] )
 
         # Loop over dimension 2
         for j=1:volume.nb_vox[2]
@@ -300,18 +334,8 @@ function moveValues( volume::T1, vector_move::Vector{T2} ) where { T1 <: Volume,
                 vector_move[2] = vector_move % volume.nb_vox[2]
             end
 
-            # Computing move on direction j
-            j_move = j + vector_move[2]
-
-            # Apply Lower PBC
-            if j_move < 1
-                j_move = volume.nb_vox[2] + j_move
-            end
-
-            # Apply Upper PBC
-            if j_move > volume.nb_vox[2]
-                j_move = j_move - volume.nb_vox[2]
-            end
+            # Computing move vector on direction i
+            j_move = applyPBCCube( j + vector_move[2], volume.nb_vox[2] )
 
             # Loop over dimension 3
             for k=1:volume.nb_vox[3]
@@ -320,18 +344,8 @@ function moveValues( volume::T1, vector_move::Vector{T2} ) where { T1 <: Volume,
                     vector_move[3] = vector_move % volume.nb_vox[3]
                 end
 
-                # Computing move on direction k
-                k_move = k + vector_move[3]
-
-                # Apply Lower PBC
-                if k_move < 1
-                    k_move = volume.nb_vox[3] + k_move
-                end
-
-                # Apply Upper PBC
-                if k_move > volume.nb_vox[3]
-                    k_move = k_move - volume.nb_vox[3]
-                end
+                # Computing move vector on direction i
+                k_move = applyPBCCube( k + vector_move[3], volume.nb_vox[3] )
 
                 # Shifting matrix elements
                 matrix_out[ i_move, j_move, k_move ] = matrix_in[ i, j, k ]
@@ -474,8 +488,6 @@ function getClosestIndex( position::Vector{T1}, volume::T2 ) where { T1 <: Real,
     return index
 end
 #-----------------------------------------------------------------------------
-
-
 
 function computeDisplacementOrigin( data::T1 , cell::T2 ) where { T1 <: Volume, T2 <: cell_mod.Cell_param }
     index=zeros(Int,3)
