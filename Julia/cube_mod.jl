@@ -615,18 +615,30 @@ function getClosestIndex( position::Vector{T1}, volume::T2 ) where { T1 <: Real,
 end
 #-----------------------------------------------------------------------------
 
+# Compute shift in voxels between origin of the voxel and position grids
 #-----------------------------------------------------------------------------
-function computeDisplacementOrigin( data::T1 , cell::T2 ) where { T1 <: Volume, T2 <: cell_mod.Cell_param }
-    index=zeros(Int,3)
+function computeDisplacementOrigin( volume::T1 , cell::T2 ) where { T1 <: Volume, T2 <: cell_mod.Cell_param }
+    # Argument
+    # - volume: Volume containing all data
+    # - cell: Cell_param with information about the cell
+    # Output
+    # - index: displacement in number of voxels of the origin
+
+    # Initialize output vector
+    index = zeros(Int, 3 )
+
+    # Loop over dimension
     for i=1:3
-        guess=data.origin[i]/cell.length[i]*data.nb_vox[i]
-        index[i]=trunc(guess)
-        if guess-index[i] > 0.5
-            index[i] += 1
-        end
+        # Compute index in real
+        index[i] = round(Int, volume.origin[i]/cell.length[i]*volume.nb_vox[i] )
     end
+
+    # Returns the index of the vector
     return index
 end
+#-----------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
 function getClosestIndex( position::Vector{T1}, volume::T2 , cell::T3, origin_index::Vector{T4} ) where { T1 <: Real, T2 <: Volume, T3 <: cell_mod.Cell_param , T4 <: Int }
     # Trying to guess the closest grid point to the center
     index=zeros(Int,3)
@@ -647,11 +659,14 @@ function getClosestIndex( position::Vector{T1}, volume::T2 , cell::T3, origin_in
     end
     return index
 end
+
+#-----------------------------------------------------------------------------
 function dataInTheMiddleWME( atoms::T1, cell::T2 , atom1::T3, atom2::T4, data::T5 ) where { T1 <: atom_mod.AtomList, T2 <: cell_mod.Cell_param, T3 <: Int, T4 <: Int, T5 <: Volume }
-    # Wrapped  Edition
+
     # Copies of 1 and 2
-    position1 = atoms.positions[atom1,:]
-    position2 = atoms.positions[atom2,:]
+    position1 = atoms.positions[ atom1,:]
+    position2 = atoms.positions[ atom2,:]
+
     # Moving 2 to closest image to 1 (can be out of the box)
     for i=1:3
         di = position1[i] - position2[i]
@@ -662,19 +677,26 @@ function dataInTheMiddleWME( atoms::T1, cell::T2 , atom1::T3, atom2::T4, data::T
             position2[i] = position2[i] - cell.length[i]
         end
     end
+
     # compute the position of the center (can be out of the box)
     center=zeros(Real,3)
     for i=1:3
         center[i] = 0.5*(position1[i]+position2[i])
     end
+
     # wrap the center
     for i=1:3
         center[i] = cell_mod.wrap( center[i], cell.length[i] )
     end
-    index=getClosestIndex( center , data , cell )
-    return data.matrix[index[1],index[2],index[3]]
+
+    index = getClosestIndex( center , data , cell )
+
+    return data.matrix[ index[1], index[2], index[3] ]
 end
+#-----------------------------------------------------------------------------
+
 # Trace the volume between two points.
+#-----------------------------------------------------------------------------
 function traceLine( atom1::T1, atom2::T2, nb_points::T3, volume::T4, atoms::T5 , cell::T6 ) where { T1 <: Int, T2 <: Int, T3 <: Int, T4 <: Volume , T5 <: atom_mod.AtomList, T6 <: cell_mod.Cell_param }
 
     # Extracting positions
