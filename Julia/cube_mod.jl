@@ -16,10 +16,8 @@ export applyPBCCube
 export moveValues
 export distanceSimpleCube
 export carveCube
-export getClosestIndex
-
-# Functions that have not yet been cleared
-export computeDisplacementOrigin, dataInTheMiddleWME, traceLine
+export getClosestIndex, computeDisplacementOrigin
+export dataInTheMiddleWME, traceLine
 
 # Volume structure to manipulate info
 #-----------------------------------------------------------------------
@@ -581,8 +579,9 @@ function carveCube( volume::T1, positions::Array{T2,2}, cut_off::T3, fac::T4=1, 
 end
 #-----------------------------------------------------------------------------
 
-# Get the index closest to a given position in a box
+# Get index nearest to points
 #-----------------------------------------------------------------------------
+# Get the closest voxel node in the grid for a given atomic position
 function getClosestIndex( position::Vector{T1}, volume::T2 ) where { T1 <: Real, T2 <: Volume }
     # Arguments
     # - position: position of the target atom
@@ -613,10 +612,7 @@ function getClosestIndex( position::Vector{T1}, volume::T2 ) where { T1 <: Real,
     # Returns the index
     return index
 end
-#-----------------------------------------------------------------------------
-
 # Compute shift in voxels between origin of the voxel and position grids
-#-----------------------------------------------------------------------------
 function computeDisplacementOrigin( volume::T1 , cell::T2 ) where { T1 <: Volume, T2 <: cell_mod.Cell_param }
     # Argument
     # - volume: Volume containing all data
@@ -636,121 +632,163 @@ function computeDisplacementOrigin( volume::T1 , cell::T2 ) where { T1 <: Volume
     # Returns the index of the vector
     return index
 end
-#-----------------------------------------------------------------------------
-
-#-----------------------------------------------------------------------------
+# Compute shift in voxels between origin of the voxel and position grids
 function getClosestIndex( position::Vector{T1}, volume::T2 , cell::T3, origin_index::Vector{T4} ) where { T1 <: Real, T2 <: Volume, T3 <: cell_mod.Cell_param , T4 <: Int }
+    # Argument
+    # - position: position of atom to get into voxels
+    # - volume: structure containing all data
+    # - origin_index: shift of the voxel grid compared to position grid
+    # Output
+    # - index: position in voxel from the position in the cell
+
     # Trying to guess the closest grid point to the center
-    index=zeros(Int,3)
-    # Rounding up the raw guess
+    index = zeros(Int, 3 )
+
+    # Loop over dimensions
     for i=1:3
-        index[i] = trunc(position[i]/cell.length[i]*volume.nb_vox[i])  + 1
-    end
-    for i=1:3
-        index[i]-= origin_index[i]
-    end
-    for i=1:3
+        # Compute original index
+        index[i] = round(Int, position[i]/cell.length[i]*volume.nb_vox[i]) - origin_index[i]
+
+        # Apply Upper PBC
         if index[i] > volume.nb_vox[i]
             index[i] = index[i] - volume.nb_vox[i]
         end
+
+        # Apply lower PBC
         if index[i] < 1
             index[i] = volume.nb_vox[i]+index[i]
         end
     end
+
+    # Return position in the voxel grid
     return index
 end
+# Get voxel point in the middle of two positions
+function dataInTheMiddleWME( atoms::T1, cell::T2 , atom1::T3, atom2::T4, volume::T5 ) where { T1 <: atom_mod.AtomList, T2 <: cell_mod.Cell_param, T3 <: Int, T4 <: Int, T5 <: Volume }
+    # Arguments
+    # - atoms: AtomList containing all atomic information, including names, index and positions
+    # - cell: Cell_param with all cell information
+    # - atom1: index of first atom
+    # - atom2: index of second atom
+    # - volume: structure containing all informations
+    # Output
+    # - value of the volume at the center of atom 1 and atom 2
 
-#-----------------------------------------------------------------------------
-function dataInTheMiddleWME( atoms::T1, cell::T2 , atom1::T3, atom2::T4, data::T5 ) where { T1 <: atom_mod.AtomList, T2 <: cell_mod.Cell_param, T3 <: Int, T4 <: Int, T5 <: Volume }
-
-    # Copies of 1 and 2
+    # Copies positions of atom 1 and 2
     position1 = atoms.positions[ atom1,:]
     position2 = atoms.positions[ atom2,:]
 
+    # Initialize data for positions between 1 and 2
+    center = zeros(Real, 3 )
+
     # Moving 2 to closest image to 1 (can be out of the box)
+    # - Loop over dimensions
     for i=1:3
+        # - Compute differences in position between 1 and 2
         di = position1[i] - position2[i]
+
+        # - Apply Upper PBC
         if di > cell.length[i]*0.5
             position2[i] = position2[i] + cell.length[i]
         end
+
+        #  - Apply Lower PBC
         if di < -cell.length[i]*0.5
             position2[i] = position2[i] - cell.length[i]
         end
-    end
 
-    # compute the position of the center (can be out of the box)
-    center=zeros(Real,3)
-    for i=1:3
+        # - Compute the position of the center (can be out of the box)
         center[i] = 0.5*(position1[i]+position2[i])
-    end
 
-    # wrap the center
-    for i=1:3
+        # - Wrap center positions
         center[i] = cell_mod.wrap( center[i], cell.length[i] )
     end
 
+    # Get indexes of the voxel of the center between 1 and 2
     index = getClosestIndex( center , data , cell )
 
-    return data.matrix[ index[1], index[2], index[3] ]
+    # Return value at the center
+    return volume.matrix[ index[1], index[2], index[3] ]
 end
-#-----------------------------------------------------------------------------
-
-# Trace the volume between two points.
-#-----------------------------------------------------------------------------
+# Get all values in the line between deux atomic positions
 function traceLine( atom1::T1, atom2::T2, nb_points::T3, volume::T4, atoms::T5 , cell::T6 ) where { T1 <: Int, T2 <: Int, T3 <: Int, T4 <: Volume , T5 <: atom_mod.AtomList, T6 <: cell_mod.Cell_param }
+    # Argument
+    # - atom1, atom2: index of atoms 1 and 2
+    # - nb_points: number of points to take in the line between 1 and 2
+    # - volume: Volume structure containing volumic data
+    # - atoms: AtomList containing atomic informations
+    # - cell: Cell_Param containing all cell information
+    # Output
+    # - distances: distance from point 1
+    # - data: data along the line from 1 to 2
 
-    # Extracting positions
+    # Copy positions
     position1 = atoms.positions[atom1,:]
     position2 = atoms.positions[atom2,:]
 
-    # Wrapping
-    for i=1:3
-        position1[i]=cell_mod.wrap(position1[i],cell.length[i])
-        position2[i]=cell_mod.wrap(position2[i],cell.length[i])
-    end
+    # Initialize positions from 1
+    dp = zeros(Real, 3 )
 
-    # Moving 2 to closest image to 1 (can be out of the box)
+    # Loop over dimensions
     for i=1:3
+        # Wrapping positions
+        position1[i] = cell_mod.wrap( position1[i], cell.length[i] )
+        position2[i] = cell_mod.wrap( position2[i], cell.length[i] )
+
+        # Moving 2 to closest image to 1 (can be out of the box)
         di = position1[i] - position2[i]
+
+        # Apply Upper PBC
         if di > cell.length[i]*0.5
             position2[i] = position2[i] + cell.length[i]
         end
+
+        # Apply lower PBC
         if di < -cell.length[i]*0.5
             position2[i] = position2[i] - cell.length[i]
         end
+
+        # Get positions of point i
+        dp[i] = ( position2[i] - position1[i] )/nb_points
     end
 
-    # Move vector and distance
-    dp=zeros(Real,3)
-    for i=1:3
-        dp[i]=(position2[i]-position1[i])/nb_points
-    end
-    dp_value=cell_mod.distance(atoms,cell,atom1,atom2)/nb_points
+    dp_value = cell_mod.distance( atoms, cell, atom1, atom2 )/nb_points
 
     # Displacement due to origin of the volume
     origin=computeDisplacementOrigin( volume , cell )
 
     # Output Tables
-    distances=zeros(Real,nb_points)
-    data=zeros(Real,nb_points)
+    distances = zeros(Real, nb_points )
+    data      = zeros(Real, nb_points )
 
-    # Moving along the lines
+    # Move cursor along the line and get data at each positions
+    # - Start at position 1
     curseur=position1
+
+    # - Loop over points
     for i=1:nb_points
-        indexs=getClosestIndex(curseur,volume,cell,origin)
-        # Data
-        data[i]=volume.matrix[indexs[1],indexs[2],indexs[3]]
-        # Movement
+        # Get the index of the current point
+        indexs = getClosestIndex( curseur, volume, cell, origin )
+
+        # Get data at current point
+        data[i] = volume.matrix[ indexs[1], indexs[2], indexs[3] ]
+
+        # Move cursor
         for j=1:3
             curseur[j] += dp[j]
         end
+
+        # Compute the distance from 1
         if i > 1
+            # Loop over dimensions
             for j=1:3
-                distances[i]=distances[i-1]+dp_value
+                # Add distance along all point
+                distances[i] = distances[i-1] + dp_value
             end
         end
     end
 
+    # Return distances from 1 to 2 and associated data along the line
     return distances, data
 end
 #-----------------------------------------------------------------------------
