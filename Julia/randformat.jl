@@ -26,19 +26,19 @@ function writeV1( handle_out::T1, atom_names::Vector{T2}, atom_positions::Array{
     # Write vector A
     write( handle_out, string("va= ") )
     for i=1:3
-        write( handle_out, string( round( cell_matrix[1,i], digits=3 ), " " ) )
+        write( handle_out, string( round( cell_matrix[i,1], digits=3 ), " " ) )
     end
     write( handle_out, string("\n") )
     #----------------------
     write( handle_out, string("vb= ") )
     for i=1:3
-        write( handle_out, string( round( cell_matrix[2,i], digits=3 ), " " ) )
+        write( handle_out, string( round( cell_matrix[i,2], digits=3 ), " " ) )
     end
     write( handle_out, string("\n") )
     #----------------------
     write( handle_out, string("vc= ") )
     for i=1:3
-        write( handle_out, string( round( cell_matrix[3,i], digits=3 ), " " ) )
+        write( handle_out, string( round( cell_matrix[i,3], digits=3 ), " " ) )
     end
     write( handle_out, string("\n") )
     #----------------------------------------
@@ -51,12 +51,9 @@ function writeV1( handle_out::T1, atom_names::Vector{T2}, atom_positions::Array{
         # Write atom name
         write( handle_out, string( atom_names[atom], " ") )
 
-        # Compute reduced coordinates
-        position_reduced = cell_mod.cartesian2Reduced( atom_positions[:,atom], cell_matrix )
-
         # Loop over dimensions
         for i=1:3
-            write( handle_out, string( round( position_reduced[i], digits=3 ), " " ) )
+            write( handle_out, string( round( atom_positions[i,atom], digits=3 ), " " ) )
         end
 
         # Write end of line
@@ -127,12 +124,9 @@ function writeV1( handle_out::T1, atoms::T2, cell_matrix::Array{T3,2} )  where {
         # Write atom name
         write( handle_out, string( atoms.names[atom], " ") )
 
-        # Compute reduced coordinates
-        position_reduced = cell_mod.cartesian2Reduced( atoms.positions[:,atom], cell_matrix )
-
         # Loop over dimensions
         for i=1:3
-            write( handle_out, string( round( position_reduced[i], digits=3 ), " " ) )
+            write( handle_out, string( round( atoms.positions[i,atoms], digits=3 ), " " ) )
         end
 
         # Write end of line
