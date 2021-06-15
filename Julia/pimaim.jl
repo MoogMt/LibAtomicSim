@@ -2483,4 +2483,85 @@ function writeCellbox( path_file::T1, cells::Array{T2,3}, timestep::T3 ) where {
 end
 #------------------------------------------------------------------------------
 
+# Reading disp.out file
+#------------------------------------------------------------------------------
+function readDisp( handle_in::T1, atoms_nb::Vector{T2}, nb_step::T3 ) where { T1 <: IO, T2 <: Int, T3 <: Int }
+    # Argument
+    # - handle_in: IO of the input file
+    # - atoms_nb: number of atoms for each type
+    # - atoms_mass: mass of each type of atoms
+    # Output
+    # - disp: tensor with atom distances between steps (3, nb_atoms, nb_step)
+
+    # Compute total number of atoms
+    nb_atoms = sum( atoms_nb )
+
+    # Initialize tensor for output
+    disp = zeros( 3, nb_atoms, nb_step )
+
+    # Skipping first lines that contains no data
+    skipLines( handle_in, nb_atoms+1 )
+
+    # Loop over steps
+    for step=1:nb_step
+        # Loop over atols
+        for atom=1:nb_atoms
+            # read line and parse with " "
+            keys = split( readline( handle_in ) )
+
+            # Loop over dimensions
+            for i=1:3
+                # Parse string to float, rouding up to 3 digits (noise precision beyond)
+                disp[i, atom, step] = round( parse(Float16, keys[i] ), digits=3 )  # May need to convert to angstrom...
+            end
+        end
+    end
+
+    # Returns distances
+    return disp
+end
+function readDisp( file_path::T1, atoms_nb::Vector{T2} ) where { T1 <: AbstractString, T2 <: Int }
+    # Argument
+    # - file_path: path to the input file (str)
+    # - atoms_nb: number of atoms for each type
+    # - atoms_mass: mass of each type of atoms
+    # Output
+    # - disp: matrix with atom distances between steps (3, nb_atoms, nb_step)
+    # OR false, if the file does not exists
+
+    # Compute number of atoms
+    nb_atoms = sum( atoms_nb )
+
+    # Checking that the file exists and getting number of lines
+    # - Remove first line (comment)
+    # - Remove nb_atoms first lines which are just atom type number
+    nb_lines = utils.getNbLines( file_path ) - 1 - nb_atoms
+    # If file does not exists, return false
+    if ! isfile( file_path )
+        return false
+    end
+
+    # Check that the format is right
+    if nb_lines%nb_atoms != 0
+        # If format is wrong returns false
+        return false
+    end
+
+    # Compute number of steps
+    nb_step = Int(nb_lines/nb_atoms)
+
+    # Opening file
+    handle_in = open( file_path )
+
+    # Reading data
+    disp = readDisp( handle_in, atoms_nb, nb_step )
+
+    # Closing file
+    close( handle_in )
+
+    # Returns data
+    return disp
+end
+#------------------------------------------------------------------------------
+
 end

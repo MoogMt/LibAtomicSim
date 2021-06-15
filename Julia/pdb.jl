@@ -896,7 +896,7 @@ function writeATOM( handle_out::T1, atom_index::T2, atom_name::T3, atom_position
     residue_insertion_code::T22=" ",
     occupancy::T23=0,
     tempfac::T24=0,
-    charge::T25=0 ) where { T1 <: IO, T2 <: Int, T3 <: AbstractString, T4 <: Int, T5 <: Int, T26 <: Int, T6 <: Int, T7 <: Int,
+    charge::T25=0 ) where { T1 <: IO, T2 <: Int, T3 <: AbstractString, T4 <: Real, T5 <: Int, T26 <: Int, T6 <: Int, T7 <: Int,
     T8 <: Int, T9 <: Int, T10 <: Int, T11 <: Int, T12 <: Int, T13 <: Int, T14 <: Int, T15 <: Int, T16 <: Int, T17 <: Int,
     T18 <: AbstractString, T19 <: AbstractString, T20 <: AbstractString, T21 <: Int, T22 <: AbstractString, T23 <: Real,
     T24 <: Real, T25 <: Real }
@@ -934,49 +934,52 @@ function writeATOM( handle_out::T1, atom_index::T2, atom_name::T3, atom_position
     atom_line = string("ATOM")
 
     # Adds the index of atom
-    atom_line = utils.addJustifyRight( max_col_atom_index, string(atom_index), atom_line )
+    atom_line = utils.addJustifyRight( max_col_atom_index, atom_line, string(atom_index) )
 
     # Adds the name of atom
-    atom_line = utils.addJustifyRight( max_col_atom_name, atom_name, atom_line )
+    atom_line = utils.addJustifyRight( max_col_atom_name, atom_line, atom_name )
 
     # Alternative location symbol
-    atom_line = utils.addJustifyRight( max_col_alt_loc, alt_location, atom_line )
+    atom_line = utils.addJustifyRight( max_col_alt_loc,  atom_line, alt_location)
 
     # Adds the name of the residue (for protein)
-    atom_line = utils.addJustifyRight( max_col_res_name, residue_name, atom_line )
+    atom_line = utils.addJustifyRight( max_col_res_name, atom_line, residue_name  )
 
     # Adds the name of the chain/molecule
-    atom_line = utils.addJustifyRight( max_col_mol_name, molecule_name, atom_line )
+    atom_line = utils.addJustifyRight( max_col_mol_name, atom_line, molecule_name )
 
     # Adds the index of the molecule
-    atom_line = utils.addJustifyRight( max_col_mol_index, string( molecule_index ), atom_line )
+    atom_line = utils.addJustifyRight( max_col_mol_index,  atom_line, string( molecule_index ) )
 
     # Adds the insertion code of the residue
-    atom_line = utils.addJustifyRight( max_col_ins_res_code, residue_insertion_code, atom_line )
+    atom_line = utils.addJustifyRight( max_col_ins_res_code, atom_line, residue_insertion_code )
 
     # Adds the position x
-    atom_line = utils.addJustifyRight( max_col_x, string( atom_positions[1] ), atom_line )
+    atom_line = utils.addJustifyRight( max_col_x, atom_line, string( round(atom_positions[1], digits=3 ) ) )
 
     # Adds the position y
-    atom_line = utils.addJustifyRight( max_col_y, string( atom_positions[2] ), atom_line )
+    atom_line = utils.addJustifyRight( max_col_y, atom_line, string( round(atom_positions[2], digits=3 ) ) )
 
     # Adds the position z
-    atom_line = utils.addJustifyRight( max_col_z, string( atom_positions[3] ), atom_line )
+    atom_line = utils.addJustifyRight( max_col_z, atom_line, string( round(atom_positions[3], digits=3 ) ) )
 
     # Adds the occupancy
-    atom_line = utils.addJustifyRight( max_col_occup, string( occupancy ), atom_line )
+    atom_line = utils.addJustifyRight( max_col_occup, atom_line, string( occupancy ) )
 
     # Adds the temperature factor
-    atom_line = utils.addJustifyRight( max_col_temp_fac, string( tempfac ), atom_line )
+    atom_line = utils.addJustifyRight( max_col_temp_fac, atom_line, string( tempfac ) )
 
     # Adds the name of the atom, again
-    atom_line = utils.addJustifyRight( max_col_atom_name2, atom_name, atom_line )
+    atom_line = utils.addJustifyRight( max_col_atom_name2, atom_line, atom_name )
 
     # Adds the charge
-    atom_line = utils.addJustifyRight( max_col_atom_charge, string( charge ), atom_line )
+    atom_line = utils.addJustifyRight( max_col_atom_charge, atom_line, string( charge ) )
 
     # Adds the end line to the string
-    atom_line = string( atom_line, "\n")
+    atom_line = string( atom_line, "\n" )
+
+    # Actually Writting line:
+    Base.write( handle_out, atom_line )
 
     # If something went wrong, returns false
     if atom_line == false
@@ -1016,7 +1019,7 @@ function writePdb( file_path::T1, atoms::T2, cell::T3 ) where { T1 <: AbstractSt
     # Loop over atoms
     for atom=1:nb_atoms
         # Writting atom information to the file
-        if ! writeATOM( handle_out, atoms.index[ atom ], atoms.name[ atom ], atoms.positions[ :, atom ] )
+        if ! writeATOM( handle_out, atoms.index[ atom ], atoms.names[ atom ], atoms.positions[ :, atom ] )
             # If something went wrong, returns false and sends a message
             return false
         end
