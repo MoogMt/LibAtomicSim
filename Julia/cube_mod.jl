@@ -612,185 +612,125 @@ function getClosestIndex( position::Vector{T1}, volume::T2 ) where { T1 <: Real,
     # Returns the index
     return index
 end
-# Compute shift in voxels between origin of the voxel and position grids
-function computeDisplacementOrigin( volume::T1 , cell::T2 ) where { T1 <: Volume, T2 <: cell_mod.Cell_param }
-    # Argument
-    # - volume: Volume containing all data
-    # - cell: Cell_param with information about the cell
-    # Output
-    # - index: displacement in number of voxels of the origin
-
-    # Initialize output vector
-    index = zeros(Int, 3 )
-
-    # Loop over dimension
-    for i=1:3
-        # Compute index in real
-        index[i] = round(Int, volume.origin[i]/cell.length[i]*volume.nb_vox[i] )
-    end
-
-    # Returns the index of the vector
-    return index
-end
-# Compute shift in voxels between origin of the voxel and position grids
-function getClosestIndex( position::Vector{T1}, volume::T2 , cell::T3, origin_index::Vector{T4} ) where { T1 <: Real, T2 <: Volume, T3 <: cell_mod.Cell_param , T4 <: Int }
-    # Argument
-    # - position: position of atom to get into voxels
-    # - volume: structure containing all data
-    # - origin_index: shift of the voxel grid compared to position grid
-    # Output
-    # - index: position in voxel from the position in the cell
-
-    # Trying to guess the closest grid point to the center
-    index = zeros(Int, 3 )
-
-    # Loop over dimensions
-    for i=1:3
-        # Compute original index
-        index[i] = round(Int, position[i]/cell.length[i]*volume.nb_vox[i]) - origin_index[i]
-
-        # Apply Upper PBC
-        if index[i] > volume.nb_vox[i]
-            index[i] = index[i] - volume.nb_vox[i]
-        end
-
-        # Apply lower PBC
-        if index[i] < 1
-            index[i] = volume.nb_vox[i]+index[i]
-        end
-    end
-
-    # Return position in the voxel grid
-    return index
-end
-# Get voxel point in the middle of two positions
-function dataInTheMiddleWME( atoms::T1, cell::T2 , atom1::T3, atom2::T4, volume::T5 ) where { T1 <: atom_mod.AtomList, T2 <: cell_mod.Cell_param, T3 <: Int, T4 <: Int, T5 <: Volume }
+function lineBetweenAtoms( atoms::T1, cell_params::T2, volume::T3, nb_points::T4, index_atom1::T5, index_atom2::T6 ) where { T1 <: atom_mod.AtomList, T2 <: cell_mod.Cell_param, T3 <: cube_mod.Volume, T4 <: Int, T5 <: Int, T6 <: Int }
     # Arguments
-    # - atoms: AtomList containing all atomic information, including names, index and positions
-    # - cell: Cell_param with all cell information
-    # - atom1: index of first atom
-    # - atom2: index of second atom
-    # - volume: structure containing all informations
+    # - atoms: AtomList (from atom_mod) containing atomic positions, index and names
+    # - cell_params: Cell_param (from cell_mod) containing cell parameters
+    # - volume: Volume (from cube_mod) containing all ELF/Density information
+    # - nb_points: number of points to take in the line between the atoms
+    # - index_atom1, index_atom2: indexes of the target atoms
     # Output
-    # - value of the volume at the center of atom 1 and atom 2
+    # - distFrom1: distance from first point
+    # - data: data on the line
 
-    # Copies positions of atom 1 and 2
-    position1 = atoms.positions[ atom1,:]
-    position2 = atoms.positions[ atom2,:]
-
-    # Initialize data for positions between 1 and 2
-    center = zeros(Real, 3 )
-
-    # Moving 2 to closest image to 1 (can be out of the box)
-    # - Loop over dimensions
-    for i=1:3
-        # - Compute differences in position between 1 and 2
-        di = position1[i] - position2[i]
-
-        # - Apply Upper PBC
-        if di > cell.length[i]*0.5
-            position2[i] = position2[i] + cell.length[i]
-        end
-
-        #  - Apply Lower PBC
-        if di < -cell.length[i]*0.5
-            position2[i] = position2[i] - cell.length[i]
-        end
-
-        # - Compute the position of the center (can be out of the box)
-        center[i] = 0.5*(position1[i]+position2[i])
-
-        # - Wrap center positions
-        center[i] = cell_mod.wrap( center[i], cell.length[i] )
-    end
-
-    # Get indexes of the voxel of the center between 1 and 2
-    index = getClosestIndex( center , data , cell )
-
-    # Return value at the center
-    return volume.matrix[ index[1], index[2], index[3] ]
-end
-# Get all values in the line between deux atomic positions
-function traceLine( atom1::T1, atom2::T2, nb_points::T3, volume::T4, atoms::T5 , cell::T6 ) where { T1 <: Int, T2 <: Int, T3 <: Int, T4 <: Volume , T5 <: atom_mod.AtomList, T6 <: cell_mod.Cell_param }
-    # Argument
-    # - atom1, atom2: index of atoms 1 and 2
-    # - nb_points: number of points to take in the line between 1 and 2
-    # - volume: Volume structure containing volumic data
-    # - atoms: AtomList containing atomic informations
-    # - cell: Cell_Param containing all cell information
-    # Output
-    # - distances: distance from point 1
-    # - data: data along the line from 1 to 2
-
-    # Copy positions
-    position1 = atoms.positions[atom1,:]
-    position2 = atoms.positions[atom2,:]
-
-    # Initialize positions from 1
-    dp = zeros(Real, 3 )
+    # Initialize vector for 1 to 2 displacement
+    delta_vector_from_1to2 = zeros(Real, 3)
 
     # Loop over dimensions
     for i=1:3
-        # Wrapping positions
-        position1[i] = cell_mod.wrap( position1[i], cell.length[i] )
-        position2[i] = cell_mod.wrap( position2[i], cell.length[i] )
+        # Compute vector from 1 to 2 s
+        delta_vector_from_1to2[i] = atoms.positions[i, index_atom2] - atoms.positions[i, index_atom1]
 
-        # Moving 2 to closest image to 1 (can be out of the box)
-        di = position1[i] - position2[i]
-
-        # Apply Upper PBC
-        if di > cell.length[i]*0.5
-            position2[i] = position2[i] + cell.length[i]
+        # Apply PBC
+        if delta_vector_from_1to2[i] > cell_params.length[i]*0.5
+            delta_vector_from_1to2[i] = delta_vector_from_1to2[i] - cell_params.length[i]
         end
-
-        # Apply lower PBC
-        if di < -cell.length[i]*0.5
-            position2[i] = position2[i] - cell.length[i]
+        if delta_vector_from_1to2[i] < - cell_params.length[i]*0.5
+            delta_vector_from_1to2[i] = delta_vector_from_1to2[i] + cell_params.length[i]
         end
-
-        # Get positions of point i
-        dp[i] = ( position2[i] - position1[i] )/nb_points
     end
 
-    dp_value = cell_mod.distance( atoms, cell, atom1, atom2 )/nb_points
+    # Compute displacement vector to go from 1 to 2
+    delta_vector_from_1to2 = delta_vector_from_1to2 / nb_points
 
-    # Displacement due to origin of the volume
-    origin=computeDisplacementOrigin( volume , cell )
-
-    # Output Tables
-    distances = zeros(Real, nb_points )
-    data      = zeros(Real, nb_points )
-
-    # Move cursor along the line and get data at each positions
-    # - Start at position 1
-    curseur=position1
-
-    # - Loop over points
+    # Initialize vector for output data
+    data = zeros(Real, nb_points)
+    # Loop over points
     for i=1:nb_points
-        # Get the index of the current point
-        indexs = getClosestIndex( curseur, volume, cell, origin )
+        # Get the position, wrapping point if need be
+        positions_line = cell_mod.wrap( atoms.positions[:, index_atom1] + i*delta_vector_from_1to2 - volume.origin, cell_params )
 
-        # Get data at current point
+        # Get the indexs of the closests grid point for target position
+        indexs = getClosestIndex( positions_line, volume )
+
+        # Get the data at the desired point
         data[i] = volume.matrix[ indexs[1], indexs[2], indexs[3] ]
-
-        # Move cursor
-        for j=1:3
-            curseur[j] += dp[j]
-        end
-
-        # Compute the distance from 1
-        if i > 1
-            # Loop over dimensions
-            for j=1:3
-                # Add distance along all point
-                distances[i] = distances[i-1] + dp_value
-            end
-        end
     end
 
-    # Return distances from 1 to 2 and associated data along the line
-    return distances, data
+    return data
 end
+#-----------------------------------------------------------------------------
+
+# # Compute shift in voxels between origin of the voxel and position grids
+# function computeDisplacementOrigin( volume::T1 , cell::T2 ) where { T1 <: Volume, T2 <: cell_mod.Cell_param }
+#     # Argument
+#     # - volume: Volume containing all data
+#     # - cell: Cell_param with information about the cell
+#     # Output
+#     # - index: displacement in number of voxels of the origin
+#
+#     # Initialize output vector
+#     index = zeros(Int, 3 )
+#
+#     # Loop over dimension
+#     for i=1:3
+#         # Compute index in real
+#         index[i] = round(Int, volume.origin[i]/cell.length[i]*volume.nb_vox[i] )
+#     end
+#
+#     # Returns the index of the vector
+#     return index
+# end
+# Get voxel point in the middle of two positions
+# function dataInTheMiddleWME( atoms::T1, cell::T2 , atom1::T3, atom2::T4, volume::T5 ) where { T1 <: atom_mod.AtomList, T2 <: cell_mod.Cell_param, T3 <: Int, T4 <: Int, T5 <: Volume }
+#     # Arguments
+#     # - atoms: AtomList containing all atomic information, including names, index and positions
+#     # - cell: Cell_param with all cell information
+#     # - atom1: index of first atom
+#     # - atom2: index of second atom
+#     # - volume: structure containing all informations
+#     # Output
+#     # - value of the volume at the center of atom 1 and atom 2
+#
+#     # Copies positions of atom 1 and 2
+#     position1 = atoms.positions[ :, atom1 ]
+#     position2 = atoms.positions[ :, atom2 ]
+#
+#     # Initialize data for positions between 1 and 2
+#     center = zeros(Real, 3 )
+#
+#     # Moving 2 to closest image to 1 (can be out of the box)
+#     # - Loop over dimensions
+#     for i=1:3
+#         # - Compute differences in position between 1 and 2
+#         di = position1[i] - position2[i]
+#
+#         # - Apply Upper PBC
+#         if di > cell.length[i]*0.5
+#             position2[i] = position2[i] + cell.length[i]
+#         end
+#
+#         #  - Apply Lower PBC
+#         if di < -cell.length[i]*0.5
+#             position2[i] = position2[i] - cell.length[i]
+#         end
+#
+#         # - Compute the position of the center (can be out of the box)
+#         center[i] = 0.5*(position1[i]+position2[i])
+#
+#         # - Wrap center positions
+#         center[i] = cell_mod.wrap( center[i], cell.length[i] )
+#     end
+#
+#     # Get origin index
+#     origin_index = computeDisplacementOrigin( volume , cell )
+#
+#     # Get indexes of the voxel of the center between 1 and 2
+#     index = getClosestIndex( center, volume, cell, origin_index )
+#
+#     # Return value at the center
+#     return volume.matrix[ index[1], index[2], index[3] ]
+# end
 #-----------------------------------------------------------------------------
 
 end
