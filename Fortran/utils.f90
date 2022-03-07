@@ -11,7 +11,7 @@ module utils
 ! General variables
 !---------------------------------------------------------------------
 ! number of elements
-integer, parameter :: max_z = 120  
+integer, parameter :: max_z = 120
 ! Super String containing all species names
 character(len=max_z*2), parameter :: all_names = "H HeLiBeB C N O F NeNaMgAlSiP S ClArK CaScTiV CrMnFeCoNiCuZnGaGeAsSeBrKr" &
 												// "RbSrY ZrNbMoTcRuRhPdAgCdInSnSbTeI XeLaCePrNdPmSmEuGdTbDyHoErTmYb"       &
@@ -30,7 +30,7 @@ subroutine checkExistence( file_path, file_path_length, found )
 	!----------------------------------------
 	! Argument
 	integer, intent(in) :: file_path_length                  ! length of the string for the path of input file
-	character(len=file_path_length), intent(in) :: file_path ! path to the input file 
+	character(len=file_path_length), intent(in) :: file_path ! path to the input file
 	! Output
 	logical, intent(out) :: found  ! Whether the file was found or not
 	!----------------------------------------
@@ -45,7 +45,7 @@ subroutine checkExistence( file_path, file_path_length, found )
 	! Else returns true
 	else
 		found=.true.
-	endif 
+	endif
 
 	! Ends subroutine
 	return
@@ -74,7 +74,7 @@ subroutine getNumberLine( file_path, file_length, handle_nb, number_line )
 
 	! Loop over all lines of file
 	do while ( error_status == 0 )
-		! Reading line 
+		! Reading line
 		read( handle_nb, *, iostat=error_status )
 
 		! Increments counter
@@ -82,14 +82,14 @@ subroutine getNumberLine( file_path, file_length, handle_nb, number_line )
 	enddo
 
 	! Decrementing because of first step
-	number_line = number_line - 1 
+	number_line = number_line - 1
 
 	! Close input file
 	close( handle_nb )
 
 	! End subroutine
 	return
-end subroutine
+end subroutine getNumberLine
 !---------------------------------------------------------------------
 
 ! Transform name and atomic number of atoms
@@ -102,7 +102,7 @@ subroutine z2Names( z, atom_name )
 	!----------------------------------------
 	! Argument
 	integer, intent(in) :: z                   ! Atomic number
-	! Output 
+	! Output
 	character(len=2), intent(out) :: atom_name ! name of the target atom
 	!----------------------------------------
 
@@ -126,7 +126,7 @@ subroutine names2Z( atom_name, z )
 	!----------------------------------------
 	! Argument
 	character(len=2), intent(in) :: atom_name ! Name of the atom
-	! Output 
+	! Output
 	integer, intent(out) :: z                 ! Atomic number
 	! Local argument
 	integer :: z_prime                        ! Dummy variable for loop
@@ -134,7 +134,7 @@ subroutine names2Z( atom_name, z )
 
 	! Loop over atomic numbers
 	do z_prime=1,max_z
-		! IF the atom name matches the one of the databse, returns 
+		! IF the atom name matches the one of the databse, returns
 		! the Z of the loop
 		if ( atom_name == all_names( 2*(z_prime-1)+1 : 2*(z_prime-1)+2 ) ) then
 			z = z_prime

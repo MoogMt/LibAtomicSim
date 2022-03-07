@@ -133,7 +133,7 @@ subroutine readtrajxyz( file_path, str_len, handle_nb, n_steps, n_atoms, positio
 
   ! Ends subroutine
   return
-end subroutine readxyztraj
+end subroutine readtrajxyz
 !--------------------------------------------------------------
 
 end module xyz
