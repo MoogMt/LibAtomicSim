@@ -1,457 +1,196 @@
+#include <assert.h> 
+#include <iostream>
+#include <cstdlib>
+#include <cmath>
+#include <vector>
+#include <string>
+
 #include "utils.h"
 
-//======
-// Numbers
-//===========================================================
-int min( int int1, int int2 )
-{
-  if (int1 < int2) return int1;
-  else return int2;
-}
-//-------------------------------------------
-double min ( double real1, double real2 )
-{
-  if ( real1 < real2 ) return real1;
-  else return real2;
-}
-//-------------------------------------------
-double min(std::vector<double> vector)
-{
-  double min=vector[0];
-  for( int i=0 ; i < vector.size() ; i++ )
-    {
-      if( min > vector[i] )
-	{
-	  min=vector[i];
-	}
-    }
-  return min;
-}
-//-------------------------------------------
-int max( int int1, int int2 )
-{
-  if (int1 > int2) return int1;
-  else return int2;
-}
-//-------------------------------------------
-double max ( double real1, double real2 )
-{
-  if ( real1 > real2 ) return real1;
-  else return real2;
-}
-//-------------------------------------------
-double max(std::vector<double> vector)
-{
-  double max=vector[0];
-  for( int i=0 ; i < vector.size() ; i++ )
-    {
-      if( max < vector[i] )
-	{
-	  max=vector[i];
-	}
-    }
-  return max;
-}
-//---------------------------------------------------------
-// Rounding
-//---------------------------------------------------------
-double roundLow( double number )
-{
-  double number2 = (int)(number);
-  if ( number2 > 0 )
-    {
-      if ( number2 - number < 0 ) return number2+1;
-      else return number2;
-    }
-  else
-    {
-      if ( number2 - number < 0 ) return number2+1;
-      else return number2;
-    }
-}
-//--------------------------------------------------
-double roundUp( double number )
-{
-  double number2 = (int)(number);
-  if ( number2 - number > 0 ) return number2;
-  else return number2-1;
-}
-//==========================================================
+using namespace std;
 
-//================
-// SIGMOID PLUMED
-//==========================================================
-double sigmoidPlumed( double r, double r0, int n, int m )
+//
+//-------------------------------------------------------
+std::string* initWordVector( int number )
 {
-  return (1-pow((r/r0),n)+0.0000000001)/(1-pow(r/r0,m)+0.0000000001);
-}
-//==========================================================
-
-//=========
-// AVERAGE
-//==========================================================
-double average(std::vector<int> data)
-{
-  double average=0;
-  for( int i=0; i<data.size(); i++)   
-    {
-      average += (double)(data[i]);
-    }
-  return average/((double)(data.size())); // Returning the average
-}
-//==========================================================
-
-//======
-// SUMS
-//==========================================================
-int sumFromO(int integer)
-{
-  int sum=0;
-  for ( int i=0 ; i <= integer ; i++ )
-    {
-      sum += i;
-    }
-  return sum;
+  return (std::string*) malloc( number*sizeof( std::string ) );
 }
 //-------------------------------------------------------
-int sumBtw(int int1, int int2)
-{
-  int sum=0;
-  for ( int i=min(int1,int2) ; i < max(int1,int2) ; i++ )
-    {
-      sum += i;
-    }
-  return sum;
-}
-//-------------------------------------------------------
-int computeSep(int atom_index, int nb_atoms)
-{
-  return atom_index*nb_atoms-sumFromO(atom_index);
-}
-//==========================================================
 
-//========
-// VECTORS
-//==============================================================================
-double cumSum( const std::vector<double> vector )
+// Error message
+//-------------------------------------------------------
+void indexOutOfBondError( int index, int max_index )
 {
-  double sum = 0;
-  for ( int i=0; i < vector.size() ; i++ )
-    {
-      sum += vector[i];
-    }
-  return sum;
-}
-//------------------------------------------------------------------
-double average( const std::vector<double> vector )
-{
-  double avg = cumSum( vector )/vector.size();
-}
-//------------------------------------------------------------------
-double blockAverage( const std::vector<double> vector, const int block_size )
-{
-  double avg=0; 
-  int j=0; 
-  while( (j+1)*block_size <= vector.size() )
-    {
-      double local_avg = 0;
-      for( int i=0 ; i < block_size ; i++ )
-	{
-	  local_avg += vector[ j*block_size + i ];
-	}
-      local_avg /= (double)(block_size);
-      avg += local_avg;
-      j++;
-    }
-  return avg/(double)(j);
- }
-//------------------------------------------------------------------
-void switchV( std::vector<int> & vector , const int index1 , const int index2 )
-{
-  double stock = vector[index1];
-  vector[ index1 ] = vector[ index2 ];
-  vector[ index2 ] = stock; 
-  return;
+    std::cout << "Error!" << std::endl;
+    std::cout << "Index out of bond: " << index << std::endl;
+    std::cout << "Max index: " << max_index << std::endl;
 }
 //-------------------------------------------------------
-void switchV( std::vector<double> & vector , const int index1 , const int index2 )
-{
-  double stock = vector[index1];
-  vector[ index1 ] = vector[ index2 ];
-  vector[ index2 ] = stock; 
-  return;
-}
-//-------------------------------------------------------
-std::vector<int> initVector( int value )
-{
-  std::vector<int> vector;
-  vector.push_back( value );
-  return vector;
-}
-//-------------------------------------------------------
-std::vector<double> initVector( double value )
-{
-  std::vector<double> vector;
-  vector.push_back( value );
-  return vector;
-}
-//-------------------------------------------------------
-std::vector<std::string> initVector( std::string value )
-{
-  std::vector<std::string> vector;
-  vector.push_back( value );
-  return vector;
-}
-//-------------------------------------------------------
-std::vector<int> makeVec( int init, int final )
-{
-  std::vector<int> vector;
-  for ( int i = init ; i <= final ; i++ )
-    {
-      vector.push_back(i);
-    }
-  return vector;
-}
-//-----------------------------------------------------------------------
-std::vector<double> sortVector(std::vector<double> to_sort, bool increasing)
-{
-  if ( increasing )
-    {
-      return sortVectorIncreasing(to_sort);
-    }
-  else
-    {
-      return sortVectorDecreasing(to_sort);
-    }
-}
-//-----------------------------------------------------------------------
-std::vector<double> sortVectorIncreasing(std::vector<double> to_sort)
-{
-  for ( int i=0 ; i < to_sort.size()-1 ; i++ )
-    {
-      for ( int j=i ; j < to_sort.size() ; j++ )
-	{
-	  if ( to_sort[i] > to_sort[j] )
-	    {
-	      double stock = to_sort[i];
-	      to_sort[i] = to_sort[j];
-	      to_sort[j] = stock;
-	    }
-	}
-    }
-  return to_sort;
-}
-//-----------------------------------------------------------------------
-std::vector<double> sortVectorDecreasing( std::vector<double> to_sort )
-{
-  for ( int i=0 ; i < to_sort.size()-1 ; i++ )
-    {
-      for ( int j=i ; j < to_sort.size() ; j++ )
-	{
-	  if ( to_sort[i] < to_sort[j] )
-	    {
-	      double stock = to_sort[i];
-	      to_sort[i] = to_sort[j];
-	      to_sort[j] = stock;
-	    }
-	}
-    }
-  return to_sort;
-}
-//-----------------------------------------------------------------------
-void appendVector( std::vector<double> & vec_to , std::vector<double> vec_from )
-{
-  for ( int i=0 ; i < vec_from.size() ; i++ )
-    {
-      vec_to.push_back( vec_from[i] );
-    }
-  return;
-}
-//-----------------------------------------------------------------------
-std::vector<double> difference( std::vector<double> vector1 , std::vector<double> vector2 )
-{
-  if ( vector1.size() == vector2.size() )
-    {
-      for ( int i=0 ; i < vector1.size() ; i++ )
-	{
-	  vector1[i] -= vector2[i];
-	}
-      return vector1;
-    }
-  else vector1.clear();
-}
-//-----------------------------------------------------------------------
-std::vector<double> distance( std::vector<double> vector1 , double scalar )
-{
-  for ( int i=0 ; i < vector1.size() ; i++ )
-    {
-      vector1[i] -= scalar; 
-    }
-  return vector1;
-}
-//-----------------------------------------------------------------------
-std::vector<double> square( std::vector<double> vector1 )
-{
-  for ( int i=0 ; i < vector1.size() ; i++ )
-    {
-      vector1[i] *= vector1[i];
-    }
-  return vector1;
-}
-//-----------------------------------------------------------------------
-std::vector<double> squaroot( std::vector<double> vector1 )
-{
-  for ( int i=0; i < vector1.size() ; i++ )
-    {
-      vector1[i] = sqrt( vector1[i] );
-    }
-  return vector1;
-}
-//-----------------------------------------------------------------------
-std::vector<double> addVector( std::vector<double> vector1 , std::vector<double> vector2 )
-{
-  if( vector1.size() == vector2.size() )
-    {
-      for( int i=0 ; i < vector1.size() ; i++ )
-	{
-	  vector1[i] += vector2[i];
-	}
-      return vector1;
-    }
-  else vector1.clear();
-}
-//-----------------------------------------------------------------------
-double scalarProduct( std::vector<double> vector1 , std::vector<double> vector2 )
-{
-  double scalar = 0;
-  if ( vector1.size() == vector2.size() )
-    {
-      for ( int i=0 ; i < vector1.size() ; i++ )
-	{
-	  scalar += vector1[i]*vector2[i];
-	}
-      return scalar;
-    }
-  else return 0;
-}
-//-----------------------------------------------------------------------
-std::vector<double> crossProduct( std::vector<double> vector1 , std::vector<double> vector2 )
-{
-  std::vector<double> vector;
-  vector.push_back( vector1[1]*vector2[2] - vector2[1]*vector1[2] );
-  vector.push_back( vector1[2]*vector2[0] - vector2[2]*vector1[0] );
-  vector.push_back( vector1[0]*vector2[1] - vector2[0]*vector1[1] );
-  return vector;
-}
-//-----------------------------------------------------------------------
-double norm( std::vector<double> vector )
-{
-  return sqrt( scalarProduct( vector , vector ) );
-}
-//-----------------------------------------------------------------------
-double getDistanceFromPlan( std::vector<double> vector1, std::vector<double> vector2 , std::vector<double> point_outside , std::vector<double> point_plan )
-{
-  std::vector<double> normal = crossProduct( vector1, vector2 );
-  std::vector<double> vector = difference( point_plan , point_outside  );
-  double value = scalarProduct( normal , vector )/ norm( normal );
-  return sqrt(value*value);
-}
-//-----------------------------------------------------------------------
-//-----------------------------------------------------------------------
-bool unique( std::vector<std::string> names )
-{
-  for ( int i=0 ; i < names.size()-1 ; i++ )
-    {
-      for ( int j=i+1 ;j < names.size() ; j++ )
-	{
-	  if ( names[i] == names[j] ) return false;
-	}
-    }
-  return true;
-}
-//-----------------------------------------------------------------------
-void normalize( std::vector<double> & vector )
-{
-  double sum=0;
-  for ( int i=0 ; i < vector.size() ; i++ )
-    {
-      sum += vector[i];
-    }
-  for( int i=0 ; i < vector.size() ; i++ )
-    {
-      vector[i] = vector[i]/sum;
-    }
-  return;
-}
-//======================================================================
 
-//=============
-// CONVERSION
-//=================================================================
-double it2real (  std::istream_iterator<std::string> iterator )
+// Matrix functions
+//-------------------------------------------------------
+// Basics
+int computeIndex( int line, int col, int line_dim )
 {
-  return atof(std::string(*iterator).c_str());
+  return line*line_dim + col;
 }
-//=================================================================
+// Init Matrix
+double* zeroMatrix( int size_x, int size_y )
+{
+  int ndim=size_x*size_y;
+  double* matrix = (double*) malloc( ndim*sizeof(double) );
+  for( int i=0; i<ndim; i++ )
+  {
+    matrix[i] = 0;
+  }
 
-//====================================
-// COMPUTING AUTOCORRELATION FUNCTION
-//=================================================================
-void autocorrelation( std::vector<double> & in , double frac )
-{
-  int N = in.size();
-  std::vector<double> out;  out.assign( N, 0.);
-  if ( frac > 1 || frac < 0 )
-    {
-      std::cout << "frac doit etre compris entre 0 et 1..." << std::endl;
-      return;
-    }
-  for ( int j=0 ; j < N*frac ; j++ )
-    {
-      for ( int i=0 ; i < N-j ; i++ )
-	{
-	  out[j] += in[i]*in[i+j];
-	}
-      out[j] = out[j]/((double)(in.size()-j));
-    }
-  // Normalize
-  for ( int i=0 ; i < N ; i++ )
-    {
-      in[i] = out[i];
-    }
-  out.clear();
-  return;
+  return matrix;
 }
-//=================================================================
+double* zeroMatrix( int size )
+{
+  return zeroMatrix(size,size);
+}
+double* identityMatrix( int size )
+{
+  // Initialize matrix
+  double* matrix = (double*) malloc( size*size*sizeof(double) );
 
-//=======
-// ARRAY
-//======================================================
-void zeros( int* vec , int nb_atoms )
-{
-  for ( int i=0 ; i < nb_atoms ; i++ )
+  for( int i=0; i<size; i++ )
+  {
+    int offset=size*i;
+    for( int j=0; j<size; j++ )
     {
-      vec[i] = 0;
+      if(i==j)
+      {
+        matrix[offset+j]=1;
+      }
+      else
+      {
+        matrix[offset+j]=0;
+      }
     }
+  }
+  return matrix;
+}
+// Linear Operations
+void multiplyby( double* matrix, double scalar, int size_x, int size_y )
+{
+  int size_matrix = size_x*size_y;
+  for( int element=0; element < size_matrix; element++ )
+  {
+    matrix[ element ] = scalar*matrix[ element ];
+  }
   return;
 }
-//------------------------------------------------
-int sum( int* vector , int nb_atoms )
+void multiplyby( double* matrix, double scalar, int size )
 {
-  double sum=0;
-  for ( int i=0 ; i < nb_atoms ; i++ )
-    {
-      sum += vector[i];
-    }
-  return sum;
+  return multiplyby( matrix, scalar, size, size);
 }
-//------------------------------------------------
-void copy( int* vec_from , int* vec_to , int size )
+double* multiplyMatrix( double* matrix1, double* matrix2, int size1_x, int size_1y_2x, int size2_y)
 {
-  for ( int i=0 ; i < size ; i++ )
+  double* product_matrix = zeroMatrix( size1_x, size2_y );
+
+  for( int i=0; i<size1_x; i++ )
+  {
+    for( int j=0; j<size2_y; j++ )
     {
-      vec_to[i] = vec_from[i];
+      for( int k=0; k<size_1y_2x; k++ )
+      {
+        product_matrix[ computeIndex(i,j,size1_x) ] += matrix1[ computeIndex(i,k,size1_x) ]*matrix2[ computeIndex(k,j,size_1y_2x) ];
+      }
     }
+  }
+
+  return product_matrix;
+}
+// Printing Matrix
+void printMatrix( double* matrix, int size_y, int size_x )
+{
+  for( int i=0; i<size_y; i++ )
+  {
+    int offset = size_x*i;
+    for ( int j=0; j<size_x; j++ )
+    {
+      std::cout << matrix[ offset + j ] << " ";      
+    }
+    std::cout << std::endl;
+  }
   return;
 }
-//======================================================
+void printMatrix( double* matrix, int size_matrix )
+{
+  return printMatrix(matrix,size_matrix,size_matrix);
+}
+//-------------------------------------------------------
+
+// Cell Matrix
+//-------------------------------------------------------
+double* initCellMatrix()
+{
+  return identityMatrix(3);
+}
+double* invertCellMatrix( double* matrix_to_invert )
+{
+
+  // Init inverse matrix
+  double* inverse_matrix = (double*) malloc( 9*sizeof(double) );
+
+  inverse_matrix[ computeIndex(0,0,3) ] = matrix_to_invert[ computeIndex(1,1,3) ]*matrix_to_invert[ computeIndex(2,2,3) ] \
+  - matrix_to_invert[ computeIndex(2,1,3) ]*matrix_to_invert[ computeIndex(1,2,3) ];
+  inverse_matrix[ computeIndex(1,0,3) ] = matrix_to_invert[ computeIndex(2,0,3) ]*matrix_to_invert[ computeIndex(1,0,3) ] \
+  - matrix_to_invert[ computeIndex(1,0,3) ]*matrix_to_invert[ computeIndex(2,2,3) ];
+  inverse_matrix[ computeIndex(2,0,3) ] = matrix_to_invert[ computeIndex(1,0,3) ]*matrix_to_invert[ computeIndex(2,1,3) ] \
+  - matrix_to_invert[ computeIndex(2,0,3) ]*matrix_to_invert[ computeIndex(1,1,3) ];
+  inverse_matrix[ computeIndex(0,1,3) ] = matrix_to_invert[ computeIndex(2,1,3) ]*matrix_to_invert[ computeIndex(0,2,3) ] \
+  - matrix_to_invert[ computeIndex(0,1,3) ]*matrix_to_invert[ computeIndex(2,2,3) ];
+  inverse_matrix[ computeIndex(1,1,3) ] = matrix_to_invert[ computeIndex(0,0,3) ]*matrix_to_invert[ computeIndex(2,2,3) ] \
+  - matrix_to_invert[ computeIndex(2,0,3) ]*matrix_to_invert[ computeIndex(0,2,3) ];
+  inverse_matrix[ computeIndex(2,1,3) ] = matrix_to_invert[ computeIndex(2,0,3) ]*matrix_to_invert[ computeIndex(0,1,3) ] \
+  - matrix_to_invert[ computeIndex(0,0,3) ]*matrix_to_invert[ computeIndex(2,1,3) ];
+  inverse_matrix[ computeIndex(0,2,3) ] = matrix_to_invert[ computeIndex(0,1,3) ]*matrix_to_invert[ computeIndex(1,2,3) ] \
+  - matrix_to_invert[ computeIndex(1,1,3) ]*matrix_to_invert[ computeIndex(0,2,3) ];
+  inverse_matrix[ computeIndex(1,2,3) ] = matrix_to_invert[ computeIndex(1,0,3) ]*matrix_to_invert[ computeIndex(0,2,3) ] \
+  - matrix_to_invert[ computeIndex(0,0,3) ]*matrix_to_invert[ computeIndex(1,2,3) ];
+  inverse_matrix[ computeIndex(2,2,3) ] = matrix_to_invert[ computeIndex(0,0,3) ]*matrix_to_invert[ computeIndex(1,1,3) ] \
+  - matrix_to_invert[ computeIndex(1,2,3) ]*matrix_to_invert[ computeIndex(2,1,3) ];
+
+  // Compute determinant
+  double d = matrix_to_invert[ computeIndex(0,0,3) ]*inverse_matrix[ computeIndex(0,0,3) ]  \
+  +   matrix_to_invert[ computeIndex(0,1,3) ]*inverse_matrix[ computeIndex(1,0,3) ]  \
+  +   matrix_to_invert[ computeIndex(0,2,3) ]*inverse_matrix[ computeIndex(2,0,3) ];
+
+  // Check that matrix is invertible (d!=0)
+  try{ 
+    // Precision is 10^-8
+    if( abs(d) > 0.000000000001 )
+    {
+      multiplyby( inverse_matrix, 1.0/d, 3  );
+      return inverse_matrix;
+    }
+    else
+    {
+      // Code of error is 0
+      throw 0;
+    }
+  }
+  // If not, throws error
+  catch( int error )
+  {
+    std::cout << "Can't inverse matrix, determinant is null!";
+    throw 0;
+  }
+}
+//-------------------------------------------------------
+
+// Geometry
+//-------------------------------------------------------
+double scalar( double* vector1, double* vector2, int ndim )
+{
+  double dist = 0;
+  for ( int i=0; i<ndim; i++ )
+  {
+    dist = vector1[i]*vector2[i];
+  }
+  return dist;
+}
+//-------------------------------------------------------
