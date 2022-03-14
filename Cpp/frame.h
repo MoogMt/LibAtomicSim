@@ -2,14 +2,6 @@
 #ifndef frame_h
 #define frame_h
 
-// Define namespace
-namespace atomic_cst
-{
-    // Maths constants
-    const double pi=3.1418;
-    const double tau=2*pi;
-}
-
 // Frame for a given structure
 class Frame 
 {

@@ -5,16 +5,23 @@
 #include <vector>
 #include <string>
 
+#include "complex_numbers.h"
+
 #include "utils.h"
 
 using namespace std;
 
-//
+// Strings
 //-------------------------------------------------------
 std::string* initWordVector( int number )
 {
   return (std::string*) malloc( number*sizeof( std::string ) );
 }
+/*
+std::string split( std::string str, std::string delim )
+{
+
+}*/
 //-------------------------------------------------------
 
 // Error message

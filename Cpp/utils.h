@@ -4,6 +4,14 @@
 
 using namespace std;
 
+// Define namespace
+namespace math_constants
+{
+    // Maths constants
+    const double pi=3.1418;
+    const double tau=2*pi;
+}
+
 //-------------------------------------------------------
 std::string* initWordVector( int number );
 //-------------------------------------------------------
