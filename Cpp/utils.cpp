@@ -144,6 +144,10 @@ Complex* transposeC( Complex* matrix_origin, int size )
   }
   return matrix_transpose;
 }
+Complex* adjoint( Complex* matrix, int size )
+{
+    return transpose( conj( matrix, size ), size );
+}
 // Printing Matrix
 void printMatrix( double* matrix, int size_x, int size_y )
 {
@@ -182,6 +186,10 @@ void printMatrix( Complex* matrix, int size_x, int size_y )
     std::cout << std::endl;
   }
   return;
+}
+void printMatrix( Complex* matrix, int size )
+{
+  return printMatrix( matrix, size, size);
 }
 //-------------------------------------------------------
 
