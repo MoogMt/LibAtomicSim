@@ -34,7 +34,7 @@ class Complex
     Complex mod( Complex complex );
 };
 // Operations on complex
-Complex sum( Complex complex1, Complex complex2 );
+Complex add( Complex complex1, Complex complex2 );
 Complex multiply( Complex complex1, Complex complex2 );
 Complex* conj( Complex* complex_vector, int size );
 //----------------------------------

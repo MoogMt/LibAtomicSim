@@ -8,7 +8,6 @@
 #include "complex_numbers.h"
 #include "utils.h"
 
-
 // Basics
 int computeIndex( int line, int col, int line_dim )
 {
@@ -68,7 +67,6 @@ void multiplyby( double* matrix, double scalar, int size )
 double* multiplyMatrix( double* matrix1, double* matrix2, int size1_x, int size_1y_2x, int size2_y)
 {
   double* product_matrix = zeroMatrix( size1_x, size2_y );
-
   for( int i=0; i<size1_x; i++ )
   {
     for( int j=0; j<size2_y; j++ )
@@ -79,7 +77,6 @@ double* multiplyMatrix( double* matrix1, double* matrix2, int size1_x, int size_
       }
     }
   }
-
   return product_matrix;
 }
 // Tranpose
@@ -117,6 +114,16 @@ void printMatrix( double* matrix, int size_matrix )
 
 // Complex
 //------------------------------------------------------------------------------------------
+// Init Matrix
+Complex* zeroVectorC( int size )
+{
+  Complex* vector = (Complex*) malloc( size*sizeof(Complex) );
+  for( int i=0; i<size; i++ )
+  {
+    vector[i] = Complex(0,0);
+  }
+  return vector;
+}
 Complex* zeroMatrixC( int size_x, int size_y )
 {
   int ndim=size_x*size_y;
@@ -140,6 +147,7 @@ Complex* eyeMatrixC( int size )
   }
   return matrix;
 }
+// Linear/Basic Operations
 Complex* transposeC( Complex* matrix_origin, int size )
 {
   Complex* matrix_transpose = zeroMatrixC( size );
@@ -156,6 +164,22 @@ Complex* adjoint( Complex* matrix, int size )
 {
     return transpose( conj( matrix, size ), size );
 }
+Complex* multiplyMatrix( Complex* matrix1, Complex* matrix2, int size1_x, int size_1y_2x, int size2_y)
+{
+  Complex* product_matrix = zeroMatrixC( size1_x, size2_y );
+  for( int i=0; i<size1_x; i++ )
+  {
+    for( int j=0; j<size2_y; j++ )
+    {
+      for( int k=0; k<size_1y_2x; k++ )
+      {
+        product_matrix[ computeIndex(i,j,size1_x) ] = add( product_matrix[ computeIndex(i,j,size1_x) ], multiply( matrix1[ computeIndex(i,k,size1_x) ],matrix2[ computeIndex(k,j,size_1y_2x) ] ) );
+      }
+    }
+  }
+  return product_matrix;
+}
+// Printing Matrix
 void printMatrixC( Complex* matrix, int size_x, int size_y )
 {
   for( int i=0; i<size_y; i++ )

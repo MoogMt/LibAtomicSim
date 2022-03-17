@@ -70,7 +70,7 @@ Complex Complex::mod( Complex complex )
   return sqrt( real*real + imaginary*imaginary );
 }
 // Basic Operations
-Complex sum( Complex complex1, Complex complex2 )
+Complex add( Complex complex1, Complex complex2 )
 {
   return Complex( complex1.re() + complex2.re(), complex1.im() + complex2.im() );
 }

@@ -5,7 +5,9 @@
 using namespace std;
 
 // Basics
+//---------------------------------------------------------------
 int computeIndex( int line, int col, int line_dim );
+//---------------------------------------------------------------
 
 // Real
 //---------------------------------------------------------------
@@ -28,6 +30,7 @@ void printMatrix( double* matrix, int size_matrix );
 // Complex
 //---------------------------------------------------------------
 // Init 
+Complex* zeroVector( int size );
 Complex* zeroMatrixC( int size_x, int size_y );
 Complex* zeroMatrixC( int size );
 Complex* eyeMatrixC( int size );
