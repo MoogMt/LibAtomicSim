@@ -6,7 +6,6 @@
 #include <string>
 
 #include "complex_numbers.h"
-
 #include "utils.h"
 
 using namespace std;
@@ -50,32 +49,42 @@ double* zeroMatrix( int size_x, int size_y )
   {
     matrix[i] = 0;
   }
-
+  return matrix;
+}
+Complex* zeroMatrixC( int size_x, int size_y )
+{
+  int ndim=size_x*size_y;
+  Complex* matrix = (Complex*) malloc( ndim*sizeof(Complex) );
+  for( int i=0; i<ndim; i++ )
+  {
+    matrix[i] = Complex(0);
+  }
   return matrix;
 }
 double* zeroMatrix( int size )
 {
   return zeroMatrix(size,size);
 }
-double* identityMatrix( int size )
+Complex* zeroMatrixC( int size )
+{
+  return zeroMatrixC( size, size);
+}
+double* eyeMatrix( int size )
 {
   // Initialize matrix
   double* matrix = (double*) malloc( size*size*sizeof(double) );
-
   for( int i=0; i<size; i++ )
   {
-    int offset=size*i;
-    for( int j=0; j<size; j++ )
-    {
-      if(i==j)
-      {
-        matrix[offset+j]=1;
-      }
-      else
-      {
-        matrix[offset+j]=0;
-      }
-    }
+    matrix[ computeIndex(i,i,size) ] = 1.0;
+  }
+  return matrix;
+}
+Complex* eyeMatrixC( int size )
+{
+  Complex* matrix = (Complex*) malloc( size*size*sizeof(Complex) );
+  for( int i=0; i<size; i++ )
+  {
+    matrix[ computeIndex(i,i,size) ] = Complex(1,0);
   }
   return matrix;
 }
@@ -110,8 +119,33 @@ double* multiplyMatrix( double* matrix1, double* matrix2, int size1_x, int size_
 
   return product_matrix;
 }
+//
+double* transpose( double* matrix_origin, int size )
+{
+  double* matrix_tranpose = zeroMatrix( size );
+  for( int i=0; i<size; i++ )
+  {
+    for( int j=0; j<size; j++ )
+    {
+      matrix_tranpose[ computeIndex(i,j,size) ] = matrix_origin[ computeIndex(j,i,size) ];
+    }
+  }
+  return matrix_tranpose;
+}
+Complex* transposeC( Complex* matrix_origin, int size )
+{
+  Complex* matrix_transpose = zeroMatrixC( size );
+  for( int i=0; i<size; i++ )
+  {
+    for( int j=0; j<size; j++ )
+    {
+      matrix_transpose[ computeIndex(i,j,size) ] = matrix_origin[ computeIndex(j,i,size) ];
+    }
+  }
+  return matrix_transpose;
+}
 // Printing Matrix
-void printMatrix( double* matrix, int size_y, int size_x )
+void printMatrix( double* matrix, int size_x, int size_y )
 {
   for( int i=0; i<size_y; i++ )
   {
@@ -128,13 +162,34 @@ void printMatrix( double* matrix, int size_matrix )
 {
   return printMatrix(matrix,size_matrix,size_matrix);
 }
+void printMatrix( Complex* matrix, int size_x, int size_y )
+{
+  for( int i=0; i<size_y; i++ )
+  {
+    int offset = size_x*i;
+    for ( int j=0; j<size_x; j++ )
+    {
+      std::cout << matrix[ offset + j ].re();
+      if( abs(matrix[ offset + j ].im()) > 0.00000000000001 )
+      {
+        std::cout << "+" << matrix[ offset + j ].im() << "i" << " ";      
+      }
+      else
+      {
+        std::cout << "   ";
+      }
+    }
+    std::cout << std::endl;
+  }
+  return;
+}
 //-------------------------------------------------------
 
 // Cell Matrix
 //-------------------------------------------------------
 double* initCellMatrix()
 {
-  return identityMatrix(3);
+  return eyeMatrix(3);
 }
 double* invertCellMatrix( double* matrix_to_invert )
 {

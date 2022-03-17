@@ -2,6 +2,9 @@
 #ifndef complex_number_h
 #define complex_number_h
 
+const double pi  = 3.1418;
+const double tau = 2*pi;
+
 // Complex Cartesian Form
 //----------------------------------
 class Complex
@@ -19,20 +22,21 @@ class Complex
     Complex( double new_real );
     Complex( double new_real, double new_imaginary );
     // Accessors
-    double getReal();
-    double getIm();
+    double re();
+    double im();
     // Setters
-    void setReal( double new_real );
-    void setIm( double new_imaginary );
-    void setNumber( double new_real, double new_imaginary );
-
-    // Compute conjugate
-    Complex getConjugate();
+    void re( double new_real );
+    void im( double new_imaginary );
+    void set( double new_real, double new_imaginary );
+    // Conjugate
+    Complex conj();
+    // Module
+    Complex mod( Complex complex );
 };
 // Operations on complex
 Complex sum( Complex complex1, Complex complex2 );
 Complex multiply( Complex complex1, Complex complex2 );
-Complex* getConjugate( Complex* complex_vector, int size );
+Complex* conj( Complex* complex_vector, int size );
 //----------------------------------
 
 // Complex Exponential Form
@@ -42,27 +46,35 @@ class ComplexExp
   protected:
     // Class variables
     //-------------------------
-    double mods;
+    double modulus;
     double phase;
     //-------------------------
   
   public:
     // Constructors
     ComplexExp();
-    ComplexExp( double new_modulus );
-    ComplexExp( double new_modulus, double new_phase );
+    ComplexExp( double new_mod );
+    ComplexExp( double new_mod, double new_phase );
 
     // Accessors
-    double getModulus();
-    double getPhase();
+    double mod();
+    double phi();
 
     // Setters
-    void setModulus( double new_mod );
-    void setPhase( double new_phase );
-    void setNumber( double new_mod, double new_phase );
+    void mod( double new_mod );
+    void phi( double new_phase );
+    void set( double new_mod, double new_phase );
 
+    // Compute real and imaginary parts
+    double re();
+    double im();
+
+    // Sums
     Complex sum( Complex complex1, Complex complex2 );
+
 };
 //----------------------------------
+
+
 
 #endif

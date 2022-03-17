@@ -26,54 +26,58 @@ Complex::Complex( double new_real, double new_imaginary )
   imaginary = new_imaginary;
 }
 // Accessors
-double Complex::getReal()
+double Complex::re()
 {
   return real;
 }
-double Complex::getIm()
+double Complex::im()
 {
   return imaginary;
 }
 // Setters
-void Complex::setReal( double new_real )
+void Complex::re( double new_real )
 {
   real = new_real;
   return;
 }
-void Complex::setIm( double new_imaginary )
+void Complex::im( double new_imaginary )
 {
   imaginary = new_imaginary;
   return;
 }
-void Complex::setNumber( double new_real, double new_imaginary )
+void Complex::set( double new_real, double new_imaginary )
 {
-  setReal( new_real );
-  setIm( new_real );
+  re( new_real );
+  im( new_real );
   return;
 }
 // Conjugate
-Complex Complex::getConjugate() 
+Complex Complex::conj() 
 {
   return Complex( real, -imaginary );
 }
-Complex* getConjugate( Complex* complex_vector, int size )
+Complex* conj( Complex* complex_vector, int size )
 {
   Complex* conjugate_vector = (Complex*) malloc( size*sizeof(Complex) );
   for( int i=0; i<size; i++ )
   {
-    conjugate_vector[i] = complex_vector[i].getConjugate();
+    conjugate_vector[i] = complex_vector[i].conj();
   }
   return conjugate_vector;
+}
+Complex Complex::mod( Complex complex )
+{
+  return sqrt( real*real + imaginary*imaginary );
 }
 // Basic Operations
 Complex sum( Complex complex1, Complex complex2 )
 {
-  return Complex( complex1.getReal() + complex2.getReal(), complex1.getIm() + complex2.getIm() );
+  return Complex( complex1.re() + complex2.re(), complex1.im() + complex2.im() );
 }
 Complex multiply( Complex complex1, Complex complex2 )
 {
-  return Complex( complex1.getReal()*complex2.getReal() - complex1.getIm()*complex2.getIm(),      \
-                  complex1.getReal()*complex2.getIm()   + complex1.getIm()*complex2.getReal() );
+  return Complex( complex1.re()*complex2.re() - complex1.im()*complex2.im(),      \
+                  complex1.re()*complex2.im() + complex1.im()*complex2.re() );
 }
 //----------------------------------------------------------------------
 
@@ -82,40 +86,49 @@ Complex multiply( Complex complex1, Complex complex2 )
 // Constructors
 ComplexExp::ComplexExp()
 {
-  mods = 0;
+  modulus = 0;
+  phase   = 0; // in radians
+}
+ComplexExp::ComplexExp( double new_mod )
+{
+  modulus = new_mod;
   phase   = 0;
 }
-ComplexExp::ComplexExp( double new_modulus )
+ComplexExp::ComplexExp( double new_mod, double new_phase )
 {
-  mods    = new_modulus;
-  phase   = 0;
-}
-ComplexExp::ComplexExp( double new_modulus, double new_phase )
-{
-  mods    = new_modulus;
+  modulus = new_mod;
   phase   = new_phase;
 }
 // Accessors
-double ComplexExp::getModulus()
+double ComplexExp::mod()
 {
-  return mods;
+  return modulus;
 }
-double ComplexExp::getPhase()
+double ComplexExp::phi()
 {
   return phase;
 }
 // Setters
-void ComplexExp::setModulus( double new_mod )
+void ComplexExp::mod( double new_mod )
 {
-  mods = new_mod;
+  modulus = new_mod;
 }
-void ComplexExp::setPhase( double new_phase )
+void ComplexExp::phi( double new_phase )
 {
   phase = new_phase;
 }
-void ComplexExp::setNumber( double new_mod, double new_phase )
+void ComplexExp::set( double new_mod, double new_phase )
 {
-  mods  = new_mod;
-  phase = new_phase;
+  modulus = new_mod;
+  phase   = new_phase;
+}
+// Get Real and Imaginary part
+double ComplexExp::re()
+{
+  return modulus*cos(phase);
+}
+double ComplexExp::im()
+{
+  return modulus*sin(phase);
 }
 //-----------------------------------------------------------------
