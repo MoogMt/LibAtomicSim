@@ -6,6 +6,7 @@
 
 #include "general_io.h"
 #include "utils.h"
+#include "linear_algebra.h"
 #include "frame.h"
 #include "traj.h"
 
