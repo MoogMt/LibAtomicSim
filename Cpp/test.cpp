@@ -61,6 +61,5 @@ int main()
     std::cout << "nay :(" << std::endl;
   }
 
-
   return 0;
 }	       

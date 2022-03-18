@@ -6,6 +6,7 @@
 #include <string>
 
 #include "complex_numbers.h"
+#include "linear_algebra.h"
 #include "utils.h"
 
 using namespace std;

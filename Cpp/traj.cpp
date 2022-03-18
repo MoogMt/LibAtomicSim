@@ -6,6 +6,8 @@
 #include <string>
 
 #include "utils.h"
+#include "complex_numbers.h"
+#include "linear_algebra.h"
 #include "frame.h"
 #include "traj.h"
 

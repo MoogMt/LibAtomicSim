@@ -6,6 +6,8 @@
 #include <string>
 
 #include "utils.h"
+#include "complex_numbers.h"
+#include "linear_algebra.h"
 #include "frame.h"
 
 using namespace std;
@@ -16,7 +18,7 @@ Frame::Frame()
   number      = 0;
   names       = initWordVector(0);
   positions   = zeroMatrix(3,number);
-  cell_matrix = identityMatrix(3);
+  cell_matrix = initCellMatrix();
 }
 Frame::Frame( int new_number )
 {
