@@ -180,7 +180,7 @@ Complex* transposeC( Complex* matrix_origin, int size )
 }
 Complex* adjoint( Complex* matrix, int size )
 {
-  return transposeC( conj( matrix, size ), size );
+  return transposeC( getConj( matrix, size ), size );
 }
 // Products
 Complex* multiplyMatrix( Complex* matrix1, Complex* matrix2, int size1_x, int size_1y_2x, int size2_y)
@@ -192,7 +192,7 @@ Complex* multiplyMatrix( Complex* matrix1, Complex* matrix2, int size1_x, int si
     {
       for( int k=0; k<size_1y_2x; k++ )
       {
-        product_matrix[ computeIndex(i,j,size1_x) ] = add( product_matrix[ computeIndex(i,j,size1_x) ], multiply( matrix1[ computeIndex(i,k,size1_x) ],matrix2[ computeIndex(k,j,size_1y_2x) ] ) );
+        product_matrix[ computeIndex(i,j,size1_x) ] = product_matrix[ computeIndex(i,j,size1_x) ] + matrix1[ computeIndex(i,k,size1_x) ]*matrix2[ computeIndex(k,j,size_1y_2x) ];
       }
     }
   }
@@ -203,10 +203,19 @@ Complex inner( Complex* vector1, Complex* vector2, int size )
   Complex inner = Complex(0,0);
   for( int i=0; i<size; i++ )
   {
-    inner = add( inner, multiply( vector1[i], vector2[i]));
+    inner = inner + vector1[i]*vector2[i];
   }
   return inner;
 }
+/*
+Complex cross( Complex* vector1, Complex* vector2 )
+{
+  Complex* cross_vector = (Complex*) malloc( 3*sizeof(Complex) );
+  cross_vector[0] = add( multiply( vector1[1], vector2[2] ), -multiply( vector1[2], vector2[1] ) );
+  cross_vector[1] = add( multiply( vector1[0], vector2[2] ), -multiply( vector1[2], vector2[0] ) );
+  cross_vector[2] = add( multiply( vector1[0], vector2[1] ), -multiply( vector1[1], vector2[0] ) );
+  return cross_vector;
+}*/
 // Printing Matrix
 void printMatrixC( Complex* matrix, int size_x, int size_y )
 {

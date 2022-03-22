@@ -5,8 +5,9 @@
 #include <string>
 
 #include "general_io.h"
-#include "utils.h"
+#include "complex_numbers.h"
 #include "linear_algebra.h"
+#include "utils.h"
 #include "frame.h"
 #include "traj.h"
 
@@ -31,7 +32,6 @@ int main()
   file_path="/home/moogmt/file_test.dat";
 
   int number_line=0;
-  double new_positions[3*3]{1, 2, 3, 4, 5, 6, 7, 8, 9};
   double new_positions2[2*3]{10,11,12,13,14,15};
 
   //matrix=(double*) malloc(9*sizeof(double) );
@@ -40,7 +40,6 @@ int main()
   //Frame frame(number);
   matrix=initCellMatrix();
   printMatrix(matrix,3);
-  std::cout << "---------" << std::endl;
   matrix[ computeIndex(0,1,3) ] = 1;
   matrix[ computeIndex(0,2,3) ] = 1;
   matrix[ computeIndex(1,2,3) ] = 1;
@@ -61,5 +60,12 @@ int main()
     std::cout << "nay :(" << std::endl;
   }
 
+  Complex test(0,1);
+
+  std::cout << test << std::endl;
+
+  std::cout << M_PI << std::endl;
+
+  std::cout << std::fmod(6.0,M_PI) << std::endl;
   return 0;
 }	       

@@ -28,16 +28,34 @@ class Complex
     void re( double new_real );
     void im( double new_imaginary );
     void set( double new_real, double new_imaginary );
-    // Conjugate
-    Complex conj();
+    void set( Complex complex );
+    // Conjugate  
+    Complex getConj();
+    void setConj();
     // Module
-    Complex mod( Complex complex );
+    double mod();
+    
+    // Self Operators
+    Complex operator+( Complex complex2);
+    Complex operator+( double real );
+    void operator+=( Complex complex );
+    void operator+=( double real );
+    Complex operator-( Complex complex2);
+    Complex operator-( double real );
+    void operator-=( Complex complex );
+    void operator-=( double real );
+    Complex operator*( Complex complex2 );
+    Complex operator*( double real );
+    void operator*=( Complex complex );
+    void operator*=( double real );
+    Complex operator/( Complex complex2 );
+    Complex operator/( double real );
+    // Friend Operator
+    friend std::ostream& operator << ( std::ostream& os, const Complex& complex );
+    friend Complex operator-( Complex complex ); // Takng the opposite of a number
+    friend Complex* getConj( Complex* complex_vector, int size ); 
+    friend void setConj( Complex* complex_vector, int size );
 };
-// Operations on complex
-Complex add( Complex complex1, Complex complex2 );
-Complex multiply( Complex complex1, Complex complex2 );
-Complex* conj( Complex* complex_vector, int size );
-//----------------------------------
 
 // Complex Exponential Form
 //----------------------------------
@@ -46,8 +64,8 @@ class ComplexExp
   protected:
     // Class variables
     //-------------------------
-    double modulus;
-    double phase;
+    double rho;
+    double phi;
     //-------------------------
   
   public:
@@ -58,20 +76,16 @@ class ComplexExp
 
     // Accessors
     double mod();
-    double phi();
+    double phase();
 
     // Setters
     void mod( double new_mod );
-    void phi( double new_phase );
+    void phase( double new_phase );
     void set( double new_mod, double new_phase );
 
     // Compute real and imaginary parts
     double re();
     double im();
-
-    // Sums
-    Complex sum( Complex complex1, Complex complex2 );
-
 };
 //----------------------------------
 
