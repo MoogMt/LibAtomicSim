@@ -50,6 +50,8 @@ class Complex
     void operator*=( double real );
     Complex operator/( Complex complex2 );
     Complex operator/( double real );
+    void operator/=( Complex complex );
+    void operator/=( double real );
     // Friend Operator
     friend std::ostream& operator << ( std::ostream& os, const Complex& complex );
     friend Complex operator-( Complex complex ); // Takng the opposite of a number

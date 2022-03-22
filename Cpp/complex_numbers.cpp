@@ -175,6 +175,55 @@ Complex Complex::operator/( double real )
     return Complex(0,0);
   }
 }
+void Complex::operator/=( Complex complex )
+{
+
+  double smaller = 0.00000000000000001;
+  try 
+  {
+    if ( abs( complex.re() > smaller ) && abs( complex.im() ) > smaller  )
+    {
+      double mod2squared = pow( complex.mod(),2);
+      this->set( (this->re() + complex.re() )/mod2squared, ( this->im() - complex.im() )/mod2squared );
+      return;
+    }
+    else
+    {
+      throw( smaller );
+    }
+  }
+  catch( double value )
+  {
+    std::cout << "Can't divide a number by 0" << std::endl;
+    std::cout << "Value: " << real << std::endl;
+    this->set(0,0);
+    return;
+  }
+}
+void Complex::operator/=( double real )
+{
+  double smaller = 0.0000000000001;
+  try
+  {
+    if( abs(real) > smaller )
+    {
+      this->set( this->re()/real, this->im()/real );
+      return;
+    }
+    else
+    {
+      throw( real );
+    }
+  }
+  catch( double value )
+  {
+
+    std::cout << "Can't divide a number by 0" << std::endl;
+    std::cout << "Value: " << real << std::endl;
+    this->set(0,0);
+    return;
+  }
+}
 // -> Output flux operator
 std::ostream& operator << ( std::ostream& os, const Complex& complex )
 {
