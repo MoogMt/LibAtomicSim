@@ -21,6 +21,13 @@ Vector::Vector()
 {
   size = 0;
   elements = (double*) malloc( 0*sizeof(double) );
+  dir = false;
+}
+Vector::Vector( bool new_dir )
+{
+  size = 0;
+  elements = (double*) malloc( 0*sizeof(double) );
+  dir = new_dir;
 }
 Vector::Vector( int new_size )
 {
@@ -30,6 +37,17 @@ Vector::Vector( int new_size )
   {
     elements[i]=0;
   }
+  dir = false;
+}
+Vector::Vector( int new_size, bool new_dir )
+{
+  size = new_size;
+  elements = (double*) malloc( new_size*sizeof(double) );
+  for( int i=0; i<new_size; i++ )
+  {
+    elements[i]=0;
+  }
+  dir = new_dir;
 }
 Vector::Vector( int new_size, double* new_elements )
 {
@@ -39,6 +57,17 @@ Vector::Vector( int new_size, double* new_elements )
   {
     elements[i] = new_elements[i];
   }
+  dir = false;
+}
+Vector::Vector( int new_size, double* new_elements, bool new_dir )
+{
+  size = new_size;
+  elements = (double*) malloc( new_size*sizeof(double) );
+  for( int i=0 ; i<new_size ; i++ )
+  {
+    elements[i] = new_elements[i];
+  }
+  dir = new_dir;
 }
 // Accessors
 int Vector::getSize()

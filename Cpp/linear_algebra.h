@@ -20,8 +20,11 @@ class Vector
   public:
     // Constructors
     Vector();
+    Vector( bool new_dir );
     Vector( int new_size );
+    Vector( int new_size, bool new_dir );
     Vector( int new_size, double* new_elements );
+    Vector( int new_size, double* new_elements, bool new_dir );
     // Accessors
     int getSize();
     double* vector();
@@ -66,6 +69,7 @@ class Matrix
     // Self Operators
     // Init
     void eye( int size );
+    // Basic Operators
     Matrix operator+( Matrix matrix );
     // Friend Operator
     friend std::ostream& operator<<( std::ostream& os, const Matrix& matrix );
@@ -78,7 +82,7 @@ class MatrixC
     Complex* elements;
     int size_x;
     int size_y;
-}
+};
 //----------------------------------
 
 // Real
