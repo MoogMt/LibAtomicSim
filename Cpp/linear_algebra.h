@@ -23,6 +23,7 @@ class Matrix
     Matrix();
     Matrix( int size );
     Matrix( int size_x, int size_y );
+    Matrix( int new_size_x, int new_size_y, double* new_elements );
     // Accessors
     int sizex();
     int sizey();
@@ -37,8 +38,10 @@ class Matrix
     // Self Operators
     // Init
     void eye( int size );
+    Matrix operator+( Matrix matrix );
     // Friend Operator
     friend std::ostream& operator<<( std::ostream& os, const Matrix& matrix );
+    friend bool sameDim( Matrix matrix1, Matrix matrix2 );
 };
 //----------------------------------
 

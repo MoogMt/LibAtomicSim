@@ -44,6 +44,16 @@ Matrix::Matrix( int new_size_x, int new_size_y )
     elements[i] = 0;
   }
 }
+Matrix::Matrix( int new_size_x, int new_size_y, double* new_elements )
+{
+  size_x = new_size_x;
+  size_y = new_size_y;
+  elements=(double*) malloc( size_x*size_y*sizeof(double) );
+  for( int i=0; i<size_x*size_y; i++ )
+  {
+    elements[i] = new_elements[i];
+  }
+}
 // Accessors
 int Matrix::sizex()
 {
@@ -113,6 +123,34 @@ void Matrix::eye( int size )
     }
   }
   return; 
+}
+Matrix Matrix::operator+( Matrix matrix )
+{
+  double* elements = (double*) malloc( sizeof( matrix.sizex()*matrix.sizey()*sizeof(double) ) );
+  if( sameDim( *this, matrix )  )
+  {
+    for( int i=0; i<matrix.sizex() ; i++ )
+    {
+      for( int j=0; j<matrix.sizey() ; j++ )
+      {
+        elements[ computeIndex(i,j,matrix.sizex()) ] = this->element(i,j) + matrix.element(i,j);
+      }
+    }
+    return Matrix( matrix.sizex(), matrix.sizey(), elements );
+  }
+  else
+  {
+    return Matrix( this->sizex(), this->sizey() );
+  }
+}
+// Friend Operators
+bool sameDim( Matrix matrix1, Matrix matrix2 )
+{
+  if( matrix1.sizex() == matrix2.sizex() && matrix1.sizey() == matrix2.sizey() )
+  {
+    return true;
+  }
+  else return false;
 }
 std::ostream& operator<<( std::ostream& os, const Matrix& matrix )
 {
