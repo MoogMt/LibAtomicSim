@@ -53,7 +53,7 @@ class Complex
     void operator/=( Complex complex );
     void operator/=( double real );
     // Friend Operator
-    friend std::ostream& operator << ( std::ostream& os, const Complex& complex );
+    friend std::ostream& operator<<( std::ostream& os, const Complex& complex );
     friend Complex operator-( Complex complex ); // Takng the opposite of a number
     friend Complex* getConj( Complex* complex_vector, int size ); 
     friend void setConj( Complex* complex_vector, int size );
@@ -80,7 +80,7 @@ class ComplexExp
     double mod();
     double phase();
 
-    // Setters
+    // Setters 
     void mod( double new_mod );
     void phase( double new_phase );
     void set( double new_mod, double new_phase );
@@ -88,9 +88,13 @@ class ComplexExp
     // Compute real and imaginary parts
     double re();
     double im();
+
+    // Self Operators
+    ComplexExp operator*( ComplexExp complex );
+    ComplexExp operator*( double real );
+    ComplexExp operator/( ComplexExp complex );
+    ComplexExp operator/( double real );
 };
 //----------------------------------
-
-
 
 #endif

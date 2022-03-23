@@ -217,7 +217,6 @@ void Complex::operator/=( double real )
   }
   catch( double value )
   {
-
     std::cout << "Can't divide a number by 0" << std::endl;
     std::cout << "Value: " << real << std::endl;
     this->set(0,0);
@@ -293,5 +292,22 @@ double ComplexExp::re()
 double ComplexExp::im()
 {
   return rho*sin(phi);
+}
+// Operators
+ComplexExp ComplexExp::operator*( ComplexExp complex )
+{
+  return ComplexExp( this->mod()*complex.mod(), fmod( this->phase()+complex.phase(), 2*M_PI ) );
+}
+ComplexExp ComplexExp::operator*( double real )
+{
+  return ComplexExp( this->mod()*real, this->phase() );
+}
+ComplexExp ComplexExp::operator/( ComplexExp complex )
+{
+  return ComplexExp( this->mod()/complex.mod(), fmod( this->phase()-complex.phase(), 2*M_PI ) );
+}
+ComplexExp ComplexExp::operator/( double real )
+{
+  return ComplexExp( this->mod()/real, this->phase() );
 }
 //-----------------------------------------------------------------

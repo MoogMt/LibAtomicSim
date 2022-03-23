@@ -17,10 +17,10 @@ using namespace std;
 //-------------------------------------------------------
 int main()
 {
+
   int number=3;
   int number2=2;  
-
-  double* matrix;
+  double* matrix2;
   double* matrix_inv;
 
   std::string new_names[3]{"C","O","O"};
@@ -38,14 +38,14 @@ int main()
   //matrix_inv=(double*) malloc(9*sizeof(double) );
 
   //Frame frame(number);
-  matrix=initCellMatrix();
-  printMatrix(matrix,3);
-  matrix[ computeIndex(0,1,3) ] = 1;
-  matrix[ computeIndex(0,2,3) ] = 1;
-  matrix[ computeIndex(1,2,3) ] = 1;
-  printMatrix(matrix,3);
+  matrix2=initCellMatrix();
+  printMatrix(matrix2,3);
+  matrix2[ computeIndex(0,1,3) ] = 1;
+  matrix2[ computeIndex(0,2,3) ] = 1;
+  matrix2[ computeIndex(1,2,3) ] = 1;
+  printMatrix(matrix2,3);
   std::cout << "---------" << std::endl;
-  matrix_inv=invertCellMatrix(matrix);
+  matrix_inv=invertCellMatrix(matrix2);
   printMatrix(matrix_inv,3);
 
   status = fileExists( file_path );
@@ -61,11 +61,12 @@ int main()
   }
 
   Complex test(0,1);
-
   std::cout << test << std::endl;
-
   std::cout << M_PI << std::endl;
-
   std::cout << std::fmod(6.0,M_PI) << std::endl;
+
+  Matrix test2(5);
+  test2.eye(5);
+  std::cout << test2 << std::endl;;
   return 0;
 }	       

@@ -9,6 +9,40 @@ using namespace std;
 int computeIndex( int line, int col, int line_dim );
 //---------------------------------------------------------------
 
+//----------------------------------
+class Matrix
+{
+  protected:
+    // Class variables
+    double* elements;
+    int size_x;
+    int size_y;
+  
+  public:
+    // Constructors
+    Matrix();
+    Matrix( int size );
+    Matrix( int size_x, int size_y );
+    // Accessors
+    int sizex();
+    int sizey();
+    double* matrix();
+    double element( int i, int j );
+    // Setters
+    void sizex( int size_x );
+    void sizey( int size_y );
+    void matrix( double* matrix );
+    void element( double element, int pos_x, int pos_y );
+
+    // Self Operators
+    // Init
+    void eye( int size );
+    // Friend Operator
+    friend std::ostream& operator<<( std::ostream& os, const Matrix& matrix );
+};
+//----------------------------------
+
+
 // Real
 //---------------------------------------------------------------
 // -> Zero Matrix
@@ -24,7 +58,7 @@ void multiplyby( double* matrix, double scalar, int size );
 double* transpose( double* matrix_origin, int size );
 // Basic Operations
 double inner( double* vector1, double* vector2, int size );
-double cross( double* vector1, double* vector2 );
+double* cross( double* vector1, double* vector2 );
 // Printing
 void printMatrix( double* matrix, int size_x, int size_y );
 void printMatrix( double* matrix, int size_matrix );

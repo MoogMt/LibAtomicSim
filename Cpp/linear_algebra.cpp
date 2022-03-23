@@ -7,6 +7,7 @@
 
 #include "complex_numbers.h"
 #include "utils.h"
+#include "linear_algebra.h"
 
 // Basics
 int computeIndex( int line, int col, int line_dim )
@@ -17,6 +18,115 @@ int computeIndex( int line, int col, int line_dim )
 // Real
 //------------------------------------------------------------------------------------------
 // Init Matrix
+Matrix::Matrix()
+{
+  size_x = 0;
+  size_y = 0;
+  elements = (double*) malloc( 0*sizeof(double) );
+}
+Matrix::Matrix( int size )
+{
+  size_x = size;
+  size_y = size;
+  elements=(double*) malloc( size*size*sizeof(double) );
+  for( int i=0; i<size*size; i++ )
+  {
+    elements[i] = 0;
+  }
+}
+Matrix::Matrix( int new_size_x, int new_size_y )
+{
+  size_x = new_size_x;
+  size_y = new_size_y;
+  elements=(double*) malloc( size_x*size_y*sizeof(double) );
+  for( int i=0; i<size_x*size_y; i++ )
+  {
+    elements[i] = 0;
+  }
+}
+// Accessors
+int Matrix::sizex()
+{
+  return this->size_x;
+}
+int Matrix::sizey()
+{
+  return this->size_y;
+}
+double* Matrix::matrix()
+{
+  return this->elements;
+}
+double Matrix::element( int i, int j )
+{
+  return this->elements[ computeIndex(i,j,this->sizex())];
+}
+// Setters
+void Matrix::sizex( int new_size_x )
+{
+  size_x = new_size_x;
+  return;
+}
+void Matrix::sizey( int new_size_y )
+{
+  size_y = new_size_y;
+  return;
+}
+void Matrix::matrix( double* matrix )
+{
+  int size_x1 = this->sizex();
+  int size_y1 = this->sizey();
+  for( int i=0; i<size_x1; i++ )
+  {
+    for( int j=0; j<size_y1; j++ )
+    {
+      this->elements[ computeIndex(i,j,size_x1 ) ] = matrix[ computeIndex(i,j,size_x1) ];
+    }
+  }
+  return;
+}
+void Matrix::element( double element, int pos_x, int pos_y )
+{
+  int size_x1 = this->sizex();
+  int size_y1 = this->sizey();
+  this->elements[ computeIndex(pos_x,pos_y,size_x1 ) ] = element;
+  return;
+}
+// Identity Matrix
+void Matrix::eye( int size )
+{
+  size_x = size;
+  size_y = size;
+  elements=(double*) malloc( size*size*sizeof(double) );
+  for( int i=0; i<size; i++ )
+  {
+    for( int j=0; j<size; j++ )
+    {
+      if( i == j )
+      {
+        elements[ computeIndex(i,j,size) ] = 1;
+      }
+      else
+      {
+        elements[ computeIndex(i,j,size) ] = 0;
+      }
+    }
+  }
+  return; 
+}
+std::ostream& operator<<( std::ostream& os, const Matrix& matrix )
+{
+  for( int j=0; j<matrix.size_y ; j++ )
+  {
+    for( int i=0; i<matrix.size_x ; i++ )
+    {
+      os << matrix.elements[ computeIndex(i,j,matrix.size_x)] << " ";
+    }
+    os << std::endl;
+  }
+  return os;
+}
+//==========================================================================================
 double* zeroVector( int size )
 {
   double* vector = (double*) malloc( size*sizeof(double) );
@@ -40,6 +150,7 @@ double* zeroMatrix( int size )
 {
   return zeroMatrix(size,size);
 }
+// Identity Matrix
 double* eyeMatrix( int size )
 {
   // Initialize matrix
@@ -93,7 +204,7 @@ double* transpose( double* matrix_origin, int size )
   return matrix_tranpose;
 }
 // Products
-double inner( double* vector1, double* vector2, int size )
+double  inner( double* vector1, double* vector2, int size )
 {
   double inner=0;
   for( int i=0; i<size; i++ )
@@ -132,7 +243,6 @@ void printMatrix( double* matrix, int size_matrix )
 
 // Complex
 //------------------------------------------------------------------------------------------
-// Init Matrix
 Complex* zeroVectorC( int size )
 {
   Complex* vector = (Complex*) malloc( size*sizeof(Complex) );
