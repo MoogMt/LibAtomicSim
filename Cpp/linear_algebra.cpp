@@ -15,6 +15,57 @@ int computeIndex( int line, int col, int line_dim )
   return line*line_dim + col;
 }
 
+// Real Vectors
+//------------------------------------------------------------------------------------------
+Vector::Vector()
+{
+  size = 0;
+  elements = (double*) malloc( 0*sizeof(double) );
+}
+Vector::Vector( int new_size )
+{
+  size = new_size;
+  elements = (double*) malloc( new_size*sizeof(double) );
+}
+Vector::Vector( int new_size, double* new_elements )
+{
+  size = new_size;
+  elements = (double*) malloc( new_size*sizeof(double) );
+}
+// Accessors
+int Vector::getSize()
+{
+  return this->size;
+}
+double* Vector::vector()
+{
+  return this->elements;
+}
+double Vector::element( int i )
+{
+  return this->elements[i];
+}
+// Setters
+void Vector::setSize( int new_size )
+{
+  size = new_size;
+  return;
+}
+void Vector::setElement( double element, int position )
+{
+  this->elements[ position ] = element;
+  return;
+}
+void Vector::setElements( double* element )
+{
+  for( int i=0; i<this->getSize(); i++ )
+  {
+    this->setElement( element[i], i );
+  }
+  return;
+}
+//------------------------------------------------------------------------------------------
+
 // Real
 //------------------------------------------------------------------------------------------
 // Init Matrix

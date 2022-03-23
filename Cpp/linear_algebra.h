@@ -10,6 +10,26 @@ int computeIndex( int line, int col, int line_dim );
 //---------------------------------------------------------------
 
 //----------------------------------
+class Vector
+{
+  protected: 
+    int size;
+    double* elements;
+
+  public:
+    // Constructors
+    Vector();
+    Vector( int new_size );
+    Vector( int new_size, double* new_elements );
+    // Accessors
+    int getSize();
+    double* vector();
+    double element( int i );
+    // Setters
+    void setSize( int size );
+    void setElements( double* element );
+    void setElement( double element, int position );
+};
 class Matrix
 {
   protected:
@@ -44,7 +64,6 @@ class Matrix
     friend bool sameDim( Matrix matrix1, Matrix matrix2 );
 };
 //----------------------------------
-
 
 // Real
 //---------------------------------------------------------------
