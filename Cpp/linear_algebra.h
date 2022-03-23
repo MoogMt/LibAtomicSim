@@ -13,9 +13,10 @@ int computeIndex( int line, int col, int line_dim );
 class Vector
 {
   protected: 
-    int size;
+    // Variables
     double* elements;
-
+    int size;
+    bool dir;
   public:
     // Constructors
     Vector();
@@ -30,6 +31,14 @@ class Vector
     void setElements( double* element );
     void setElement( double element, int position );
 };
+class VectorC
+{
+  protected:
+    // Variables
+    Complex* elements;
+    int  size;
+    bool dir;
+};
 class Matrix
 {
   protected:
@@ -37,7 +46,6 @@ class Matrix
     double* elements;
     int size_x;
     int size_y;
-  
   public:
     // Constructors
     Matrix();
@@ -63,6 +71,14 @@ class Matrix
     friend std::ostream& operator<<( std::ostream& os, const Matrix& matrix );
     friend bool sameDim( Matrix matrix1, Matrix matrix2 );
 };
+class MatrixC
+{
+  public:
+    // Class variables
+    Complex* elements;
+    int size_x;
+    int size_y;
+}
 //----------------------------------
 
 // Real
