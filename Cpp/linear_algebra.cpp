@@ -26,11 +26,19 @@ Vector::Vector( int new_size )
 {
   size = new_size;
   elements = (double*) malloc( new_size*sizeof(double) );
+  for( int i=0; i<new_size; i++ )
+  {
+    elements[i]=0;
+  }
 }
 Vector::Vector( int new_size, double* new_elements )
 {
   size = new_size;
   elements = (double*) malloc( new_size*sizeof(double) );
+  for( int i=0 ; i<new_size ; i++ )
+  {
+    elements[i] = new_elements[i];
+  }
 }
 // Accessors
 int Vector::getSize()
@@ -64,6 +72,7 @@ void Vector::setElements( double* element )
   }
   return;
 }
+//
 //------------------------------------------------------------------------------------------
 
 // Real
