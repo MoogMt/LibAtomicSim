@@ -31,7 +31,7 @@ class Vector
     double element( int i );
     bool dir();
     // Setters
-    void setSize( int size );
+    void setSize( int new_size );
     void element( double element, int position );
     void vector( double* element );
     void dir( bool new_direction );
@@ -42,7 +42,25 @@ class VectorC
     // Variables
     Complex* elements;
     int  size;
-    bool dir;
+    bool direction;
+  public:
+    // Constructors
+    VectorC();
+    VectorC( bool new_dir );
+    VectorC( int new_size );
+    VectorC( int new_size, bool new_dir );
+    VectorC( int new_size, Complex* new_elements );
+    VectorC( int new_size, Complex* new_elements, bool new_dir );
+    // Accessors
+    int getSize();
+    Complex* vector();
+    Complex element( int i );
+    bool dir();
+    // Setters
+    void setSize( int size );
+    void element( double element, int position );
+    void vector( double* element );
+    void dir( bool new_direction );
 };
 class Matrix
 {

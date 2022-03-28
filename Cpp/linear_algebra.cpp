@@ -15,8 +15,9 @@ int computeIndex( int line, int col, int line_dim )
   return line*line_dim + col;
 }
 
-// Real Vectors
+// Vectors
 //------------------------------------------------------------------------------------------
+// Constructors
 Vector::Vector()
 {
   size = 0;
@@ -110,7 +111,87 @@ void Vector::dir( bool new_direction )
   direction=new_direction;
   return;
 }
-//
+//------------------------------------------------------------------------------------------
+// Complex
+//------------------------------------------------------------------------------------------
+// Constructors
+VectorC::VectorC()
+{
+  elements = (Complex*) malloc(0*sizeof(Complex) );
+  size=0;
+  direction = false;
+}
+VectorC::VectorC( bool new_dir )
+{
+  elements = (Complex*) malloc(0*sizeof(Complex) );
+  size=0;
+  direction = new_dir;
+}
+VectorC::VectorC( int new_size )
+{
+  size = new_size;
+  elements = (Complex*) malloc( new_size*sizeof(Complex) );
+  direction = false;
+}
+VectorC::VectorC( int new_size, bool new_dir )
+{
+  size = new_size;
+  elements = (Complex*) malloc( new_size*sizeof(Complex) );
+  direction = new_size;
+}
+VectorC::VectorC( int new_size, Complex* new_elements )
+{
+  size = new_size;
+  elements = new_elements;
+  direction = false;  
+}
+VectorC::VectorC( int new_size, Complex* new_elements, bool new_dir )
+{
+  size      = new_size;
+  elements  = new_elements;
+  direction = new_dir;  
+}
+// Accessors
+int VectorC::getSize()
+{
+  return this->size;
+}
+Complex* VectorC::vector()
+{
+  return this->elements;
+}
+Complex VectorC::element( int i )
+{
+  return this->elements[i];
+}
+bool VectorC::dir()
+{
+  return this->direction;
+}
+// Setters
+void VectorC::setSize( int new_size )
+{
+  size = new_size;
+  return;
+}
+void VectorC::element( double element, int position )
+{
+  elements[ position ] = element;
+  return;
+}
+void VectorC::vector( double* element )
+{
+  for( int i=0; i<this->getSize(); i++ )
+  {
+    this->element( element[i], i );
+  }
+  return;
+}
+void VectorC::dir( bool new_direction )
+{
+  direction = new_direction;
+  return;
+}
 //------------------------------------------------------------------------------------------
 
 // Real
@@ -262,7 +343,7 @@ std::ostream& operator<<( std::ostream& os, const Matrix& matrix )
   }
   return os;
 }
-//==========================================================================================
+//------------------------------------------------------------------------------------------
 double* zeroVector( int size )
 {
   double* vector = (double*) malloc( size*sizeof(double) );
@@ -453,15 +534,14 @@ Complex inner( Complex* vector1, Complex* vector2, int size )
   }
   return inner;
 }
-/*
-Complex cross( Complex* vector1, Complex* vector2 )
+Complex* cross( Complex* vector1, Complex* vector2 )
 {
   Complex* cross_vector = (Complex*) malloc( 3*sizeof(Complex) );
-  cross_vector[0] = add( multiply( vector1[1], vector2[2] ), -multiply( vector1[2], vector2[1] ) );
-  cross_vector[1] = add( multiply( vector1[0], vector2[2] ), -multiply( vector1[2], vector2[0] ) );
-  cross_vector[2] = add( multiply( vector1[0], vector2[1] ), -multiply( vector1[1], vector2[0] ) );
+  cross_vector[0] = vector1[1]*vector2[2] - vector1[2]*vector2[1];
+  cross_vector[1] = vector1[0]*vector2[2] - vector1[2]*vector2[0];
+  cross_vector[2] = vector1[0]*vector2[1] - vector1[1]*vector2[0];
   return cross_vector;
-}*/
+}
 // Printing Matrix
 void printMatrixC( Complex* matrix, int size_x, int size_y )
 {
