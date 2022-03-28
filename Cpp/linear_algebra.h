@@ -16,7 +16,7 @@ class Vector
     // Variables
     double* elements;
     int size;
-    bool dir;
+    bool direction;
   public:
     // Constructors
     Vector();
@@ -29,10 +29,12 @@ class Vector
     int getSize();
     double* vector();
     double element( int i );
+    bool dir();
     // Setters
     void setSize( int size );
-    void setElements( double* element );
-    void setElement( double element, int position );
+    void element( double element, int position );
+    void vector( double* element );
+    void dir( bool new_direction );
 };
 class VectorC
 {

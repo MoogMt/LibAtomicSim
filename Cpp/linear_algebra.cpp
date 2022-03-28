@@ -21,13 +21,13 @@ Vector::Vector()
 {
   size = 0;
   elements = (double*) malloc( 0*sizeof(double) );
-  dir = false;
+  direction = false;
 }
 Vector::Vector( bool new_dir )
 {
   size = 0;
   elements = (double*) malloc( 0*sizeof(double) );
-  dir = new_dir;
+  direction = new_dir;
 }
 Vector::Vector( int new_size )
 {
@@ -37,7 +37,7 @@ Vector::Vector( int new_size )
   {
     elements[i]=0;
   }
-  dir = false;
+  direction = false;
 }
 Vector::Vector( int new_size, bool new_dir )
 {
@@ -47,7 +47,7 @@ Vector::Vector( int new_size, bool new_dir )
   {
     elements[i]=0;
   }
-  dir = new_dir;
+  direction = new_dir;
 }
 Vector::Vector( int new_size, double* new_elements )
 {
@@ -57,7 +57,7 @@ Vector::Vector( int new_size, double* new_elements )
   {
     elements[i] = new_elements[i];
   }
-  dir = false;
+  direction = false;
 }
 Vector::Vector( int new_size, double* new_elements, bool new_dir )
 {
@@ -67,7 +67,7 @@ Vector::Vector( int new_size, double* new_elements, bool new_dir )
   {
     elements[i] = new_elements[i];
   }
-  dir = new_dir;
+  direction = new_dir;
 }
 // Accessors
 int Vector::getSize()
@@ -82,23 +82,32 @@ double Vector::element( int i )
 {
   return this->elements[i];
 }
+bool Vector::dir()
+{
+  return this->direction;
+}
 // Setters
 void Vector::setSize( int new_size )
 {
   size = new_size;
   return;
 }
-void Vector::setElement( double element, int position )
+void Vector::element( double element, int position )
 {
-  this->elements[ position ] = element;
+  elements[ position ] = element;
   return;
 }
-void Vector::setElements( double* element )
+void Vector::vector( double* element )
 {
   for( int i=0; i<this->getSize(); i++ )
   {
-    this->setElement( element[i], i );
+    this->element( element[i], i );
   }
+  return;
+}
+void Vector::dir( bool new_direction )
+{
+  direction=new_direction;
   return;
 }
 //
