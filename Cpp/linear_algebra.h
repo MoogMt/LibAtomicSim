@@ -105,6 +105,7 @@ class MatrixC
     // Constructors
     MatrixC();
     MatrixC( int size );
+    MatrixC( int size, Complex* new_elements );
     MatrixC( int size_x, int size_y );
     MatrixC( int new_size_x, int new_size_y, Complex* new_elements );
     // Accessors
@@ -124,6 +125,7 @@ class MatrixC
     // Basic Operators
     MatrixC operator+( MatrixC matrix );
     MatrixC operator-( MatrixC matrix );
+    MatrixC transpose();
     // Friend Operator
     friend std::ostream& operator<<( std::ostream& os, const MatrixC& matrix );
     friend bool sameDim( MatrixC matrix1, MatrixC matrix2 );

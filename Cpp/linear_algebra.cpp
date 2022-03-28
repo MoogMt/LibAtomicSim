@@ -365,6 +365,16 @@ MatrixC::MatrixC( int size )
     elements[i] = 0;
   }  
 }
+MatrixC::MatrixC( int size, Complex* new_elements )
+{
+  size_x   = size;
+  size_y   = size;
+  elements = (Complex*) malloc( size*size*sizeof(Complex) );
+  for( int i=0; i<size*size; i++ )
+  {
+    elements[i] = new_elements[i];
+  }  
+}
 MatrixC::MatrixC( int new_size_x, int new_size_y )
 {
   size_x = new_size_x;
@@ -492,6 +502,18 @@ MatrixC MatrixC::operator-( MatrixC matrix )
   {
     return MatrixC( this->sizex(), this->sizey() );
   }
+}
+MatrixC MatrixC::transpose()
+{
+  Complex* matrix_tranpose = zeroMatrixC( this->sizex() );
+  for( int i=0; i<this->sizex(); i++ )
+  {
+    for( int j=0; j<this->sizex(); j++ )
+    {
+      matrix_tranpose[ computeIndex(i,j,this->sizex()) ] = this->element(j,i);
+    }
+  }
+  return MatrixC(this->sizex(), matrix_tranpose );
 }
 // Friend Operators
 bool sameDim( MatrixC matrix1, MatrixC matrix2 )
@@ -657,7 +679,7 @@ Complex* zeroMatrixC( int size )
 {
   return zeroMatrixC( size, size);
 }
-Complex* eyeMatrixC( int size )
+Complex*  eyeMatrixC( int size )
 {
   Complex* matrix = (Complex*) malloc( size*size*sizeof(Complex) );
   for( int i=0; i<size; i++ )
