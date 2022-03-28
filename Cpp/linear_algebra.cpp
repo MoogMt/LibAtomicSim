@@ -15,7 +15,7 @@ int computeIndex( int line, int col, int line_dim )
   return line*line_dim + col;
 }
 
-// Vectors
+// Real Vectors
 //------------------------------------------------------------------------------------------
 // Constructors
 Vector::Vector()
@@ -112,7 +112,8 @@ void Vector::dir( bool new_direction )
   return;
 }
 //------------------------------------------------------------------------------------------
-// Complex
+
+// Complex Vectors
 //------------------------------------------------------------------------------------------
 // Constructors
 VectorC::VectorC()
@@ -174,12 +175,12 @@ void VectorC::setSize( int new_size )
   size = new_size;
   return;
 }
-void VectorC::element( double element, int position )
+void VectorC::element( Complex element, int position )
 {
   elements[ position ] = element;
   return;
 }
-void VectorC::vector( double* element )
+void VectorC::vector( Complex* element )
 {
   for( int i=0; i<this->getSize(); i++ )
   {
@@ -343,6 +344,179 @@ std::ostream& operator<<( std::ostream& os, const Matrix& matrix )
   }
   return os;
 }
+//------------------------------------------------------------------------------------------
+
+// Complex Matrix
+//------------------------------------------------------------------------------------------
+// Constructors
+MatrixC::MatrixC()
+{
+  size_x = 0;
+  size_y = 0;
+  elements = (Complex*) malloc( 0*sizeof(Complex) );
+}
+MatrixC::MatrixC( int size )
+{
+  size_x   = size;
+  size_y   = size;
+  elements = (Complex*) malloc( size*size*sizeof(Complex) );
+  for( int i=0; i<size*size; i++ )
+  {
+    elements[i] = 0;
+  }  
+}
+MatrixC::MatrixC( int new_size_x, int new_size_y )
+{
+  size_x = new_size_x;
+  size_y = new_size_y;
+  elements = (Complex*) malloc( size_x*size_y*sizeof(Complex) );
+  for( int i=0; i<size_x*size_y; i++ )
+  {
+    elements[i] = 0;
+  }
+}
+MatrixC::MatrixC( int new_size_x, int new_size_y, Complex* new_elements )
+{
+  size_x = new_size_x;
+  size_y = new_size_y;
+  elements = (Complex*) malloc( size_x*size_y*sizeof(Complex) );
+  for( int i=0; i<size_x*size_y; i++ )
+  {
+    elements[i] = new_elements[i];
+  }
+}
+// Accessors
+int MatrixC::sizex()
+{
+  return this->size_x;
+}
+int MatrixC::sizey()
+{
+  return this->size_y;
+}
+Complex* MatrixC::matrix()
+{
+  return this->elements;
+}
+Complex MatrixC::element( int i, int j )
+{
+  return this->elements[ computeIndex( i, j, this->sizex() ) ];
+}
+// Setters
+void MatrixC::sizex( int new_size_x )
+{
+  size_x = new_size_x;
+  return;
+}
+void MatrixC::sizey( int new_size_y )
+{
+  size_y = new_size_y;
+  return;
+}
+void MatrixC::matrix( Complex* matrix )
+{
+  int size_x1 = this->sizex();
+  int size_y1 = this->sizey();
+  for( int i=0; i<size_x1; i++ )
+  {
+    for( int j=0; j<size_y1; j++ )
+    {
+      this->elements[ computeIndex(i,j,size_x1 ) ] = matrix[ computeIndex(i,j,size_x1) ];
+    }
+  }
+  return;
+}
+void MatrixC::element( Complex element, int pos_x, int pos_y )
+{
+  int size_x1 = this->sizex();
+  int size_y1 = this->sizey();
+  this->elements[ computeIndex(pos_x,pos_y,size_x1 ) ] = element;
+  return;
+}
+// Identity Matrix
+void MatrixC::eye( int size )
+{
+  size_x = size;
+  size_y = size;
+  elements = (Complex*) malloc( size*size*sizeof(Complex) );
+  for( int i=0; i<size; i++ )
+  {
+    for( int j=0; j<size; j++ )
+    {
+      if( i == j )
+      {
+        elements[ computeIndex(i,j,size) ] = 1;
+      }
+      else
+      {
+        elements[ computeIndex(i,j,size) ] = 0;
+      }
+    }
+  }
+  return; 
+}
+MatrixC MatrixC::operator+( MatrixC matrix )
+{
+  Complex* elements = (Complex*) malloc( sizeof( matrix.sizex()*matrix.sizey()*sizeof(Complex) ) );
+  if( sameDim( *this, matrix )  )
+  {
+    for( int i=0; i<matrix.sizex() ; i++ )
+    {
+      for( int j=0; j<matrix.sizey() ; j++ )
+      {
+        elements[ computeIndex(i,j,matrix.sizex()) ] = this->element(i,j) + matrix.element(i,j);
+      }
+    }
+    return MatrixC( matrix.sizex(), matrix.sizey(), elements );
+  }
+  else
+  {
+    return MatrixC( this->sizex(), this->sizey() );
+  }
+}
+MatrixC MatrixC::operator-( MatrixC matrix )
+{
+  Complex* elements = (Complex*) malloc( sizeof( matrix.sizex()*matrix.sizey()*sizeof(Complex) ) );
+  if( sameDim( *this, matrix )  )
+  {
+    for( int i=0; i<matrix.sizex() ; i++ )
+    {
+      for( int j=0; j<matrix.sizey() ; j++ )
+      {
+        elements[ computeIndex(i,j,matrix.sizex()) ] = this->element(i,j) + matrix.element(i,j);
+      }
+    }
+    return MatrixC( matrix.sizex(), matrix.sizey(), elements );
+  }
+  else
+  {
+    return MatrixC( this->sizex(), this->sizey() );
+  }
+}
+// Friend Operators
+bool sameDim( MatrixC matrix1, MatrixC matrix2 )
+{
+  if( matrix1.sizex() == matrix2.sizex() && matrix1.sizey() == matrix2.sizey() )
+  {
+    return true;
+  }
+  else return false;
+}
+std::ostream& operator<<( std::ostream& os, const MatrixC& matrix )
+{
+  for( int j=0; j<matrix.size_y ; j++ )
+  {
+    for( int i=0; i<matrix.size_x ; i++ )
+    {
+      os << matrix.elements[ computeIndex(i,j,matrix.size_x)] << " ";
+    }
+    os << std::endl;
+  }
+  return os;
+}
+//------------------------------------------------------------------------------------------
+
+// Real 
 //------------------------------------------------------------------------------------------
 double* zeroVector( int size )
 {

@@ -58,8 +58,8 @@ class VectorC
     bool dir();
     // Setters
     void setSize( int size );
-    void element( double element, int position );
-    void vector( double* element );
+    void element( Complex element, int position );
+    void vector( Complex* element );
     void dir( bool new_direction );
 };
 class Matrix
@@ -85,7 +85,6 @@ class Matrix
     void sizey( int size_y );
     void matrix( double* matrix );
     void element( double element, int pos_x, int pos_y );
-
     // Self Operators
     // Init
     void eye( int size );
@@ -97,11 +96,37 @@ class Matrix
 };
 class MatrixC
 {
-  public:
+  protected:
     // Class variables
     Complex* elements;
     int size_x;
     int size_y;
+  public:
+    // Constructors
+    MatrixC();
+    MatrixC( int size );
+    MatrixC( int size_x, int size_y );
+    MatrixC( int new_size_x, int new_size_y, Complex* new_elements );
+    // Accessors
+    int sizex();
+    int sizey();
+    Complex* matrix();
+    Complex element( int i, int j );
+    // Setters
+    void sizex( int size_x );
+    void sizey( int size_y );
+    void matrix( Complex* matrix );
+    void element( Complex element, int pos_x, int pos_y );
+
+    // Self Operators
+    // Init
+    void eye( int size );
+    // Basic Operators
+    MatrixC operator+( MatrixC matrix );
+    MatrixC operator-( MatrixC matrix );
+    // Friend Operator
+    friend std::ostream& operator<<( std::ostream& os, const MatrixC& matrix );
+    friend bool sameDim( MatrixC matrix1, MatrixC matrix2 );
 };
 //----------------------------------
 
