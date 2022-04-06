@@ -332,6 +332,111 @@ void Vector::dir( bool new_direction )
   direction=new_direction;
   return;
 }
+// Operator
+Vector Vector::operator+( Vector vector1 )
+{
+  Vector vector_out( this->getSize(), this->vector(), this->dir() );
+  try
+  {
+    if( this->dir() != vector1.dir() )
+    {
+      throw(0);
+    }
+    else if ( this->getSize() == vector1.getSize() )
+    {
+      throw(1);
+    }
+    else
+    {
+      for( int i=0 ; i<vector1.getSize() ; i++ )
+      {
+        vector_out.coef( vector_out.coef(i) + vector1.coef(i), i );
+      }
+    }
+  }
+  catch( int err )
+  {
+    if( err == 0 )
+    {
+      std::cerr << "Orientation of the two vectors did not match" << std::endl;
+    }
+    else if( err == 1 )
+    {
+      std::cerr << "The size of the two vectors do not match." << std::endl;
+    }
+  }
+  return vector_out;
+  //catch(const std::exception& e)
+}
+Vector Vector::operator-( Vector vector1 )
+{
+  Vector vector_out( this->getSize(), this->vector(), this->dir() );
+  try
+  {
+    if( this->dir() != vector1.dir() )
+    {
+      throw(0);
+    }
+    else if ( this->getSize() == vector1.getSize() )
+    {
+      throw(1);
+    }
+    else
+    {
+      for( int i=0 ; i<vector1.getSize() ; i++ )
+      {
+        vector_out.coef( vector_out.coef(i) - vector1.coef(i), i );
+      }
+    }
+  }
+  catch( int err )
+  {
+    if( err == 0 )
+    {
+      std::cerr << "Orientation of the two vectors did not match" << std::endl;
+    }
+    else if( err == 1 )
+    {
+      std::cerr << "The size of the two vectors do not match." << std::endl;
+    }
+  }
+  return vector_out;
+  //catch(const std::exception& e)
+}
+Vector Vector::operator*( Vector vector1 )
+{
+  Vector vector_out( this->getSize(), this->vector(), this->dir() );
+  try
+  {
+    if( this->dir() != vector1.dir() )
+    {
+      throw(0);
+    }
+    else if ( this->getSize() == vector1.getSize() )
+    {
+      throw(1);
+    }
+    else
+    {
+      for( int i=0 ; i<vector1.getSize() ; i++ )
+      {
+        vector_out.coef( vector_out.coef(i) * vector1.coef(i), i );
+      }
+    }
+  }
+  catch( int err )
+  {
+    if( err == 0 )
+    {
+      std::cerr << "Orientation of the two vectors did not match" << std::endl;
+    }
+    else if( err == 1 )
+    {
+      std::cerr << "The size of the two vectors do not match." << std::endl;
+    }
+  }
+  return vector_out;
+}
 //------------------------------------------------------------------------------------------
 
 // Complex Vectors
@@ -361,7 +466,7 @@ VectorC::VectorC( int new_size, bool new_dir )
   direction = new_size;
   coefficients = zeroVectorC( new_size );
 }
-VectorC::VectorC( int new_size, Complex* new_coefficients)
+VectorC::VectorC( int new_size, Complex* new_coefficients )
 {
   size = new_size;
   direction = false;  

@@ -74,6 +74,10 @@ class Vector
     void coef( double new_coef, int position );
     void vector( double* new_vector );
     void dir( bool new_direction );
+    // Operator
+    Vector operator+( Vector vector1 );
+    Vector operator-( Vector vector1 );
+    Vector operator*( Vector vector1 );
 };
 class VectorC
 {
@@ -152,7 +156,8 @@ class MatrixC
     MatrixC( int size, Complex* new_coefficients );
     MatrixC( int size_x, int size_y );
     MatrixC( int new_size_x, int new_size_y, Complex* new_coefficients );
-    // Accessors
+    // Accessors    void row( int row_nb, double* new_row );
+    void col( int col_nb, double* new_col );
     int sizex();
     int sizey();
     Complex* matrix();
