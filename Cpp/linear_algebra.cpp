@@ -460,6 +460,50 @@ double* Matrix::matrix()
 {
   return this->coefficients;
 }
+double* Matrix::row( int row_nb )
+{
+  double* row = (double*) malloc( this->sizex()*sizeof(double) );
+  try{ 
+    if( row_nb < this->sizex() )
+    {
+      for( int i=0; i< this->sizey(); i++ )
+      {
+        row[i] = this->coef( row_nb, i );
+     }
+    }
+    else
+    {
+      throw(0);
+    }
+  }
+  catch( int err )
+  {
+    std::cout << "Target row index exceeds matri size." << std::endl;
+  }
+  return row;
+}
+double* Matrix::col( int col_nb )
+{
+  double* col = (double*) malloc( this->sizex()*sizeof(double) );
+  try{ 
+    if( col_nb < this->sizey() )
+    {
+      for( int i=0; i< this->sizex(); i++ )
+      {
+        col[i] = this->coef( i, col_nb );
+     }
+    }
+    else
+    {
+      throw(0);
+    }
+  }
+  catch( int err )
+  {
+    std::cout << "Target row index exceeds matrix size." << std::endl;
+  }
+  return col;
+}
 double Matrix::coef( int i, int j )
 {
   return this->coefficients[ computeIndex( i, j, this->sizex() ) ];
@@ -478,6 +522,50 @@ void Matrix::sizey( int new_size_y )
 void Matrix::coef( double new_coef, int coef_x, int coef_y )
 {
   this->coef( new_coef, coef_x, coef_y );
+  return;
+}
+void Matrix::row( int row_nb, double* new_row )
+{
+  try
+  {
+    if( row_nb < this->sizex() )
+    {
+      for( int i=0; i<this->sizey(); i++ )
+      {
+        this->coef( new_row[i], row_nb, i );
+      }
+    }
+    else
+    {
+      throw(0);
+    }
+  }
+  catch( int err )
+  {
+    std::cout << "Row number exceeds matrix size." << std::endl;
+  }
+  return;
+}
+void Matrix::col( int col_nb, double* new_col )
+{
+  try
+  {
+    if( col_nb < this->sizey() )
+    {
+      for( int i=0; i<this->sizex() ; i++ )
+      {
+        this->coef( new_col[i], i, col_nb );
+      }
+    }
+    else
+    {
+      throw(0);
+    }
+  }
+  catch( int err )
+  {
+    std::cout << "Row number exceeds matrix size." << std::endl;
+  }
   return;
 }
 void Matrix::matrix( double* matrix )
@@ -610,6 +698,50 @@ Complex* MatrixC::matrix()
 {
   return this->coefficients;
 }
+Complex* MatrixC::row( int row_nb )
+{
+  Complex* row = (Complex*) malloc( this->sizex()*sizeof(Complex) );
+  try{ 
+    if( row_nb < this->sizex() )
+    {
+      for( int i=0; i< this->sizey(); i++ )
+      {
+        row[i] = this->coef( row_nb, i );
+     }
+    }
+    else
+    {
+      throw(0);
+    }
+  }
+  catch( int err )
+  {
+    std::cout << "Target row index exceeds matri size." << std::endl;
+  }
+  return row;
+}
+Complex* MatrixC::col( int col_nb )
+{
+  Complex* col = (Complex*) malloc( this->sizex()*sizeof(Complex) );
+  try{ 
+    if( col_nb < this->sizey() )
+    {
+      for( int i=0; i< this->sizex(); i++ )
+      {
+        col[i] = this->coef( i, col_nb );
+     }
+    }
+    else
+    {
+      throw(0);
+    }
+  }
+  catch( int err )
+  {
+    std::cout << "Target row index exceeds matrix size." << std::endl;
+  }
+  return col;
+}
 Complex MatrixC::coef( int i, int j )
 {
   return this->coefficients[ computeIndex( i, j, this->sizex() ) ];
@@ -635,6 +767,50 @@ void MatrixC::matrix( Complex* coefficients )
     {
       this->coefficients[ computeIndex(i,j,size_x1 ) ] = coefficients[ computeIndex(i,j,size_x1) ];
     }
+  }
+  return;
+}
+void MatrixC::row( int row_nb, Complex* new_row )
+{
+  try
+  {
+    if( row_nb < this->sizex() )
+    {
+      for( int i=0; i<this->sizey(); i++ )
+      {
+        this->coef( new_row[i], row_nb, i );
+      }
+    }
+    else
+    {
+      throw(0);
+    }
+  }
+  catch( int err )
+  {
+    std::cout << "Row number exceeds matrix size." << std::endl;
+  }
+  return;
+}
+void MatrixC::col( int col_nb, Complex* new_col )
+{
+  try
+  {
+    if( col_nb < this->sizey() )
+    {
+      for( int i=0; i<this->sizex() ; i++ )
+      {
+        this->coef( new_col[i], i, col_nb );
+      }
+    }
+    else
+    {
+      throw(0);
+    }
+  }
+  catch( int err )
+  {
+    std::cout << "Row number exceeds matrix size." << std::endl;
   }
   return;
 }

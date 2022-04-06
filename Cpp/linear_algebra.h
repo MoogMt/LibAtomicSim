@@ -118,11 +118,15 @@ class Matrix
     int sizex();
     int sizey();
     double* matrix();
+    double* row( int row_nb );
+    double* col( int col_nb );
     double coef( int i, int j );
     // Setters
     void sizex( int size_x );
     void sizey( int size_y );
     void matrix( double* matrix );
+    void row( int row_nb, double* new_row );
+    void col( int col_nb, double* new_col );
     void coef( double new_coef, int coef_x, int coef_y );
     // Self Operators
     // Init
@@ -152,13 +156,16 @@ class MatrixC
     int sizex();
     int sizey();
     Complex* matrix();
+    Complex* row( int row_nb );
+    Complex* col( int col_nb );
     Complex coef( int i, int j );
     // Setters
     void sizex( int size_x );
     void sizey( int size_y );
     void matrix( Complex* matrix );
+    void row( int row_nb, Complex* new_row );
+    void col( int col_nb, Complex* new_col );
     void coef( Complex new_coef, int coef_x, int coef_y );
-
     // Self Operators
     // Init
     void eye( int size );
