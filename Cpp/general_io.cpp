@@ -5,6 +5,8 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <iostream>
+#include <sstream>
 
 #include "general_io.h"
 
@@ -53,4 +55,27 @@ int getNumberLine( std::string file_path )
   number_line = getNumberLineIO(file_handler);
   file_handler.close();
   return number_line;
+}
+
+int countElement( std::string line, char delim )
+{
+  int counter=0;
+  std::string buffer;
+  stringstream line_stream(line);
+  while( getline( line_stream, buffer, delim ) )
+  {
+    counter++;
+  }
+  return counter;
+}
+
+std::string* splitString( std::string target_string, char delim )
+{
+  int nb_element = countElement( target_string, delim );
+  std::string string_element;
+  stringstream string_stream(target_string);
+  std::string split_string[nb_element];
+  getline( string_stream, string_element, delim );
+  split_string[0] = string_element;
+  return split_string;
 }

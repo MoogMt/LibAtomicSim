@@ -12,7 +12,6 @@ std::string* initWordVector( int number );
 //-------------------------------------------------------
 void indexOutOfBondError( int index, int max_index );
 //-------------------------------------------------------
-
 // Cell Matrix
 //-------------------------------------------------------
 double* initCellMatrix();

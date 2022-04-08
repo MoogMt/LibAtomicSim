@@ -17,9 +17,14 @@ lib: $(OBJ)
 
 # Make test scripts
 #-------------------------------------
-OBJtest= linear_algebra.o complex_numbers.o general_io.o test.o utils.o traj.o frame.o
+# General testing (matrix, file i/o)
+OBJtest=linear_algebra.o complex_numbers.o general_io.o utils.o traj.o frame.o test.o 
 test: $(OBJtest)
-	 $(CPP) -o $@ $^ $(CFLAGS)
+		$(CPP) -o $@ $^ $(CFLAGS)
+# File I/O testing
+OBJfile= linear_algebra.o complex_numbers.o general_io.o utils.o traj.o frame.o test_file.o
+test_file: $(OBJfile)
+		$(CPP) -o $@ $^ $(CFLAGS)
 #-------------------------------------
 
 # Clean
