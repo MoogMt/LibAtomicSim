@@ -71,19 +71,30 @@ def readFtraj( file_input, correctness ):
     nb_step, nb_atoms, nb_lines = getNbStepAtomLinesFtraj( file_input )
     if nb_lines % nb_atoms != 0 and not correctness:
         return False
-    positions  = np.zeros(( nb_step, nb_atoms, 3 ))
-    velocities = np.zeros(( nb_step, nb_atoms, 3 ))
-    forces     = np.zeros(( nb_step, nb_atoms, 3 ))        
+    # Init vectors
+    positions  = np.zeros( ( nb_step, nb_atoms, 3 ), dtype=float )
+    velocities = np.zeros( ( nb_step, nb_atoms, 3 ), dtype=float )
+    forces     = np.zeros( ( nb_step, nb_atoms, 3 ), dtype=float )        
+    # Open file
     handle_in = open( file_input )
+    # Loop over steps
     for step in range(nb_step):
+        # Loop over atoms
         for atom in range(nb_atoms):
+            # Read line
             all_line = handle_in.readline()
+            # Parse Line
             line = all_line.rsplit()
+            # Remove lines with issues
             if line[0] != "<<<<<<" :
+                # Loop over dimensions
                 for i in range(3):
-                    positions[ step, atom, i ]  = line[ i + 1 ]
+                    # Positions
+                    positions[  step, atom, i ] = line[ i + 1 ]
+                    # Velocities
                     velocities[ step, atom, i ] = line[ i + 4 ]
-                    forces[ step, atom, i ]     = line[ i + 7 ]
+                    # Forces
+                    forces[     step, atom, i ] = line[ i + 7 ]
     handle_in.close()
     return positions, velocities, forces
 

@@ -14,10 +14,7 @@ import numpy as np
 
 #------------------------------------------------------
 def getNbAtoms( file_path ):
-    handle_in = open( file_path , "r")
-    
-    nb_atoms = 0
-    
+    with open( file_input ) as handle_in:
     
     return nb_atoms
 #------------------------------------------------------
